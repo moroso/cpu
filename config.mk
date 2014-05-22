@@ -4,7 +4,11 @@
 RTL_COMMON = \
 	rtl/mcpu.v
 
-RTL_FPGA =
+RTL_FPGA = \
+	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
+	rtl/mc/lpddr2_phy.v \
+	rtl/mc/MCPU_mc.v
+	
 RTL_SIM =
 
 SIM_TOP_FILE = mcpu.v
@@ -18,4 +22,5 @@ FPGA_PROJ = mcpu
 # FPGA_TOOL_BITS = --64bit
 
 # .vh files
-RTL_INC =
+RTL_INC = \
+	$(wildcard rtl/mc/lpddr2_phy/*.hex)
