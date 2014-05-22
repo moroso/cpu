@@ -1,0 +1,1 @@
+../rtl/mc/lpddr2_phy/lpddr2_phy_s0_make_qsys_seq.tcl

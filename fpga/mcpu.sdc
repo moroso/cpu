@@ -1,5 +1,5 @@
 # Clock constraints
-create_clock -name "clk125" -period 8.000ns [get_ports {PIN_U12}]
+create_clock -name "clk125" -period 8.000ns pad_clk125
 
 # Automatically constrain PLL and other generated clocks
 derive_pll_clocks -create_base_clocks
@@ -16,3 +16,5 @@ derive_clock_uncertainty
 
 # tpd constraints
 
+source "altera_reset_controller.sdc"
+source "lpddr2_phy_p0.sdc"

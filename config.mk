@@ -11,6 +11,10 @@ RTL_FPGA = \
 	
 RTL_SIM =
 
+# .vh files and other misc things needed for sim or synth
+RTL_INC = \
+	$(wildcard rtl/mc/lpddr2_phy/*.hex)
+
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu
 
@@ -21,6 +25,3 @@ FPGA_PROJ = mcpu
 #
 # FPGA_TOOL_BITS = --64bit
 
-# .vh files
-RTL_INC = \
-	$(wildcard rtl/mc/lpddr2_phy/*.hex)

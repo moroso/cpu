@@ -1,3 +1,7 @@
+############################################################################
+# Part setup and boilerplate
+############################################################################
+
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CGXFC5C6F27C7
 set_global_assignment -name LAST_QUARTUS_VERSION 13.1
@@ -13,16 +17,306 @@ set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_RO
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "NO HEAT SINK WITH STILL AIR"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
-set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
-set_global_assignment -name SDC_FILE "mcpu.sdc"
+
+
+############################################################################
+# Synthesis setup
+############################################################################
+
+set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name ECO_REGENERATE_REPORT ON
+
+
+
+############################################################################
+# Project setup
+############################################################################
 
 set_global_assignment -name TOP_LEVEL_ENTITY mcpu
+set_global_assignment -name SDC_FILE "mcpu.sdc"
+# LPDDR2 SDC included in mcpu.sdc now
 
-set_location_assignment PIN_U12 -to clk125
-set_instance_assignment -name IO_STANDARD LVDS -to clk125
-set_location_assignment PIN_V12 -to "clk125(n)"
 
-set_location_assignment PIN_F7 -to led
+############################################################################
+# Pin configuration: GPIO
+############################################################################
+
+set_instance_assignment -name IO_STANDARD LVDS -to pad_clk125
+set_location_assignment PIN_U12 -to pad_clk125
+set_location_assignment PIN_V12 -to "pad_clk125(n)"
+
+set_location_assignment PIN_L7 -to pad_led_g[0]
+set_location_assignment PIN_K6 -to pad_led_g[1]
+set_location_assignment PIN_D8 -to pad_led_g[2]
+set_location_assignment PIN_E9 -to pad_led_g[3]
+set_location_assignment PIN_A5 -to pad_led_g[4]
+set_location_assignment PIN_B6 -to pad_led_g[5]
+set_location_assignment PIN_H8 -to pad_led_g[6]
+set_location_assignment PIN_H9 -to pad_led_g[7]
+
+
+############################################################################
+# Pin/route configuration: LPDDR2
+############################################################################
+
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[1]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[1]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[2]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[2]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[3]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[3]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[4]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[4]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[5]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[5]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[6]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[6]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[7]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[7]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[8]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[8]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[9]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[9]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[10]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[10]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[11]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[11]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[12]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[12]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[13]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[13]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[14]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[14]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[15]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[15]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[16]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[16]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[17]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[17]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[18]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[18]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[19]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[19]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[20]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[20]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[21]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[21]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[22]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[22]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[23]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[23]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[24]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[24]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[25]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[25]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[26]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[26]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[27]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[27]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[28]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[28]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[29]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[29]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[30]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[30]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dq[31]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dq[31]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs[1]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs[1]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs[2]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs[2]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs[3]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs[3]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs_n[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs_n[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs_n[1]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs_n[1]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs_n[2]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs_n[2]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_dqs_n[3]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dqs_n[3]
+set_instance_assignment -name D5_DELAY 3 -to pad_mem_ck[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_ck[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ck[0]
+set_instance_assignment -name D5_DELAY 3 -to pad_mem_ck_n[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V HSUL" -to pad_mem_ck_n[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ck_n[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[1]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[1]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[2]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[2]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[3]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[3]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[4]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[4]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[5]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[5]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[6]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[6]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[7]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[7]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[8]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[8]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_ca[9]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_ca[9]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_cke[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_cke[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_cs_n[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_cs_n[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dm[0]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dm[0]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dm[1]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dm[1]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dm[2]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dm[2]
+set_instance_assignment -name IO_STANDARD "1.2-V HSUL" -to pad_mem_dm[3]
+set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to pad_mem_dm[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[1]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[2]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[4]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[5]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[6]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[7]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[8]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[9]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[10]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[11]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[12]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[13]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[14]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[15]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[16]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[17]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[18]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[19]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[20]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[21]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[22]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[23]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[24]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[25]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[26]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[27]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[28]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[29]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[30]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dq[31]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dm[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dm[1]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dm[2]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dm[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs[1]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs[2]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs_n[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs_n[1]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs_n[2]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_dqs_n[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[1]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[2]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[3]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[4]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[5]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[6]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[7]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[8]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ca[9]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_cke[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_cs_n[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ck[0]
+set_instance_assignment -name PACKAGE_SKEW_COMPENSATION OFF -to pad_mem_ck_n[0]
+set_instance_assignment -name GLOBAL_SIGNAL "DUAL-REGIONAL CLOCK" -to u_mc|lpddr2_phy_inst|pll0|pll_avl_clk
+set_instance_assignment -name GLOBAL_SIGNAL "DUAL-REGIONAL CLOCK" -to u_mc|lpddr2_phy_inst|pll0|pll_config_clk
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|ureset|phy_reset_mem_stable_n
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|ureset|phy_reset_n
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|s0|sequencer_rw_mgr_inst|rw_mgr_inst|rw_mgr_core_inst|rw_soft_reset_n
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uio_pads|dq_ddio[0].read_capture_clk_buffer
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_write_side[0]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_wraddress[0]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uio_pads|dq_ddio[1].read_capture_clk_buffer
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_write_side[1]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_wraddress[1]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uio_pads|dq_ddio[2].read_capture_clk_buffer
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_write_side[2]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_wraddress[2]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uio_pads|dq_ddio[3].read_capture_clk_buffer
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_write_side[3]
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to u_mc|lpddr2_phy_inst|p0|umemphy|uread_datapath|reset_n_fifo_wraddress[3]
+set_instance_assignment -name ENABLE_BENEFICIAL_SKEW_OPTIMIZATION_FOR_NON_GLOBAL_CLOCKS ON -to if0
+set_instance_assignment -name PLL_COMPENSATION_MODE DIRECT -to u_mc|lpddr2_phy_inst|pll0|fbout
+set_global_assignment -name USE_DLL_FREQUENCY_FOR_DQS_DELAY_CHAIN ON
+set_global_assignment -name UNIPHY_SEQUENCER_DQS_CONFIG_ENABLE ON
+set_location_assignment PIN_AB11 -to pad_mem_ca[9]
+set_location_assignment PIN_AB12 -to pad_mem_ca[8]
+set_location_assignment PIN_AF9 -to pad_mem_ca[7]
+set_location_assignment PIN_AE9 -to pad_mem_ca[6]
+set_location_assignment PIN_U11 -to pad_mem_ca[5]
+set_location_assignment PIN_U10 -to pad_mem_ca[4]
+set_location_assignment PIN_AF8 -to pad_mem_ca[3]
+set_location_assignment PIN_AF7 -to pad_mem_ca[2]
+set_location_assignment PIN_AF6 -to pad_mem_ca[1]
+set_location_assignment PIN_AE6 -to pad_mem_ca[0]
+set_location_assignment PIN_N10 -to pad_mem_ck[0]
+set_location_assignment PIN_AF14 -to pad_mem_cke[0]
+set_location_assignment PIN_R11 -to pad_mem_cs_n[0]
+set_location_assignment PIN_AE24 -to pad_mem_dm[3]
+set_location_assignment PIN_AE20 -to pad_mem_dm[2]
+set_location_assignment PIN_AE18 -to pad_mem_dm[1]
+set_location_assignment PIN_AF11 -to pad_mem_dm[0]
+set_location_assignment PIN_AF23 -to pad_mem_dq[31]
+set_location_assignment PIN_AD23 -to pad_mem_dq[30]
+set_location_assignment PIN_AF17 -to pad_mem_dq[29]
+set_location_assignment PIN_AF16 -to pad_mem_dq[28]
+set_location_assignment PIN_AD21 -to pad_mem_dq[27]
+set_location_assignment PIN_AC20 -to pad_mem_dq[26]
+set_location_assignment PIN_AE16 -to pad_mem_dq[25]
+set_location_assignment PIN_AE15 -to pad_mem_dq[24]
+set_location_assignment PIN_AE21 -to pad_mem_dq[23]
+set_location_assignment PIN_AF21 -to pad_mem_dq[22]
+set_location_assignment PIN_AB17 -to pad_mem_dq[21]
+set_location_assignment PIN_AC17 -to pad_mem_dq[20]
+set_location_assignment PIN_AF19 -to pad_mem_dq[19]
+set_location_assignment PIN_AC18 -to pad_mem_dq[18]
+set_location_assignment PIN_AD17 -to pad_mem_dq[17]
+set_location_assignment PIN_AD16 -to pad_mem_dq[16]
+set_location_assignment PIN_AF18 -to pad_mem_dq[15]
+set_location_assignment PIN_AE14 -to pad_mem_dq[14]
+set_location_assignment PIN_AA16 -to pad_mem_dq[13]
+set_location_assignment PIN_AB16 -to pad_mem_dq[12]
+set_location_assignment PIN_AF13 -to pad_mem_dq[11]
+set_location_assignment PIN_AC14 -to pad_mem_dq[10]
+set_location_assignment PIN_AB15 -to pad_mem_dq[9]
+set_location_assignment PIN_AC15 -to pad_mem_dq[8]
+set_location_assignment PIN_AF12 -to pad_mem_dq[7]
+set_location_assignment PIN_AD10 -to pad_mem_dq[6]
+set_location_assignment PIN_W12 -to pad_mem_dq[5]
+set_location_assignment PIN_Y13 -to pad_mem_dq[4]
+set_location_assignment PIN_AD12 -to pad_mem_dq[3]
+set_location_assignment PIN_AD11 -to pad_mem_dq[2]
+set_location_assignment PIN_Y14 -to pad_mem_dq[1]
+set_location_assignment PIN_AA14 -to pad_mem_dq[0]
+set_location_assignment PIN_W16 -to pad_mem_dqs[3]
+set_location_assignment PIN_V15 -to pad_mem_dqs[2]
+set_location_assignment PIN_U14 -to pad_mem_dqs[1]
+set_location_assignment PIN_V13 -to pad_mem_dqs[0]
+set_location_assignment PIN_AE11 -to pad_mem_oct_rzqin
+set_location_assignment PIN_P10 -to pad_mem_ck_n[0]
+set_location_assignment PIN_W17 -to pad_mem_dqs_n[3]
+set_location_assignment PIN_W15 -to pad_mem_dqs_n[2]
+set_location_assignment PIN_V14 -to pad_mem_dqs_n[1]
+set_location_assignment PIN_W13 -to pad_mem_dqs_n[0]
+set_instance_assignment -name IO_STANDARD "1.2 V" -to pad_mem_oct_rzqin

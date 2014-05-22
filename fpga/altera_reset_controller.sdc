@@ -1,0 +1,1 @@
+../rtl/mc/lpddr2_phy/altera_reset_controller.sdc
