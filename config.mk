@@ -27,3 +27,31 @@ FPGA_PROJ = mcpu
 #
 # FPGA_TOOL_BITS = --64bit
 
+### Tests ###
+
+# Testplans available:
+#  L0: basic sanity: L0 should pass *quickly*.
+#  L1: slightly longer tests: L1 may take a little longer.
+#  L9: randoms: L9 is expected to grow to be an hour or so.
+
+ALL_TESTPLANS = L0 L1 L9
+
+TESTPLAN_L0_name  = level0 sanity
+TESTPLAN_L0_tests =
+
+TESTPLAN_L1_name  = level1 regressions
+TESTPLAN_L1_tests = 
+
+TESTPLAN_L9_name  = level9 randoms
+TESTPLAN_L9_tests =
+
+# L2C tests
+
+TB_ltc_basic_top  = MCPU_MEM_ltc
+TB_ltc_basic_cpps = ltc_basic.cpp
+ALL_TBS += ltc_basic
+
+TEST_ltc_basic_tb   = ltc_basic
+TEST_ltc_basic_env  =
+TESTPLAN_L0_tests += ltc_basic
+ALL_TESTS += ltc_basic
