@@ -118,7 +118,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		ltc2mc_avl_be_0 = 16'b0;
 		ltc2mc_avl_burstbegin_0 = 1'b0;
 		ltc2mc_avl_read_req_0 = 1'b0;
-		ltc2mc_avl_size_0 = 4'b0;
+		ltc2mc_avl_size_0 = 5'b0;
 		ltc2mc_avl_wdata_0 = 128'b0;
 		ltc2mc_avl_write_req_0 = 1'b0;
 		
