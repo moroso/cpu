@@ -48,7 +48,7 @@ TESTPLAN_L9_tests =
 # L2C tests
 
 TB_ltc_basic_top  = MCPU_MEM_ltc
-TB_ltc_basic_cpps = ltc_basic.cpp Cmod_MCPU_MEM_mc.cpp
+TB_ltc_basic_cpps = ltc_basic.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp
 ALL_TBS += ltc_basic
 
 TEST_ltc_basic_tb   = ltc_basic
