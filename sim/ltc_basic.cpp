@@ -31,6 +31,8 @@ int main(int argc, char **argv, char **env) {
 	ltc->eval();
 	ltc->clkrst_mem_rst_n = 0;
 	ltc->eval();
+	ltc->clkrst_mem_rst_n = 1;
+	ltc->eval();
 	
 	while (!stim->done() || !check->done()) {
 		mc_cmod->clk_pre();
