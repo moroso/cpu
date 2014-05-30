@@ -26,7 +26,7 @@ void Stim_MCPU_MEM_ltc::write(uint32_t addr, uint8_t data[32], uint32_t be, int 
 	Stim_MCPU_MEM_ltc::Command cmd;
 	int i;
 	
-	cmd.opcode = through ? LTC_OPC_WRITETHROUGH : LTC_OPC_READTHROUGH;
+	cmd.opcode = through ? LTC_OPC_WRITETHROUGH : LTC_OPC_WRITE;
 	cmd.addr = addr;
 	for (i = 0; i < 8; i++)
 		cmd.wdata[i] =
