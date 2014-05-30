@@ -4,6 +4,7 @@
 #include "VMCPU_MEM_ltc.h"
 #include "Cmod_MCPU_MEM_mc.h"
 #include "Stim_MCPU_MEM_ltc.h"
+#include "Check_MCPU_MEM_ltc.h"
 
 #define CYCLE_LIMIT 100000
 
@@ -14,6 +15,7 @@ int main(int argc, char **argv, char **env) {
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_CONNECT(*ltc));
 	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
+	Check_MCPU_MEM_ltc *check = new Check_MCPU_MEM_ltc(ltc);
 	
 	uint8_t buf[32];
 	
@@ -30,15 +32,17 @@ int main(int argc, char **argv, char **env) {
 	ltc->clkrst_mem_rst_n = 0;
 	ltc->eval();
 	
-	while (!stim->done()) {
+	while (!stim->done() || !check->done()) {
 		mc_cmod->clk_pre();
 		stim->clk_pre();
+		check->clk_pre();
 		
 		ltc->clkrst_mem_clk = 1;
 		ltc->eval();
 		
 		mc_cmod->clk_post();
 		stim->clk_post();
+		check->clk_post();
 		
 		ltc->clkrst_mem_clk = 0;
 		ltc->eval();
