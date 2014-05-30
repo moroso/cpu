@@ -29,16 +29,20 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 	
 	/* Handle inbound transactions */
 	if (ltc->arb2ltc_valid) {
-		Check_MCPU_MEM_ltc::Response resp;
+		printf("Check_MCPU_MEM_ltc::clk_pre(): inbound valid with opcode %d, address %08x\n", ltc->arb2ltc_opcode, ltc->arb2ltc_addr);
 		
 		switch (ltc->arb2ltc_opcode) {
 		case LTC_OPC_READ:
-		case LTC_OPC_READTHROUGH:
+		case LTC_OPC_READTHROUGH: {
+			Check_MCPU_MEM_ltc::Response resp;
+			
+			printf("Check_MCPU_MEM_ltc::clk_pre(): pushing read, be %08x\n", memory[ltc->arb2ltc_addr].valid);
 			resp.age = 0;
 			resp.addr = ltc->arb2ltc_addr;
 			resp.atom = memory[ltc->arb2ltc_addr];
 			respq.push(resp);
 			break;
+		}
 		
 		case LTC_OPC_WRITE:
 		case LTC_OPC_WRITETHROUGH: {
@@ -54,6 +58,8 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 	
 	/* Handle responses */
 	if (ltc->arb2ltc_rvalid) {
+		printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
+
 		assert(!respq.empty());
 		
 		Check_MCPU_MEM_ltc::Response &resp = respq.front();
