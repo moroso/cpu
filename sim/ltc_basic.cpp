@@ -38,6 +38,7 @@ int main(int argc, char **argv, char **env) {
 		mc_cmod->clk_pre();
 		stim->clk_pre();
 		check->clk_pre();
+		ltc->eval();
 		
 		ltc->clkrst_mem_clk = 1;
 		ltc->eval();
@@ -45,6 +46,7 @@ int main(int argc, char **argv, char **env) {
 		mc_cmod->clk_post();
 		stim->clk_post();
 		check->clk_post();
+		ltc->eval();
 		
 		ltc->clkrst_mem_clk = 0;
 		ltc->eval();
