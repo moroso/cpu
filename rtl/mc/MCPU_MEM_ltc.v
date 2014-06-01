@@ -192,7 +192,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 				
 				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 					if (~clkrst_mem_rst_n) begin
-						way_tag <= {TAG_BITS{1'bx}};
+						way_tag <= /* HACK HACK */ (way == 0) ? {TAG_BITS{1'b0}} : {TAG_BITS{1'bx}};
 					end else begin
 						/* ... write logic ... */
 					end
@@ -233,7 +233,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
 					way_dirty <= {WAYS{1'b0}};
-					way_valid <= {WAYS{1'b0}};
+					way_valid <= /* HACK HACK: have a zero-way for refill */ {{WAYS-1{1'b0}}, 1'b1} /*{WAYS{1'b0}}*/;
 				end else begin
 					/* set; will need a reset for clearing */
 					if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a)
