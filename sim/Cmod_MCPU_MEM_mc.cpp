@@ -35,7 +35,8 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 		assert((*ltc2mc_avl_read_req_0 ^ *ltc2mc_avl_write_req_0) && "invalid burst start type");
 		burst_cycrem = *ltc2mc_avl_size_0;
 		burst_rnw = *ltc2mc_avl_read_req_0;
-	}
+	} else
+		assert(!*ltc2mc_avl_read_req_0 && !*ltc2mc_avl_write_req_0 && "read or write outside of burst");
 	
 	/* Dummy model: one-cycle memory */
 	ltc2mc_avl_ready_0_next = 1;
