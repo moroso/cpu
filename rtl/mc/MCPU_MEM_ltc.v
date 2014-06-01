@@ -49,7 +49,6 @@
 
 `timescale 1 ps / 1 ps
 
-
 module MCPU_MEM_ltc(/*AUTOARG*/
    // Outputs
    ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
@@ -64,6 +63,29 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 
 /* opcode parameters */
 `include "MCPU_MEM_ltc.vh"
+
+	parameter WAYS = 4;
+	parameter WAYS_BITS = 2;
+	parameter SETS = 32;
+	parameter ATOMS_PER_LINE = 4;
+	
+	parameter TAG_UPPER = 31;
+	parameter TAG_LOWER = 12;
+	parameter TAG_BITS  = (TAG_UPPER - TAG_LOWER + 1);
+	
+	parameter SET_UPPER = 11;
+	parameter SET_LOWER =  7;
+	parameter SET_BITS  = (SET_UPPER - SET_LOWER + 1);
+	
+	parameter ATOM_UPPER = 6;
+	parameter ATOM_LOWER = 5;
+	parameter ATOM_BITS  = (ATOM_UPPER - ATOM_LOWER + 1);
+	
+	parameter BYTE_UPPER = 4;
+	parameter BYTE_LOWER = 0;
+	parameter BYTES_IN_ATOM = 32;
+	parameter BITS_IN_ATOM = BYTES_IN_ATOM * 8;
+	parameter BYTE_BITS  = (BYTE_UPPER - BYTE_LOWER + 1);
 
 	/*** Portlist ***/
 	
@@ -87,7 +109,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	/* XXX: Add LTC streams */
 	input           arb2ltc_valid;
 	input [2:0]     arb2ltc_opcode;
-	input [26:0]	arb2ltc_addr;
+	input [31:5]	arb2ltc_addr;
 	
 	input [255:0]   arb2ltc_wdata;
 	input [31:0]    arb2ltc_wbe;
@@ -112,6 +134,129 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg [127:0]	ltc2mc_avl_wdata_0;
 	reg		ltc2mc_avl_write_req_0;
 	// End of automatics
+	
+	/*** Request input pipe ***/
+	wire         arb2ltc_valid_0a = arb2ltc_valid;
+	wire [2:0]   arb2ltc_opcode_0a = arb2ltc_opcode;
+	wire [31:5]  arb2ltc_addr_0a = arb2ltc_addr;
+	wire [255:0] arb2ltc_wdata_0a = arb2ltc_wdata;
+	wire [31:0]  arb2ltc_wbe_0a = arb2ltc_wbe;
+	
+	wire        arb2ltc_is_read_0a  = arb2ltc_valid_0a && (arb2ltc_opcode_0a == LTC_OPC_READ) || (arb2ltc_opcode_0a == LTC_OPC_READTHROUGH);
+	wire        arb2ltc_is_write_0a = arb2ltc_valid_0a && (arb2ltc_opcode_0a == LTC_OPC_WRITE) || (arb2ltc_opcode_0a == LTC_OPC_WRITETHROUGH);
+	
+	reg         arb2ltc_valid_1a;
+	reg [2:0]   arb2ltc_opcode_1a;
+	reg [31:5]  arb2ltc_addr_1a;
+	
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			arb2ltc_valid_1a <= 0;
+			arb2ltc_opcode_1a <= 3'b0;
+			arb2ltc_addr_1a <= 27'b0;
+		end else begin
+			/* XXX stall */
+			arb2ltc_valid_1a <= arb2ltc_valid_0a;
+			arb2ltc_opcode_1a <= arb2ltc_opcode_0a;
+			arb2ltc_addr_1a <= arb2ltc_addr_0a;
+		end
+	
+	wire            stall_0a;
+	
+	/*** Cache ways ***/
+	wire [SETS-1:0] set_valid_0a;
+	wire [255:0]    set_rd_data_1a [SETS-1:0];
+	reg  [255:0]    rd_data_1a;
+	wire            rd_valid_0a;
+	reg             rd_valid_1a;
+	
+	genvar set;
+	genvar way;
+	genvar ii;
+	integer i;
+	generate
+		for (set = 0; set < SETS; set = set + 1) begin: set_gen
+			wire [WAYS-1:0] ways_match_0a;
+			reg [WAYS_BITS-1:0] way_0a;
+			reg [WAYS-1:0] way_valid;
+			reg [WAYS-1:0] way_dirty;
+			
+			reg [BITS_IN_ATOM-1:0] lines [(WAYS * ATOMS_PER_LINE)-1:0];
+			reg [BITS_IN_ATOM-1:0] line_rd_data_1a;
+			
+			wire set_selected_0a;
+			
+			/* Way CAM */
+			for (way = 0; way < WAYS; way = way + 1) begin: way_gen
+				reg [TAG_UPPER:TAG_LOWER] way_tag;
+				
+				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+					if (~clkrst_mem_rst_n) begin
+						way_tag <= {TAG_BITS{1'bx}};
+					end else begin
+						/* ... write logic ... */
+					end
+				
+				assign ways_match_0a[way] = way_tag[TAG_UPPER:TAG_LOWER] == arb2ltc_addr_0a[TAG_UPPER:TAG_LOWER];
+			end
+			
+			/* Way and RAM select logic */
+			assign set_valid_0a[set] = |(ways_match_0a & way_valid);
+			always @(*) begin
+				way_0a = {WAYS_BITS{1'bx}};
+				for (i = 0; i < WAYS; i = i + 1)
+					if (ways_match_0a[i] && way_valid[i])
+						way_0a = i[WAYS_BITS-1:0];
+			end
+			assign set_selected_0a = arb2ltc_addr_0a[SET_UPPER:SET_LOWER] == set[SET_BITS-1:0];
+			
+			wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr = {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
+			
+			/* Set read logic */
+			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+				if (~clkrst_mem_rst_n) begin
+					line_rd_data_1a <= 256'b0;
+				end else begin
+					if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_read_0a)
+						line_rd_data_1a <= lines[line_addr];
+				end
+			
+			/* Set write logic */
+			/* We have to generate for byte enables. */
+			for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1)
+				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+					if (~clkrst_mem_rst_n) begin
+					end else begin
+						if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii])
+							lines[line_addr][ii*8+7:ii*8] <= arb2ltc_wdata_0a[ii*8+7:ii*8];
+					end
+			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+				if (~clkrst_mem_rst_n) begin
+					way_dirty <= {WAYS{1'b0}};
+					way_valid <= {WAYS{1'b0}};
+				end else begin
+					/* set; will need a reset for clearing */
+					if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a)
+						way_dirty[way_0a] <= 1;
+				end
+					
+			assign set_rd_data_1a[set] = line_rd_data_1a;
+		end
+	endgenerate
+	
+	assign stall_0a = !set_valid_0a[arb2ltc_addr_1a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
+	
+	always @(*) begin
+		rd_valid_0a = set_valid_0a[arb2ltc_addr_1a[SET_UPPER:SET_LOWER]] && arb2ltc_is_read_0a;
+		rd_data_1a = set_rd_data_1a[arb2ltc_addr_1a[SET_UPPER:SET_LOWER]];
+	end
+	
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			rd_valid_1a <= 1'b0;
+		end else begin
+			rd_valid_1a <= rd_valid_0a;
+		end
 
 	always @(*) begin
 		ltc2mc_avl_addr_0 = 25'b0;
@@ -122,9 +267,9 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		ltc2mc_avl_wdata_0 = 128'b0;
 		ltc2mc_avl_write_req_0 = 1'b0;
 		
-		arb2ltc_stall = 1'b1;
-		arb2ltc_rdata = 256'b0;
-		arb2ltc_rvalid = 1'b0;
+		arb2ltc_stall = stall_0a;
+		arb2ltc_rdata = rd_data_1a;
+		arb2ltc_rvalid = rd_valid_1a;
 	end
 
 endmodule
