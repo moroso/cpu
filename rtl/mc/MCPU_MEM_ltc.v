@@ -142,8 +142,8 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	wire [255:0] arb2ltc_wdata_0a = arb2ltc_wdata;
 	wire [31:0]  arb2ltc_wbe_0a = arb2ltc_wbe;
 	
-	wire        arb2ltc_is_read_0a  = arb2ltc_valid_0a && (arb2ltc_opcode_0a == LTC_OPC_READ) || (arb2ltc_opcode_0a == LTC_OPC_READTHROUGH);
-	wire        arb2ltc_is_write_0a = arb2ltc_valid_0a && (arb2ltc_opcode_0a == LTC_OPC_WRITE) || (arb2ltc_opcode_0a == LTC_OPC_WRITETHROUGH);
+	wire        arb2ltc_is_read_0a  = arb2ltc_valid_0a && ((arb2ltc_opcode == LTC_OPC_READ) || (arb2ltc_opcode == LTC_OPC_READTHROUGH));
+	wire        arb2ltc_is_write_0a = arb2ltc_valid_0a && ((arb2ltc_opcode == LTC_OPC_WRITE) || (arb2ltc_opcode == LTC_OPC_WRITETHROUGH));
 	
 	reg         arb2ltc_valid_1a;
 	reg [2:0]   arb2ltc_opcode_1a;
@@ -230,6 +230,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 						if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii])
 							lines[line_addr][ii*8+7:ii*8] <= arb2ltc_wdata_0a[ii*8+7:ii*8];
 					end
+			
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
 					way_dirty <= {WAYS{1'b0}};
