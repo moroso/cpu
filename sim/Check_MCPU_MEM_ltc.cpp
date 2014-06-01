@@ -26,7 +26,21 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 		resp.age++;
 		assert(resp.age < LTC_LATENCY_MAX);
 	}
-	
+
+	/* Handle responses -- before inbound transactions, since we can't respond same-cycle! */
+	if (ltc->arb2ltc_rvalid) {
+		printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
+
+		assert(!respq.empty() && "ltc response came back without outbound read request");
+		
+		Check_MCPU_MEM_ltc::Response &resp = respq.front();
+		for (int i = 0; i < 32; i++)
+			if (resp.atom.valid & (1 << i))
+				assert(resp.atom.data[i] == ((ltc->arb2ltc_rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
+		
+		respq.pop();
+	}
+
 	/* Handle inbound transactions */
 	if (ltc->arb2ltc_valid) {
 		printf("Check_MCPU_MEM_ltc::clk_pre(): inbound valid with opcode %d, address %08x\n", ltc->arb2ltc_opcode, ltc->arb2ltc_addr);
@@ -54,20 +68,6 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 			break;
 		}
 		}
-	}
-	
-	/* Handle responses */
-	if (ltc->arb2ltc_rvalid) {
-		printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
-
-		assert(!respq.empty());
-		
-		Check_MCPU_MEM_ltc::Response &resp = respq.front();
-		for (int i = 0; i < 32; i++)
-			if (resp.atom.valid & (1 << i))
-				assert(resp.atom.data[i] == ((ltc->arb2ltc_rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
-		
-		respq.pop();
 	}
 }
 
