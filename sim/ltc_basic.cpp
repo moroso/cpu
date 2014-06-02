@@ -8,6 +8,12 @@
 
 #define CYCLE_LIMIT 100000
 
+vluint64_t main_time = 0;
+
+double sc_time_stamp() {
+	return main_time;
+}
+
 int main(int argc, char **argv, char **env) {
 	int cycles = 0;
 	
@@ -38,17 +44,21 @@ int main(int argc, char **argv, char **env) {
 		mc_cmod->clk_pre();
 		stim->clk_pre();
 		check->clk_pre();
+		main_time ++;
 		ltc->eval();
 		
 		ltc->clkrst_mem_clk = 1;
+		main_time++;
 		ltc->eval();
 		
 		mc_cmod->clk_post();
 		stim->clk_post();
 		check->clk_post();
+		main_time++;
 		ltc->eval();
 		
 		ltc->clkrst_mem_clk = 0;
+		main_time++;
 		ltc->eval();
 		
 		cycles++;
