@@ -79,14 +79,12 @@ int main(int argc, char **argv, char **env) {
 		mc_cmod->clk_pre();
 		stim->clk_pre();
 		check->clk_pre();
-		main_time++;
+		ltc->eval();
 		ltc->eval();
 		TRACE;
 		
 		ltc->clkrst_mem_clk = 1;
-		main_time++;
 		ltc->eval();
-		TRACE;
 		
 		mc_cmod->clk_post();
 		stim->clk_post();
@@ -97,8 +95,6 @@ int main(int argc, char **argv, char **env) {
 		
 		ltc->clkrst_mem_clk = 0;
 		main_time++;
-		ltc->eval();
-		TRACE;
 		
 		cycles++;
 		SIM_CHECK(cycles < CYCLE_LIMIT);
