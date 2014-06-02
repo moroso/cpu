@@ -42,7 +42,7 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 	}
 
 	/* Handle inbound transactions */
-	if (ltc->arb2ltc_valid) {
+	if (ltc->arb2ltc_valid && !ltc->arb2ltc_stall) {
 		printf("Check_MCPU_MEM_ltc::clk_pre(): inbound valid with opcode %d, address %08x\n", ltc->arb2ltc_opcode, ltc->arb2ltc_addr);
 		
 		switch (ltc->arb2ltc_opcode) {
