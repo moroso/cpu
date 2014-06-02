@@ -33,7 +33,7 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 		assert(!*ltc2mc_avl_burstbegin_0 && "burst start during burst");
 	} else if (*ltc2mc_avl_burstbegin_0) {
 		assert((*ltc2mc_avl_read_req_0 ^ *ltc2mc_avl_write_req_0) && "invalid burst start type");
-		burst_cycrem = *ltc2mc_avl_size_0;
+		burst_cycrem = *ltc2mc_avl_size_0 - 1;
 		burst_rnw = *ltc2mc_avl_read_req_0;
 	} else
 		assert(!*ltc2mc_avl_read_req_0 && !*ltc2mc_avl_write_req_0 && "read or write outside of burst");
