@@ -27,6 +27,7 @@ default:
 	@echo "  SVF=1         build SVF for distribution"
 	@echo "  TESTPLANS=... testplans to run (for tests) (default: L0)"
 	@echo "  TESTS=...     tests tor run (for tests)"
+	@echo "  TRACE=1       dump vcd file from test"
 	@echo ""
 	@echo "testplans available:"
 	@$(foreach testplan,$(ALL_TESTPLANS),echo "  $(testplan): $(TESTPLAN_$(testplan)_name) (tests:$(TESTPLAN_$(testplan)_tests)) ";)
@@ -86,7 +87,7 @@ $(RUNDIR)/stamps/sim-genrtl: sim-symlinks
 define TB_template
 $(RUNDIR)/sim/$(1)/V$$($(1)_top): $(RUNDIR)/stamps/sim-genrtl
 	$(call say,"Verilating testbench: $(1)")
-	cd $(RUNDIR)/sim; verilator -Irtl --Mdir $(1) --cc $$(TB_$(1)_top) $$(TB_$(1)_cpps) --exe --assert
+	cd $(RUNDIR)/sim; verilator -Irtl --Mdir $(1) --cc $$(TB_$(1)_top) $$(TB_$(1)_cpps) --exe --assert $(if $(TRACE),--trace)
 	$(call say,"Compiling testbench: $(1)")
 	make -C $(RUNDIR)/sim/$(1) -f V$$(TB_$(1)_top).mk
 
@@ -102,7 +103,7 @@ define TEST_template
 $(RUNDIR)/testlog/$(1): tb_$$(TEST_$(1)_tb)
 	$(call say,"Running test: $(1)")
 	@mkdir -p $(RUNDIR)/testlog
-	$$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) > $$@
+	$$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) | tee $$@
 
 .PHONY: test_$(1)
 test_$(1): $(RUNDIR)/testlog/$(1)

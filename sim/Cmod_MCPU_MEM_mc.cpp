@@ -1,5 +1,5 @@
 #include "Cmod_MCPU_MEM_mc.h"
-#include <assert.h>
+#include "check.h"
 
 Cmod_MCPU_MEM_mc::Cmod_MCPU_MEM_mc(
 	MC_CMOD_CONNECTIONS(MC_CMOD_CONNECTION_ARG,) int _bogus
@@ -24,19 +24,19 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 		if (burst_rnw) /* i.e., read */ {
 			if (*ltc2mc_avl_read_req_0)
 				burst_cycrem--;
-			assert(!*ltc2mc_avl_write_req_0 && "write during read burst");
+			SIM_CHECK(!*ltc2mc_avl_write_req_0 && "write during read burst");
 		} else /* i.e., write */ { 
 			if (*ltc2mc_avl_write_req_0)
 				burst_cycrem--;
-			assert(!*ltc2mc_avl_read_req_0 && "read during write burst");
+			SIM_CHECK(!*ltc2mc_avl_read_req_0 && "read during write burst");
 		}
-		assert(!*ltc2mc_avl_burstbegin_0 && "burst start during burst");
+		SIM_CHECK(!*ltc2mc_avl_burstbegin_0 && "burst start during burst");
 	} else if (*ltc2mc_avl_burstbegin_0) {
-		assert((*ltc2mc_avl_read_req_0 ^ *ltc2mc_avl_write_req_0) && "invalid burst start type");
+		SIM_CHECK((*ltc2mc_avl_read_req_0 ^ *ltc2mc_avl_write_req_0) && "invalid burst start type");
 		burst_cycrem = *ltc2mc_avl_size_0 - 1;
 		burst_rnw = *ltc2mc_avl_read_req_0;
 	} else
-		assert(!*ltc2mc_avl_read_req_0 && !*ltc2mc_avl_write_req_0 && "read or write outside of burst");
+		SIM_CHECK(!*ltc2mc_avl_read_req_0 && !*ltc2mc_avl_write_req_0 && "read or write outside of burst");
 	
 	/* Dummy model: one-cycle memory */
 	ltc2mc_avl_ready_0_next = 1;

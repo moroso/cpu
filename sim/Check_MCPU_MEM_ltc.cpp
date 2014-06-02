@@ -1,5 +1,6 @@
 #include "verilated.h"
 #include "Check_MCPU_MEM_ltc.h"
+#include "check.h"
 
 #define LTC_OPC_READ         0x0
 #define LTC_OPC_WRITE        0x1
@@ -18,25 +19,25 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 	else
 		stalled_cycles = 0;
 	
-	assert(stalled_cycles < LTC_STALLED_CYCLES_MAX);
+	SIM_CHECK(stalled_cycles < LTC_STALLED_CYCLES_MAX);
 	
 	/* Check: response head-of-line age */
 	if (!respq.empty()) {
 		Check_MCPU_MEM_ltc::Response &resp = respq.front();
 		resp.age++;
-		assert(resp.age < LTC_LATENCY_MAX);
+		SIM_CHECK(resp.age < LTC_LATENCY_MAX);
 	}
 
 	/* Handle responses -- before inbound transactions, since we can't respond same-cycle! */
 	if (ltc->arb2ltc_rvalid) {
 		printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
 
-		assert(!respq.empty() && "ltc response came back without outbound read request");
+		SIM_CHECK(!respq.empty() && "ltc response came back without outbound read request");
 		
 		Check_MCPU_MEM_ltc::Response &resp = respq.front();
 		for (int i = 0; i < 32; i++)
 			if (resp.atom.valid & (1 << i))
-				assert(resp.atom.data[i] == ((ltc->arb2ltc_rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
+				SIM_CHECK(resp.atom.data[i] == ((ltc->arb2ltc_rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
 		
 		respq.pop();
 	}
