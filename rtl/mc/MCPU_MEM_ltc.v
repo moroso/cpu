@@ -163,8 +163,31 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	
 	wire            stall_0a;
 	
+	/*** Fill feedback path (from below) ***/
+	reg          resp_wr;
+	reg          resp_wr_1a;
+	reg          resp_fill_start, resp_fill_end;
+	reg   [31:5] resp_addr;
+	wire [255:0] resp_data;
+
+	/* XXX: evades, not solves race condition in write-vs-refill path... */
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			resp_wr_1a <= 0;
+		end else begin
+			resp_wr_1a <= resp_wr;
+		end
+
+
 	/*** Cache ways ***/
+	
+	/* Note that the ltc2mc/mc2ltc path always takes precedence.  So if
+	 * there's going to be an arb2ltc operation, you better nerf it if
+	 * we're doing an mc operation on the same cycle!
+	 */
+	
 	wire [SETS-1:0] set_valid_0a;
+	wire [SETS-1:0] set_dirty_0a;
 	wire [255:0]    set_rd_data_1a [SETS-1:0];
 	reg  [255:0]    rd_data_1a;
 	wire            rd_valid_0a;
@@ -180,6 +203,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			reg [WAYS_BITS-1:0] way_0a;
 			reg [WAYS-1:0] way_valid;
 			reg [WAYS-1:0] way_dirty;
+			reg [WAYS_BITS-1:0] way_evicting;
 			
 			reg [BITS_IN_ATOM-1:0] lines [(WAYS * ATOMS_PER_LINE)-1:0];
 			reg [BITS_IN_ATOM-1:0] line_rd_data_1a;
@@ -187,17 +211,19 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			wire set_selected_0a;
 			
 			/* Way CAM */
+			/* XXX: Will need to be replicated for read vs. write */
 			for (way = 0; way < WAYS; way = way + 1) begin: way_gen
 				reg [TAG_UPPER:TAG_LOWER] way_tag;
 				
 				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 					if (~clkrst_mem_rst_n) begin
-						way_tag <= /* HACK HACK */ (way == 0) ? {TAG_BITS{1'b0}} : {TAG_BITS{1'bx}};
+						way_tag <= {TAG_BITS{1'bx}};
 					end else begin
-						/* ... write logic ... */
+						if (resp_wr && (way_evicting == way[WAYS_BITS-1:0])) /* always from mc2ltc path, never from arb2ltc path */
+							way_tag <= resp_addr[TAG_UPPER:TAG_LOWER];
 					end
 				
-				assign ways_match_0a[way] = way_tag[TAG_UPPER:TAG_LOWER] == arb2ltc_addr_0a[TAG_UPPER:TAG_LOWER];
+				assign ways_match_0a[way] = way_tag[TAG_UPPER:TAG_LOWER] == arb2ltc_addr_0a[TAG_UPPER:TAG_LOWER]; /* always from arb2ltc path, never from mc2ltc path */
 			end
 			
 			/* Way and RAM select logic */
@@ -208,9 +234,13 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					if (ways_match_0a[i] && way_valid[i])
 						way_0a = i[WAYS_BITS-1:0];
 			end
-			assign set_selected_0a = arb2ltc_addr_0a[SET_UPPER:SET_LOWER] == set[SET_BITS-1:0];
+			/* XXX needs rd and wr split out */
+			assign set_selected_0a = (resp_wr ? resp_addr[SET_UPPER:SET_LOWER] : arb2ltc_addr_0a[SET_UPPER:SET_LOWER]) == set[SET_BITS-1:0];
 			
-			wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr = {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
+			wire [WAYS_BITS + ATOM_BITS - 1:0] line_rd_addr = {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
+			wire [WAYS_BITS + ATOM_BITS - 1:0] line_wr_addr = 
+			  resp_wr ? {way_evicting, resp_addr[ATOM_UPPER:ATOM_LOWER]} 
+			          : {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
 			
 			/* Set read logic */
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
@@ -218,7 +248,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					line_rd_data_1a <= 256'b0;
 				end else begin
 					if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_read_0a)
-						line_rd_data_1a <= lines[line_addr];
+						line_rd_data_1a <= lines[line_rd_addr];
 				end
 			
 			/* Set write logic */
@@ -227,25 +257,61 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 					if (~clkrst_mem_rst_n) begin
 					end else begin
-						if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii])
-							lines[line_addr][ii*8+7:ii*8] <= arb2ltc_wdata_0a[ii*8+7:ii*8];
+						if ((set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii]) || /* arb2ltc path */
+						    (set_selected_0a && resp_wr)) /* mc2ltc refill path */
+							lines[line_wr_addr][ii*8+7:ii*8] <=
+							  resp_wr ? resp_data[ii*8+7:ii*8]
+							          : arb2ltc_wdata_0a[ii*8+7:ii*8];
 					end
 			
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
 					way_dirty <= {WAYS{1'b0}};
-					way_valid <= /* HACK HACK: have a zero-way for refill */ {{WAYS-1{1'b0}}, 1'b1} /*{WAYS{1'b0}}*/;
+					way_valid <= {WAYS{1'b0}};
 				end else begin
-					/* set; will need a reset for clearing */
 					if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a)
+						$display("ltc: main write path");
+					if (set_selected_0a && resp_wr)
+						$display("ltc: resp write path");
+					/* set; will need a reset for clearing */
+					if (set_selected_0a && resp_fill_start) begin /* mc2ltc start path */
+						way_dirty[way_evicting] <= 0;
+						way_valid[way_evicting] <= 0;
+					end else if (set_selected_0a && resp_fill_end) begin /* mc2ltc completion path */
+						way_valid[way_evicting] <= 1;
+					end else if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a) /* arb2ltc path */
 						way_dirty[way_0a] <= 1;
 				end
+			assign set_dirty_0a[set] = way_dirty[way_0a];
 					
 			assign set_rd_data_1a[set] = line_rd_data_1a;
+			
+			/* Way aging and eviction selection.
+			 *
+			 * We simply do FIFO eviction for now.  Later, we
+			 * can do clock hand eviction if we want.  Ha, ha.
+			 */
+			reg [WAYS_BITS-1:0] next_evict;
+			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+				if (~clkrst_mem_rst_n) begin
+					next_evict <= {WAYS_BITS{1'b0}};
+					way_evicting <= {WAYS_BITS{1'b0}};
+				end else begin
+					if (set_selected_0a && resp_fill_start) begin
+						way_evicting <= next_evict;
+						next_evict <= next_evict + 1;
+					end
+				end
 		end
 	endgenerate
 	
-	assign stall_0a = !set_valid_0a[arb2ltc_addr_1a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
+	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
+	wire   dirty_0a = set_dirty_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
+	
+	/* XXX: This logic to solve the refill-vs-write race is not quite
+	 * what it should be.  It fixes the visible bug, but delaying
+	 * resp_wr by a cycle really shouldn't be necessary.*/
+	assign stall_0a = miss_0a || (arb2ltc_is_write_0a && resp_wr_1a);
 	
 	always @(*) begin
 		rd_valid_0a = set_valid_0a[arb2ltc_addr_1a[SET_UPPER:SET_LOWER]] && arb2ltc_is_read_0a;
@@ -260,17 +326,137 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		end
 
 	always @(*) begin
-		ltc2mc_avl_addr_0 = 25'b0;
-		ltc2mc_avl_be_0 = 16'b0;
-		ltc2mc_avl_burstbegin_0 = 1'b0;
-		ltc2mc_avl_read_req_0 = 1'b0;
-		ltc2mc_avl_size_0 = 5'b0;
-		ltc2mc_avl_wdata_0 = 128'b0;
-		ltc2mc_avl_write_req_0 = 1'b0;
-		
 		arb2ltc_stall = stall_0a;
 		arb2ltc_rdata = rd_data_1a;
 		arb2ltc_rvalid = rd_valid_1a;
 	end
+	
+	/*** Memory controller state machine ***/
+	
+	/* Request generation */
+	parameter MCSM_IDLE    = 2'b00;
+	parameter MCSM_WRITING = 2'b01;
+	parameter MCSM_READING = 2'b10;
+	
+	reg [1:0] mcsm;
+	reg [1:0] mcsm_next;
+	
+	/* HACK HACK, hardcoded, oh well.  The counter goes to 8: 4 atoms
+	 * per line, then 2 MC cycles per atom.
+	 */
+	reg [2:0] mcsm_ofs;
+	reg [2:0] mcsm_ofs_next;
+	
+	reg       read_filling;
+	reg       read_filling_set;
+	reg       read_filling_clr;
+	
+	/* HACK HACK, this uses arb2ltc_addr directly, which will not work
+	 * when mcsm is handling queued prefetch and flush (or writethrough)
+	 * opcodes */
+	always @(*) begin
+		mcsm_next = mcsm;
 
+		ltc2mc_avl_burstbegin_0 = 1'b0;
+		ltc2mc_avl_size_0 = {5{1'bx}};
+
+		ltc2mc_avl_addr_0 = {25{1'bx}};
+
+		ltc2mc_avl_read_req_0 = 1'b0;
+
+		ltc2mc_avl_write_req_0 = 1'b0;
+		ltc2mc_avl_wdata_0 = {128{1'bx}};
+		ltc2mc_avl_be_0 = {16{1'bx}};
+		
+		read_filling_set = 0;
+
+		case (mcsm)
+		MCSM_IDLE: begin
+			if (miss_0a && ~read_filling) begin /* wait to complete the fill, to avoid rerequesting */
+				mcsm_ofs_next = 3'd0;
+				mcsm_next = dirty_0a ? MCSM_WRITING : MCSM_READING;
+			end
+		end
+		MCSM_WRITING: begin
+		end
+		MCSM_READING: begin
+			ltc2mc_avl_read_req_0 = 1'b1;
+			ltc2mc_avl_burstbegin_0 = mcsm_ofs == 3'd0;
+			ltc2mc_avl_size_0 = 5'd8;
+			ltc2mc_avl_addr_0 = {arb2ltc_addr[/*31*/28:7], mcsm_ofs}; 
+			
+			read_filling_set = (mcsm_ofs == 3'd0);
+			mcsm_next = (mcsm_ofs == 3'd7) ? MCSM_IDLE : MCSM_READING;
+			mcsm_ofs_next = mcsm_ofs + 1;
+		end
+		default: begin
+			mcsm_next = 2'hx;
+		end
+		endcase
+	end
+	
+	/* Response handling */
+	/* HACK HACK: this should be a fifo, rather than hardwired */
+	reg   [2:0] resp_ofs;
+	reg   [2:0] resp_ofs_next;
+
+	/* resp_wr reg above */
+	/* resp_addr reg above */
+	/* resp_data wire above */
+	reg    [127:0] resp_data_lo;
+	reg            resp_data_lo_latch;
+	assign         resp_data = {ltc2mc_avl_rdata_0, resp_data_lo};
+	
+	
+	always @(*) begin
+		resp_wr = 1'b0;
+		resp_addr = {27{1'bx}};
+		resp_data_lo_latch = 0;
+		read_filling_clr = 0;
+		resp_fill_start = 0;
+		resp_fill_end = 0;
+		
+		if (read_filling && ltc2mc_avl_rdata_valid_0) begin
+			resp_data_lo_latch = resp_ofs[0];
+			resp_addr = {arb2ltc_addr[31:7], resp_ofs[2:1]};
+			resp_wr = resp_ofs[0];
+			
+			resp_fill_start = (resp_ofs == 3'd1);
+			resp_fill_end   = (resp_ofs == 3'd7);
+			read_filling_clr = (resp_ofs == 3'd7);
+			resp_ofs_next = resp_ofs + 1;
+		end
+	end
+	
+	/* Clocked state machine logic */
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			mcsm <= MCSM_IDLE;
+			mcsm_ofs <= 3'd0;
+			resp_ofs <= 3'd0;
+			resp_data_lo <= {128{1'b0}};
+		end else begin
+			if (mcsm == MCSM_IDLE && mcsm_next != MCSM_IDLE) begin
+				$display("ltcsm: idle preparing to %s", dirty_0a ? "write" : "read");
+			end
+			if (ltc2mc_avl_read_req_0) begin
+				$display("ltcsm: read req (burst begin %d", ltc2mc_avl_burstbegin_0);
+				$display("ltcsm: ofs %d", mcsm_ofs);
+			end
+			if (read_filling_set)
+				$display("ltcsm: read filling set");
+			if (read_filling_clr)
+				$display("ltcsm: read filling clear");
+				
+			mcsm <= mcsm_next;
+			mcsm_ofs <= mcsm_ofs_next;
+			resp_ofs <= resp_ofs_next;
+			read_filling <= (read_filling | read_filling_set) & ~read_filling_clr;
+			if (resp_data_lo_latch)
+				resp_data_lo <= ltc2mc_avl_rdata_0;
+			
+			assert (!(ltc2mc_avl_rdata_valid_0 && !read_filling)) else $error("ltc2mc avl response without filling?");
+		end
+
+	/*** ***/
 endmodule
