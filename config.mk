@@ -64,3 +64,17 @@ TEST_ltc_evict_env  = LTC_DIRECTED_TEST_NAME=evict
 
 TESTPLAN_L0_tests += ltc_basic ltc_backtoback ltc_evict
 ALL_TESTS += ltc_basic ltc_backtoback ltc_evict
+
+TB_ltc_random_top  = MCPU_MEM_ltc
+TB_ltc_random_cpps = ltc_random.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+ALL_TBS += ltc_random
+
+TEST_ltc_random_0_tb = ltc_random
+TEST_ltc_random_0_env = LTC_RANDOM_SEED=0
+TESTPLAN_L1_tests += ltc_random_0
+ALL_TESTS += ltc_random_0
+
+TEST_ltc_random_9_tb = ltc_random
+TEST_ltc_random_9_env = LTC_RANDOM_OPERATIONS=65536
+TESTPLAN_L9_tests += ltc_random_long
+ALL_TESTS += ltc_random_long
