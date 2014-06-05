@@ -19,6 +19,14 @@ Cmod_MCPU_MEM_mc::Cmod_MCPU_MEM_mc(
 
 /* WDatas are little endian. */
 void Cmod_MCPU_MEM_mc::clk_pre() {
+	/* Clock out anything from last cycle */
+	*ltc2mc_avl_ready_0 = ltc2mc_avl_ready_0_next;
+	*ltc2mc_avl_rdata_valid_0 = ltc2mc_avl_rdata_valid_0_next;
+	ltc2mc_avl_rdata_0[0] = ltc2mc_avl_rdata_0_next[0];
+	ltc2mc_avl_rdata_0[1] = ltc2mc_avl_rdata_0_next[1];
+	ltc2mc_avl_rdata_0[2] = ltc2mc_avl_rdata_0_next[2];
+	ltc2mc_avl_rdata_0[3] = ltc2mc_avl_rdata_0_next[3];
+
 	/* Check for burst validity */
 	if (burst_cycrem) {
 		if (burst_rnw) /* i.e., read */ {
@@ -61,10 +69,4 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 }
 
 void Cmod_MCPU_MEM_mc::clk_post() {
-	*ltc2mc_avl_ready_0 = ltc2mc_avl_ready_0_next;
-	*ltc2mc_avl_rdata_valid_0 = ltc2mc_avl_rdata_valid_0_next;
-	ltc2mc_avl_rdata_0[0] = ltc2mc_avl_rdata_0_next[0];
-	ltc2mc_avl_rdata_0[1] = ltc2mc_avl_rdata_0_next[1];
-	ltc2mc_avl_rdata_0[2] = ltc2mc_avl_rdata_0_next[2];
-	ltc2mc_avl_rdata_0[3] = ltc2mc_avl_rdata_0_next[3];
 }
