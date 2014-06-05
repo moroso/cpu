@@ -52,12 +52,64 @@ int main(int argc, char **argv, char **env) {
 #endif
 	
 	uint8_t buf[32];
+
+#define GENBUF(vec) \
+		for (int i = 0; i < 32; i++) \
+			buf[i] = (vec << 5) | i;
 	
-	/* Basic read-write test */
-	for (int i = 0; i < 32; i++)
-		buf[i] = i;
-	stim->write(0x0, buf, 0xffffffff, 0);
-	stim->read(0x0, 0);
+	const char *testname;
+	testname = getenv("LTC_BASIC_TEST_NAME");
+	if (!testname) {
+		printf("ltc_basic: no test name?  defaulting to basic");
+		testname = "basic";
+	}
+	
+	if (!strcmp(testname, "basic")) {
+		/* Basic read-write test */
+		GENBUF(0);
+		stim->write(0x0, buf, 0xffffffff, 0);
+		stim->read(0x0, 0);
+	} else if (!strcmp(testname, "backtoback")) {
+		/* Write back-to-back, then read back-to-back */
+		GENBUF(0);
+		stim->write(0x0, buf, 0xffffffff, 0);
+		GENBUF(1);
+		stim->write(0x1, buf, 0xffffffff, 0);
+		stim->read(0x0, 0);
+		stim->read(0x1, 0);
+		stim->read(0x0, 0);
+		stim->read(0x1, 0);
+		GENBUF(1);
+		stim->write(0x0, buf, 0xffffffff, 0);
+		stim->read(0x0, 0);
+		GENBUF(0);
+		stim->write(0x1, buf, 0xffffffff, 0);
+		stim->read(0x1, 0);
+	} else if (!strcmp(testname, "evict")) {
+		/* Basic evict test */
+		GENBUF(0);
+		stim->write(0x00000, buf, 0xffffffff, 0);
+		GENBUF(1);
+		stim->write(0x10000, buf, 0xffffffff, 0);
+		GENBUF(2);
+		stim->write(0x20000, buf, 0xffffffff, 0);
+		GENBUF(3);
+		stim->write(0x30000, buf, 0xffffffff, 0);
+		GENBUF(4);
+		stim->write(0x40000, buf, 0xffffffff, 0);
+		GENBUF(5);
+		stim->write(0x50000, buf, 0xffffffff, 0);
+	
+		stim->read(0x00000, 0);
+		stim->read(0x10000, 0);
+		stim->read(0x20000, 0);
+		stim->read(0x30000, 0);
+		stim->read(0x40000, 0);
+		stim->read(0x50000, 0);
+	} else {
+		printf("ltc_basic: test %s not supported\n", testname);
+		return 1;
+	}
 	
 	/* Now, run the simulation */
 	ltc->clkrst_mem_clk = 0;
@@ -75,26 +127,29 @@ int main(int argc, char **argv, char **env) {
 #endif
 
 	while (!stim->done() || !check->done()) {
-		printf("***clock\n");
 		mc_cmod->clk_pre();
 		stim->clk_pre();
 		check->clk_pre();
 		ltc->eval();
-		ltc->eval();
+		main_time++;
 		TRACE;
 		
 		ltc->clkrst_mem_clk = 1;
 		ltc->eval();
-		
 		mc_cmod->clk_post();
 		stim->clk_post();
 		check->clk_post();
-		main_time++;
 		ltc->eval();
+		main_time++;
 		TRACE;
 		
-		ltc->clkrst_mem_clk = 0;
 		main_time++;
+		TRACE;
+	
+		ltc->clkrst_mem_clk = 0;
+		ltc->eval();
+		main_time++;
+		TRACE;
 		
 		cycles++;
 		SIM_CHECK(cycles < CYCLE_LIMIT);

@@ -49,11 +49,18 @@ TESTPLAN_L9_tests =
 
 # L2C tests
 
-TB_ltc_basic_top  = MCPU_MEM_ltc
-TB_ltc_basic_cpps = ltc_basic.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
-ALL_TBS += ltc_basic
+TB_ltc_directed_top  = MCPU_MEM_ltc
+TB_ltc_directed_cpps = ltc_directed.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+ALL_TBS += ltc_directed
 
-TEST_ltc_basic_tb   = ltc_basic
-TEST_ltc_basic_env  =
-TESTPLAN_L0_tests += ltc_basic
-ALL_TESTS += ltc_basic
+TEST_ltc_basic_tb   = ltc_directed
+TEST_ltc_basic_env  = LTC_BASIC_TEST_NAME=basic
+
+TEST_ltc_backtoback_tb   = ltc_directed
+TEST_ltc_backtoback_env  = LTC_BASIC_TEST_NAME=backtoback
+
+TEST_ltc_evict_tb   = ltc_directed
+TEST_ltc_evict_env  = LTC_BASIC_TEST_NAME=evict
+
+TESTPLAN_L0_tests += ltc_basic ltc_backtoback ltc_evict
+ALL_TESTS += ltc_basic ltc_backtoback ltc_evict
