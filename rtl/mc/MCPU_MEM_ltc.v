@@ -282,7 +282,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					end else if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a) /* arb2ltc path */
 						way_dirty[way_0a] <= 1;
 				end
-			assign set_dirty_0a[set] = way_dirty[way_0a];
+			assign set_dirty_0a[set] = way_dirty[next_evict];
 					
 			assign set_rd_data_1a[set] = line_rd_data_1a;
 			
