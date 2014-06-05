@@ -273,7 +273,6 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 						$display("ltc: main write path");
 					if (set_selected_0a && resp_wr)
 						$display("ltc: resp write path");
-					/* set; will need a reset for clearing */
 					if (set_selected_0a && resp_fill_start) begin /* mc2ltc start path */
 						way_dirty[way_evicting] <= 0;
 						way_valid[way_evicting] <= 0;
@@ -282,7 +281,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					end else if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a) /* arb2ltc path */
 						way_dirty[way_0a] <= 1;
 				end
-			assign set_dirty_0a[set] = way_dirty[next_evict];
+			assign set_dirty_0a[set] = way_dirty[way_evicting];
 					
 			assign set_rd_data_1a[set] = line_rd_data_1a;
 			
@@ -291,15 +290,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			 * We simply do FIFO eviction for now.  Later, we
 			 * can do clock hand eviction if we want.  Ha, ha.
 			 */
-			reg [WAYS_BITS-1:0] next_evict;
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
-					next_evict <= {WAYS_BITS{1'b0}};
 					way_evicting <= {WAYS_BITS{1'b0}};
 				end else begin
-					if (set_selected_0a && resp_fill_start) begin
-						way_evicting <= next_evict;
-						next_evict <= next_evict + 1;
+					if (set_selected_0a && resp_fill_end) begin
+						way_evicting <= way_evicting + 1;
 					end
 				end
 		end
