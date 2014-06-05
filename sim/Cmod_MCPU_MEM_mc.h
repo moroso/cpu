@@ -3,7 +3,7 @@
 
 #include "verilated.h"
 
-#define Cmod_MCPU_MEM_mc_MEMSZ 64*1024*1024
+#define Cmod_MCPU_MEM_mc_MEMSZ 512*1024*1024
 
 /* SIG8 = CData (uint8_t)
  * SIG16 = SData (uint16_t)
