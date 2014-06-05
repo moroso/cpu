@@ -54,13 +54,13 @@ TB_ltc_directed_cpps = ltc_directed.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.c
 ALL_TBS += ltc_directed
 
 TEST_ltc_basic_tb   = ltc_directed
-TEST_ltc_basic_env  = LTC_BASIC_TEST_NAME=basic
+TEST_ltc_basic_env  = LTC_DIRECTED_TEST_NAME=basic
 
 TEST_ltc_backtoback_tb   = ltc_directed
-TEST_ltc_backtoback_env  = LTC_BASIC_TEST_NAME=backtoback
+TEST_ltc_backtoback_env  = LTC_DIRECTED_TEST_NAME=backtoback
 
 TEST_ltc_evict_tb   = ltc_directed
-TEST_ltc_evict_env  = LTC_BASIC_TEST_NAME=evict
+TEST_ltc_evict_env  = LTC_DIRECTED_TEST_NAME=evict
 
 TESTPLAN_L0_tests += ltc_basic ltc_backtoback ltc_evict
 ALL_TESTS += ltc_basic ltc_backtoback ltc_evict

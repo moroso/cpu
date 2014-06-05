@@ -58,9 +58,9 @@ int main(int argc, char **argv, char **env) {
 			buf[i] = (vec << 4) ^ i;
 	
 	const char *testname;
-	testname = getenv("LTC_BASIC_TEST_NAME");
+	testname = getenv("LTC_DIRECTED_TEST_NAME");
 	if (!testname) {
-		printf("ltc_basic: no test name?  defaulting to basic");
+		printf("ltc_directed: no test name?  defaulting to basic");
 		testname = "basic";
 	}
 	
@@ -107,7 +107,7 @@ int main(int argc, char **argv, char **env) {
 		stim->read(0x40000, 0);
 		stim->read(0x50000, 0);
 	} else {
-		printf("ltc_basic: test %s not supported\n", testname);
+		printf("ltc_directed: test %s not supported\n", testname);
 		return 1;
 	}
 	
