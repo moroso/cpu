@@ -55,7 +55,7 @@ int main(int argc, char **argv, char **env) {
 
 #define GENBUF(vec) \
 		for (int i = 0; i < 32; i++) \
-			buf[i] = (vec << 5) | i;
+			buf[i] = (vec << 4) ^ i;
 	
 	const char *testname;
 	testname = getenv("LTC_BASIC_TEST_NAME");
