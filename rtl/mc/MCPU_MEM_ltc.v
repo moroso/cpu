@@ -433,6 +433,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		read_filling_clr = 0;
 		resp_fill_start = 0;
 		resp_fill_end = 0;
+		resp_ofs_next = resp_ofs;
 		
 		if (read_filling && ltc2mc_avl_rdata_valid_0) begin
 			resp_data_lo_latch = ~resp_ofs[0];
