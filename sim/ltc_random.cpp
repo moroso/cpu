@@ -11,7 +11,6 @@ VerilatedVcdC* tfp;
 #include "Stim_MCPU_MEM_ltc.h"
 #include "Check_MCPU_MEM_ltc.h"
 
-#define CYCLE_LIMIT 100000
 #define MAX_ADDRESSES 4096
 #define OPS_DEFAULT   4096
 
@@ -142,9 +141,6 @@ int main(int argc, char **argv, char **env) {
 		ltc->eval();
 		main_time++;
 		TRACE;
-		
-		cycles++;
-		SIM_CHECK(cycles < CYCLE_LIMIT);
 	}
 	
 	if (assertions_failed > 0) {
