@@ -464,11 +464,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			if (ltc2mc_avl_ready_0) begin
 				mcsm <= mcsm_next;
 				mcsm_ofs <= mcsm_ofs_next;
-				resp_ofs <= resp_ofs_next;
-				read_filling <= (read_filling | read_filling_set) & ~read_filling_clr;
-				if (resp_data_lo_latch)
-					resp_data_lo <= ltc2mc_avl_rdata_0;
 			end
+
+			resp_ofs <= resp_ofs_next;
+			read_filling <= (read_filling | read_filling_set) & ~read_filling_clr;
+			if (resp_data_lo_latch)
+				resp_data_lo <= ltc2mc_avl_rdata_0;
 			
 			assert (!(ltc2mc_avl_rdata_valid_0 && !read_filling)) else $error("ltc2mc avl response without filling?");
 		end
