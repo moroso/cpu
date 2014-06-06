@@ -1,0 +1,112 @@
+module mcpu_decode(/*AUTOARG*/);
+
+  input [31:0] inst;
+  input [2:0] preds;
+  input [31:0] reg_scoreboard;
+  input [2:0] pred_scoreboard;
+  
+  output [8:0] execute_opcode;
+  output [2:0] compare_type;
+  output [1:0] shift_type;
+  output [4:0] shift_amount;
+  output [2:0] oper_type;
+  output [4:0] rd_num, rs_num, rt_num;
+  output rd_we;
+  output pred_we;
+  output [31:0] op2;
+  output stall;
+  output long_imm;
+  output link_bit;
+
+  /* AUTOREG */
+
+
+  wire depend_rt, depend_rs;
+
+
+  //each execute unit will only take the bits of this that it needs
+  assign execute_opcode = {inst[23:19], inst[13:10]};
+
+  assign compare_type = inst[9:7];
+
+  assign rt_num = inst[18:14];
+  assign rs_num = inst[4:0];
+  assign rd_num = inst[9:5];
+  assign link_bit = inst[25];
+
+
+  //this is going to be enormous...
+  //Also needs a pass to make it comprehensible
+  always @(/*AUTOSENSE*/) begin
+    rd_we = 0;
+    pred_we = 0;
+    oper_type = OPER_TYPE_ALU; 
+    shift_amount = 5'd0;
+    shift_type = 2'b0;
+    long_im = 0;
+    op2 = 32'd0;
+
+    if({1'b1, preds}[inst[31:30]] ^ inst[29]) begin // predicate is true
+      
+      if(~inst[28]) begin // alu short
+        rd_we = execute_opcode[3:0] != 4'b1111;
+        pred_we = ~rd_we;
+        
+        if(execute_opcode[3:0] == 4'b0111) begin // MOV
+          //16 bit constant with optional shift
+          op2[15:0] = {inst[27:15], inst[4:0]};
+          shift_type = 2'b00;
+          shift_amount = {inst[14], 4'b0000};
+        end
+        else begin
+          op2[9:0] = inst[27:18];
+          shift_type = 2'b11;
+          shift_amount = {inst[17:14], 1'b0};
+          depend_rs = 1;
+        end
+        
+      end
+
+      else if(inst[27:26] == 2'b01) begin //alu reg
+        rd_we = execute_opcode[3:0] != 4'b1111;
+        pred_we = ~rd_we;
+        shift_amount = inst[25:21];
+        shift_type = inst[20:19];
+        depend_rs = 1;
+        depend_rt = execute_opcode[3:0] != 4'b0111; // not MOV
+      end
+
+      else if(inst[27:25] == 3'b001) begin // load/store
+        oper_type = OPER_TYPE_LSU;
+        rd_we = ~execute_opcode[2]; // load
+        depend_rs = 1;
+        op2[11:0] = inst[24:13];
+      end
+
+      else if(inst[27]) begin // branch
+        oper_type = OPER_TYPE_BRANCH;
+        if(inst[26]) begin // register
+          depend_rs = 1;
+          op2[23:4] = inst[24:5];
+        end
+        else //immediate
+          op2[28:4] = inst[24:0];
+      end
+
+      else if(inst[24]) begin // other
+        oper_type = OPER_TYPE_OTHER;
+        depend_rs = 1;
+        depend_rt = 1; //TODO are both of these always true?
+      end
+      // TODO shifts, long immediate ALU ops
+
+    end
+  end
+
+  assign stall = (depend_rt & reg_scoreboard[rt_num]) |
+                 (depend_rs & reg_scoreboard[rs_num]) |  
+                 ({1'b1, pred_scoreboard}[inst[31:30]]) |
+                 (rd_we & reg_scoreboard[rd_num]) |
+                 (pred_we & rd_num < 5'd3 & pred_scoreboard[rd_num]);
+
+endmodule
