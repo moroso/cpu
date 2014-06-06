@@ -11,7 +11,7 @@ VerilatedVcdC* tfp;
 #include "Stim_MCPU_MEM_ltc.h"
 #include "Check_MCPU_MEM_ltc.h"
 
-#define MAX_ADDRESSES 4096
+#define MAX_ADDRESSES 16384
 #define OPS_DEFAULT   4096
 
 vluint64_t main_time = 0;
