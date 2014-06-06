@@ -67,7 +67,7 @@ void Stim_MCPU_MEM_ltc::clk_pre() {
 	if (ltc->arb2ltc_stall)
 		return;
 
-	if (cmdq.empty() || (random() % 100 < 97)) {
+	if (cmdq.empty() || (random() % 100 < 3)) {
 		ltc->arb2ltc_valid = 0;
 		return;
 	}
