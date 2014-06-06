@@ -1,7 +1,7 @@
 RUNTIME := $(shell date +R%Y%m%d-%H%M%S)
 RUN ?= $(RUNTIME)
 RUNDIR ?= runs/$(RUN)
-TESTPLANS ?= L0 L1 L9
+TESTPLANS ?= L0 L1
 
 include config.mk
 -include $(HOME)/.quartus_config.mk
