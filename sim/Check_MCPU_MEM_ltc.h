@@ -24,9 +24,12 @@ class Check_MCPU_MEM_ltc {
 	std::queue<Response> respq;
 	
 	int stalled_cycles;
+	int noisy;
 
 public:
-	Check_MCPU_MEM_ltc(VMCPU_MEM_ltc *_ltc) : ltc(_ltc), stalled_cycles(0) { };
+	Check_MCPU_MEM_ltc(VMCPU_MEM_ltc *_ltc) : ltc(_ltc), stalled_cycles(0) {
+		noisy = !!getenv("SIM_LTC_CMODEL_NOISY");
+	};
 	
 	void clk_pre();
 	void clk_post();
