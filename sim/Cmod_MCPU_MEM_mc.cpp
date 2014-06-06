@@ -31,7 +31,7 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 	ltc2mc_avl_rdata_0[2] = ltc2mc_avl_rdata_0_next[2];
 	ltc2mc_avl_rdata_0[3] = ltc2mc_avl_rdata_0_next[3];
 
-	ltc2mc_avl_ready_0_next = 1;
+	ltc2mc_avl_ready_0_next = (random() % 100) < 96;
 
 	if (!ready_last) {
 		/* Assert that nothing has changed.  Don't do any actual work if we're not ready! */
@@ -58,16 +58,6 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 			SIM_CHECK(!*ltc2mc_avl_read_req_0 && !*ltc2mc_avl_write_req_0 && "read or write outside of burst");
 	
 		/* Dummy model: one-cycle memory */
-		ltc2mc_avl_rdata_valid_0_next = *ltc2mc_avl_read_req_0;
-		if (*ltc2mc_avl_read_req_0) {
-			uint32_t memad = *ltc2mc_avl_addr_0 * 16;
-			int i;
-			
-			for (i = 0; i < 4; i++)
-				ltc2mc_avl_rdata_0_next[i] =
-					(memory[memad + i*4 + 0] <<  0) | (memory[memad + i*4 + 1] <<  8) |
-					(memory[memad + i*4 + 2] << 16) | (memory[memad + i*4 + 3] << 24);
-		}
 		if (*ltc2mc_avl_write_req_0) {
 			uint32_t memad = *ltc2mc_avl_addr_0 * 16;
 			int i;
@@ -76,6 +66,17 @@ void Cmod_MCPU_MEM_mc::clk_pre() {
 				if (*ltc2mc_avl_be_0 & (1 << i))
 					memory[memad + i] = (ltc2mc_avl_wdata_0[i / 4] >> ((i % 4) * 8)) & 0xFF;
 		}
+	}
+	
+	ltc2mc_avl_rdata_valid_0_next = *ltc2mc_avl_read_req_0 && ready_last;
+	if (*ltc2mc_avl_read_req_0) {
+		uint32_t memad = *ltc2mc_avl_addr_0 * 16;
+		int i;
+		
+		for (i = 0; i < 4; i++)
+			ltc2mc_avl_rdata_0_next[i] =
+				(memory[memad + i*4 + 0] <<  0) | (memory[memad + i*4 + 1] <<  8) |
+				(memory[memad + i*4 + 2] << 16) | (memory[memad + i*4 + 3] << 24);
 	}
 	
 	ltc2mc_avl_write_req_0_last = *ltc2mc_avl_write_req_0;
