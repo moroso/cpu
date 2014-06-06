@@ -103,7 +103,7 @@ define TEST_template
 $(RUNDIR)/testlog/$(1): tb_$$(TEST_$(1)_tb)
 	$(call say,"Running test: $(1)")
 	@mkdir -p $(RUNDIR)/testlog
-	$$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) | tee $$@
+	$$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) > $$@
 
 .PHONY: test_$(1)
 test_$(1): $(RUNDIR)/testlog/$(1)

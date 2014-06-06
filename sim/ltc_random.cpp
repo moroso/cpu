@@ -57,6 +57,7 @@ int main(int argc, char **argv, char **env) {
 	uint32_t addresses[MAX_ADDRESSES];
 	int naddresses;
 	int nrandoms;
+	int randomize_bes;
 	
 	if (!getenv("LTC_RANDOM_SEED")) {
 		time_t t = time(NULL);
@@ -82,6 +83,8 @@ int main(int argc, char **argv, char **env) {
 		nrandoms = atoi(getenv("LTC_RANDOM_OPERATIONS"));
 	}
 	
+	randomize_bes = !getenv("LTC_NO_RANDOMIZE_BES");
+	
 	for (int i = 0; i < naddresses; i++)
 		addresses[i] = random() % 0x100000;
 	
@@ -95,7 +98,7 @@ int main(int argc, char **argv, char **env) {
 		case 1: /* write */
 			for (int j = 0; j < 32; j++)
 				buf[j] = random() % 256;
-			stim->write(addresses[random() % naddresses], buf, random() % 0x100000000, random() % 2);
+			stim->write(addresses[random() % naddresses], buf, (random() % 0x100000000) | (randomize_bes ? 0 : 0xffffffff), random() % 2);
 			break;
 		}
 	}

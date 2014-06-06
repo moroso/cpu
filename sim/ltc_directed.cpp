@@ -56,6 +56,9 @@ int main(int argc, char **argv, char **env) {
 #define GENBUF(vec) \
 		for (int i = 0; i < 32; i++) \
 			buf[i] = (vec << 4) ^ i;
+#define ADDR(tag, set, ofs) ((tag) << 7 | ((set) & 31) << 2 | ((ofs) & 3))
+#define WRITE(t,s,o) stim->write(ADDR(t,s,o), buf, 0xffffffff, 0)
+#define READ(t,s,o) stim->read(ADDR(t,s,o), 0)
 	
 	const char *testname;
 	testname = getenv("LTC_DIRECTED_TEST_NAME");
@@ -67,45 +70,54 @@ int main(int argc, char **argv, char **env) {
 	if (!strcmp(testname, "basic")) {
 		/* Basic read-write test */
 		GENBUF(0);
-		stim->write(0x0, buf, 0xffffffff, 0);
-		stim->read(0x0, 0);
+		WRITE(0,0,0);
+		READ (0,0,0);
 	} else if (!strcmp(testname, "backtoback")) {
 		/* Write back-to-back, then read back-to-back */
 		GENBUF(0);
-		stim->write(0x0, buf, 0xffffffff, 0);
+		WRITE(0,0,0);
 		GENBUF(1);
-		stim->write(0x1, buf, 0xffffffff, 0);
-		stim->read(0x0, 0);
-		stim->read(0x1, 0);
-		stim->read(0x0, 0);
-		stim->read(0x1, 0);
-		GENBUF(1);
-		stim->write(0x0, buf, 0xffffffff, 0);
-		stim->read(0x0, 0);
-		GENBUF(0);
-		stim->write(0x1, buf, 0xffffffff, 0);
-		stim->read(0x1, 0);
+		WRITE(1,0,0);
+		WRITE(1,0,1);
+		READ (0,0,0);
+		READ (1,0,0);
+		READ (0,0,0);
+		READ (1,0,1);
+		GENBUF(2);
+		WRITE(0,0,0);
+		READ (0,0,0);
+		GENBUF(3);
+		WRITE(0,0,1);
+		READ (0,0,1);
 	} else if (!strcmp(testname, "evict")) {
 		/* Basic evict test */
 		GENBUF(0);
-		stim->write(0x00000, buf, 0xffffffff, 0);
+		WRITE(0,0,0);
 		GENBUF(1);
-		stim->write(0x10000, buf, 0xffffffff, 0);
+		WRITE(1,0,0);
 		GENBUF(2);
-		stim->write(0x20000, buf, 0xffffffff, 0);
+		WRITE(2,0,0);
 		GENBUF(3);
-		stim->write(0x30000, buf, 0xffffffff, 0);
+		WRITE(3,0,0);
 		GENBUF(4);
-		stim->write(0x40000, buf, 0xffffffff, 0);
+		WRITE(4,0,0);
 		GENBUF(5);
-		stim->write(0x50000, buf, 0xffffffff, 0);
-	
-		stim->read(0x00000, 0);
-		stim->read(0x10000, 0);
-		stim->read(0x20000, 0);
-		stim->read(0x30000, 0);
-		stim->read(0x40000, 0);
-		stim->read(0x50000, 0);
+		WRITE(5,0,0);
+		
+		READ (0,0,0);
+		READ (1,0,0);
+		READ (2,0,0);
+		READ (3,0,0);
+		READ (4,0,0);
+		READ (5,0,0);
+	} else if (!strcmp(testname, "regress_two_set")) {
+		GENBUF(0);
+		WRITE(0,0,0);
+		READ (1,0,0);
+		READ (2,0,0);
+		READ (3,0,0);
+		READ (3,1,0);
+		READ (0,0,0);
 	} else {
 		printf("ltc_directed: test %s not supported\n", testname);
 		return 1;
