@@ -141,6 +141,9 @@ int main(int argc, char **argv, char **env) {
 		ltc->eval();
 		main_time++;
 		TRACE;
+		
+		if (main_time % 40000 == 0)
+			printf("ran for %lu cycles\n", main_time / 4);
 	}
 	
 	if (assertions_failed > 0) {
