@@ -229,7 +229,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					if (~clkrst_mem_rst_n) begin
 						way_tag[way] <= {TAG_BITS{1'bx}};
 					end else begin
-						if (resp_wr && (way_evicting == way[WAYS_BITS-1:0])) /* always from mc2ltc path, never from arb2ltc path */
+						if (set_selected_0a && resp_wr && (way_evicting == way[WAYS_BITS-1:0])) /* always from mc2ltc path, never from arb2ltc path */
 							way_tag[way] <= resp_addr[TAG_UPPER:TAG_LOWER];
 					end
 				
