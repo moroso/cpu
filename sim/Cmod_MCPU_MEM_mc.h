@@ -40,6 +40,9 @@ class Cmod_MCPU_MEM_mc {
 	CData ltc2mc_avl_ready_0_next;
 	CData ltc2mc_avl_rdata_valid_0_next;
 	WData ltc2mc_avl_rdata_0_next[4];
+	
+	CData ltc2mc_avl_read_req_0_last;
+	CData ltc2mc_avl_write_req_0_last;
 
 	/* State */
 	uint8_t memory[Cmod_MCPU_MEM_mc_MEMSZ];
