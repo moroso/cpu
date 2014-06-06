@@ -67,12 +67,11 @@ void Stim_MCPU_MEM_ltc::clk_pre() {
 	if (ltc->arb2ltc_stall)
 		return;
 
-	if (cmdq.empty()) {
+	if (cmdq.empty() || (random() % 100 < 97)) {
 		ltc->arb2ltc_valid = 0;
 		return;
 	}
 
-	/* XXX: insert random delays */
 	Stim_MCPU_MEM_ltc::Command &cmd = cmdq.front();
 	int i;
 	
