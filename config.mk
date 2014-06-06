@@ -74,11 +74,11 @@ TB_ltc_random_cpps = ltc_random.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp C
 ALL_TBS += ltc_random
 
 TEST_ltc_random_0_tb = ltc_random
-TEST_ltc_random_0_env = LTC_RANDOM_SEED=0
+TEST_ltc_random_0_env = LTC_RANDOM_SEED=0 LTC_RANDOM_ADDRESSES=256 LTC_RANDOM_OPERATIONS=4096
 TESTPLAN_L1_tests += ltc_random_0
 ALL_TESTS += ltc_random_0
 
 TEST_ltc_random_long_tb = ltc_random
-TEST_ltc_random_long_env = LTC_RANDOM_OPERATIONS=65536
+TEST_ltc_random_long_env = LTC_RANDOM_OPERATIONS=262144
 TESTPLAN_L9_tests += ltc_random_long
 ALL_TESTS += ltc_random_long
