@@ -435,7 +435,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		resp_fill_end = 0;
 		resp_ofs_next = resp_ofs;
 		
-		if (read_filling && ltc2mc_avl_rdata_valid_0) begin
+		if ((read_filling | read_filling_set) && ltc2mc_avl_rdata_valid_0) begin
 			resp_data_lo_latch = ~resp_ofs[0];
 			resp_addr = {arb2ltc_addr[31:7], resp_ofs[2:1]};
 			resp_wr = resp_ofs[0];
@@ -471,7 +471,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			if (resp_data_lo_latch)
 				resp_data_lo <= ltc2mc_avl_rdata_0;
 			
-			assert (!(ltc2mc_avl_rdata_valid_0 && !read_filling)) else $error("ltc2mc avl response without filling?");
+			assert (!(ltc2mc_avl_rdata_valid_0 && !(read_filling | read_filling_set))) else $error("ltc2mc avl response without filling?");
 		end
 
 	/*** ***/
