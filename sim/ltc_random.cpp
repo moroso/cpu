@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "check.h"
+#include "Sim.h"
 #include "verilated.h"
 #if VM_TRACE
 #include <verilated_vcd_c.h>  
@@ -14,31 +14,17 @@ VerilatedVcdC* tfp;
 #define MAX_ADDRESSES 16384
 #define OPS_DEFAULT   4096
 
-vluint64_t main_time = 0;
-
 #if VM_TRACE
 void _close_trace() {
 	if (tfp) tfp->close();
 }
 #endif
 
-int assertions_failed = 0;
-void sim_assert_failed() {
-	assertions_failed++;
-	if (assertions_failed > 10) {
-		printf("too many assertions failed; exiting\n");
-		exit(1);
-	}
-}
-
-double sc_time_stamp() {
-	return main_time;
-}
-
 int main(int argc, char **argv, char **env) {
 	int cycles = 0;
+
+	Sim::init(argc, argv);
 	
-	Verilated::commandArgs(argc, argv);
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_CONNECT(*ltc));
 	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
@@ -58,46 +44,28 @@ int main(int argc, char **argv, char **env) {
 	int nrandoms;
 	int randomize_bes;
 	
-	if (!getenv("LTC_RANDOM_SEED")) {
-		time_t t = time(NULL);
-		printf("ltc_random: rerun with LTC_RANDOM_SEED=%ld\n", t);
-		srandom(t);
-	} else {
-		srandom(atoi(getenv("LTC_RANDOM_SEED")));
-	}
-	
-	if (!getenv("LTC_RANDOM_ADDRESSES")) {
-		printf("ltc_random: defaulting to %d addresses\n", MAX_ADDRESSES);
+	naddresses = Sim::param_u64("LTC_RANDOM_ADDRESSES", MAX_ADDRESSES);
+	if (naddresses > MAX_ADDRESSES)
 		naddresses = MAX_ADDRESSES;
-	} else {
-		naddresses = atoi(getenv("LTC_RANDOM_ADDRESSES"));
-		if (naddresses > MAX_ADDRESSES)
-			naddresses = MAX_ADDRESSES;
-	}
-
-	if (!getenv("LTC_RANDOM_OPERATIONS")) {
-		printf("ltc_random: defaulting to %d operations\n", OPS_DEFAULT);
-		nrandoms = OPS_DEFAULT;
-	} else {
-		nrandoms = atoi(getenv("LTC_RANDOM_OPERATIONS"));
-	}
+	
+	nrandoms = Sim::param_u64("LTC_RANDOM_OPERATIONS", OPS_DEFAULT);
 	
 	randomize_bes = !getenv("LTC_NO_RANDOMIZE_BES");
 	
 	for (int i = 0; i < naddresses; i++)
-		addresses[i] = random() % 0x100000;
+		addresses[i] = Sim::random(0x100000);
 	
 	for (int i = 0; i < nrandoms; i++) {
 		uint8_t buf[32];
 		
-		switch (random() % 2) {
+		switch (Sim::random(2)) {
 		case 0: /* read */
-			stim->read(addresses[random() % naddresses], random() % 2);
+			stim->read(addresses[Sim::random(naddresses)], Sim::random(2));
 			break;
 		case 1: /* write */
 			for (int j = 0; j < 32; j++)
 				buf[j] = random() % 256;
-			stim->write(addresses[random() % naddresses], buf, (random() % 0x100000000) | (randomize_bes ? 0 : 0xffffffff), random() % 2);
+			stim->write(addresses[Sim::random(naddresses)], buf, Sim::random(0x100000000) | (randomize_bes ? 0 : 0xffffffff), Sim::random(2));
 			break;
 		}
 	}
@@ -122,7 +90,7 @@ int main(int argc, char **argv, char **env) {
 		stim->eval();
 		check->eval();
 		ltc->eval();
-		main_time++;
+		Sim::tick();
 		TRACE;
 		
 		ltc->clkrst_mem_clk = 1;
@@ -131,25 +99,22 @@ int main(int argc, char **argv, char **env) {
 		stim->clk();
 		check->clk();
 		ltc->eval();
-		main_time++;
+		Sim::tick();
 		TRACE;
 		
-		main_time++;
+		Sim::tick();
 		TRACE;
 	
 		ltc->clkrst_mem_clk = 0;
 		ltc->eval();
-		main_time++;
+		Sim::tick();
 		TRACE;
 		
-		if (main_time % 40000 == 0)
-			printf("ran for %lu cycles\n", main_time / 4);
+		if (Sim::main_time % 40000 == 0)
+			SIM_INFO("ran for %lu cycles", Sim::main_time / 4);
 	}
 	
-	if (assertions_failed > 0) {
-		printf("non-zero assertion failures: check logs\n");
-		return 1;
-	}
+	Sim::finish();
 	
 	return 0;
 }

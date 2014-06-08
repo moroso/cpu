@@ -1,6 +1,7 @@
 #include "verilated.h"
 
 #include "Stim_MCPU_MEM_ltc.h"
+#include "Sim.h"
 
 #define LTC_OPC_READ         0x0
 #define LTC_OPC_WRITE        0x1
@@ -72,7 +73,7 @@ void Stim_MCPU_MEM_ltc::clk() {
 		return;
 
 	/* Sometimes, generate a bubble. */
-	if (cmdq.empty() || (random() % 100 < 3)) {
+	if (cmdq.empty() || Sim::random(100) < 3) {
 		ltc->arb2ltc_valid = 0;
 		return;
 	}

@@ -1,5 +1,5 @@
 #include "Cmod_MCPU_MEM_mc.h"
-#include "check.h"
+#include "Sim.h"
 
 Cmod_MCPU_MEM_mc::Cmod_MCPU_MEM_mc(
 	MC_CMOD_CONNECTIONS(MC_CMOD_CONNECTION_ARG,) int _bogus
@@ -67,7 +67,7 @@ void Cmod_MCPU_MEM_mc::clk() {
 	ltc2mc_avl_read_req_0_last = *ltc2mc_avl_read_req_0;
 	
 	/* Set up ready for next time. */
-	*ltc2mc_avl_ready_0 = (random() % 100) < 96;
+	*ltc2mc_avl_ready_0 = Sim::random(100) < 96;
 }
 
 void Cmod_MCPU_MEM_mc::eval() {

@@ -1,7 +1,8 @@
 #include <stdlib.h>
 
-#include "check.h"
+#include "Sim.h"
 #include "verilated.h"
+
 #if VM_TRACE
 #include <verilated_vcd_c.h>  
 VerilatedVcdC* tfp;
@@ -13,31 +14,17 @@ VerilatedVcdC* tfp;
 
 #define CYCLE_LIMIT 100000
 
-vluint64_t main_time = 0;
-
 #if VM_TRACE
 void _close_trace() {
 	if (tfp) tfp->close();
 }
 #endif
 
-int assertions_failed = 0;
-void sim_assert_failed() {
-	assertions_failed++;
-	if (assertions_failed > 10) {
-		printf("too many assertions failed; exiting\n");
-		exit(1);
-	}
-}
-
-double sc_time_stamp() {
-	return main_time;
-}
-
 int main(int argc, char **argv, char **env) {
 	int cycles = 0;
 	
-	Verilated::commandArgs(argc, argv);
+	Sim::init(argc, argv);
+	
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_CONNECT(*ltc));
 	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
@@ -61,11 +48,7 @@ int main(int argc, char **argv, char **env) {
 #define READ(t,s,o) stim->read(ADDR(t,s,o), 0)
 	
 	const char *testname;
-	testname = getenv("LTC_DIRECTED_TEST_NAME");
-	if (!testname) {
-		printf("ltc_directed: no test name?  defaulting to basic\n");
-		testname = "basic";
-	}
+	testname = Sim::param_str("LTC_DIRECTED_TEST_NAME", "basic");
 	
 	if (!strcmp(testname, "basic")) {
 		/* Basic read-write test */
@@ -119,8 +102,7 @@ int main(int argc, char **argv, char **env) {
 		READ (3,1,0);
 		READ (0,0,0);
 	} else {
-		printf("ltc_directed: test %s not supported\n", testname);
-		return 1;
+		SIM_FATAL("test %s not supported", testname);
 	}
 	
 	/* Now, run the simulation */
@@ -139,38 +121,25 @@ int main(int argc, char **argv, char **env) {
 #endif
 
 	while (!stim->done() || !check->done()) {
-		mc_cmod->eval();
-		stim->eval();
-		check->eval();
-		ltc->eval();
-		main_time++;
-		TRACE;
-		
 		ltc->clkrst_mem_clk = 1;
 		ltc->eval();
 		mc_cmod->clk();
 		stim->clk();
 		check->clk();
 		ltc->eval();
-		main_time++;
+		Sim::tick();
 		TRACE;
 		
-		main_time++;
-		TRACE;
-	
 		ltc->clkrst_mem_clk = 0;
 		ltc->eval();
-		main_time++;
+		Sim::tick();
 		TRACE;
 		
 		cycles++;
 		SIM_CHECK(cycles < CYCLE_LIMIT);
 	}
 	
-	if (assertions_failed > 0) {
-		printf("non-zero assertion failures: check logs\n");
-		return 1;
-	}
+	Sim::finish();
 	
 	return 0;
 }

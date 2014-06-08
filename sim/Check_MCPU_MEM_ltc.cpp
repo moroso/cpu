@@ -1,6 +1,6 @@
 #include "verilated.h"
 #include "Check_MCPU_MEM_ltc.h"
-#include "check.h"
+#include "Sim.h"
 
 #define LTC_OPC_READ         0x0
 #define LTC_OPC_WRITE        0x1
@@ -30,7 +30,7 @@ void Check_MCPU_MEM_ltc::clk() {
 
 	/* Handle responses -- before inbound transactions, since we can't respond same-cycle! */
 	if (ltc->arb2ltc_rvalid) {
-		if (noisy) printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
+		SIM_DEBUG("response valid");
 
 		SIM_CHECK(!respq.empty() && "ltc response came back without outbound read request");
 		if (respq.empty())
@@ -46,14 +46,14 @@ void Check_MCPU_MEM_ltc::clk() {
 
 	/* Handle inbound transactions */
 	if (ltc->arb2ltc_valid && !ltc->arb2ltc_stall) {
-		if (noisy) printf("Check_MCPU_MEM_ltc::clk_pre(): inbound valid with opcode %d, address %08x\n", ltc->arb2ltc_opcode, ltc->arb2ltc_addr);
+		SIM_DEBUG("inbound valid with opcode %d, address %08x", ltc->arb2ltc_opcode, ltc->arb2ltc_addr);
 		
 		switch (ltc->arb2ltc_opcode) {
 		case LTC_OPC_READ:
 		case LTC_OPC_READTHROUGH: {
 			Check_MCPU_MEM_ltc::Response resp;
 			
-			if (noisy) printf("Check_MCPU_MEM_ltc::clk_pre(): pushing read, be %08x\n", memory[ltc->arb2ltc_addr].valid);
+			SIM_DEBUG("pushing read, be %08x", memory[ltc->arb2ltc_addr].valid);
 			resp.age = 0;
 			resp.addr = ltc->arb2ltc_addr;
 			resp.atom = memory[ltc->arb2ltc_addr];

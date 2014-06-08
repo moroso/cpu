@@ -50,7 +50,7 @@ TESTPLAN_L9_tests =
 # L2C tests
 
 TB_ltc_directed_top  = MCPU_MEM_ltc
-TB_ltc_directed_cpps = ltc_directed.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+TB_ltc_directed_cpps = ltc_directed.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
 ALL_TBS += ltc_directed
 
 TEST_ltc_basic_tb   = ltc_directed
@@ -70,7 +70,7 @@ TESTPLAN_L1_tests += ltc_regress_two_set
 ALL_TESTS += ltc_basic ltc_backtoback ltc_evict ltc_regress_two_set
 
 TB_ltc_random_top  = MCPU_MEM_ltc
-TB_ltc_random_cpps = ltc_random.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+TB_ltc_random_cpps = ltc_random.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
 ALL_TBS += ltc_random
 
 TEST_ltc_random_0_tb = ltc_random
