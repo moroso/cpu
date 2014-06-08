@@ -4,16 +4,17 @@ module mcpu_decode(/*AUTOARG*/);
   input [2:0] preds;
   input [31:0] reg_scoreboard;
   input [2:0] pred_scoreboard;
+  input [31:0] rs_data, rt_data;
+  input [31:0] nextinst;
   
   output [8:0] execute_opcode;
-  output [2:0] compare_type;
   output [1:0] shift_type;
-  output [4:0] shift_amount;
+  output [5:0] shift_amount;
   output [2:0] oper_type;
   output [4:0] rd_num, rs_num, rt_num;
   output rd_we;
   output pred_we;
-  output [31:0] op2;
+  output [31:0] op1, op2;
   output stall;
   output long_imm;
   output link_bit;
@@ -25,14 +26,14 @@ module mcpu_decode(/*AUTOARG*/);
 
 
   //each execute unit will only take the bits of this that it needs
+  //execute units will be responsible for discovering invalid opcodes
   assign execute_opcode = {inst[23:19], inst[13:10]};
-
-  assign compare_type = inst[9:7];
 
   assign rt_num = inst[18:14];
   assign rs_num = inst[4:0];
   assign rd_num = inst[9:5];
   assign link_bit = inst[25];
+  assign op1 = rt_data;
 
 
   //this is going to be enormous...
@@ -41,9 +42,9 @@ module mcpu_decode(/*AUTOARG*/);
     rd_we = 0;
     pred_we = 0;
     oper_type = OPER_TYPE_ALU; 
-    shift_amount = 5'd0;
-    shift_type = 2'b0;
-    long_im = 0;
+    shift_amount = 6'd0;
+    shift_type = 2'b00;
+    long_imm = 0;
     op2 = 32'd0;
 
     if({1'b1, preds}[inst[31:30]] ^ inst[29]) begin // predicate is true
@@ -56,21 +57,23 @@ module mcpu_decode(/*AUTOARG*/);
           //16 bit constant with optional shift
           op2[15:0] = {inst[27:15], inst[4:0]};
           shift_type = 2'b00;
-          shift_amount = {inst[14], 4'b0000};
+          shift_amount = {0, inst[14], 4'b0000};
         end
         else begin
+          //rotated immediate
           op2[9:0] = inst[27:18];
           shift_type = 2'b11;
-          shift_amount = {inst[17:14], 1'b0};
+          shift_amount = {0, inst[17:14], 1'b0};
           depend_rs = 1;
         end
         
       end
 
       else if(inst[27:26] == 2'b01) begin //alu reg
+        op2 = rs_data;
         rd_we = execute_opcode[3:0] != 4'b1111;
         pred_we = ~rd_we;
-        shift_amount = inst[25:21];
+        shift_amount = {0, inst[25:21]};
         shift_type = inst[20:19];
         depend_rs = 1;
         depend_rt = execute_opcode[3:0] != 4'b0111; // not MOV
@@ -97,8 +100,24 @@ module mcpu_decode(/*AUTOARG*/);
         oper_type = OPER_TYPE_OTHER;
         depend_rs = 1;
         depend_rt = 1; //TODO are both of these always true?
+        op2 = rs_data;
       end
-      // TODO shifts, long immediate ALU ops
+      
+      else if(inst[23]) begin //shift
+        oper_type = OPER_TYPE_ALU;
+        depend_rs = 1;
+        shift_type = inst[20:19];
+        //we don't actually care what the whole value is, only if it's >= 32 
+        shift_amt = inst[22] ? {|rt_data[31:5], rt_data[4:0]} : inst[18:14];
+        op2 = rs_data;
+      end
+      
+      else begin //ALU long immediate
+        oper_type = OPER_TYPE_ALU;
+        op2 = nextinst;
+        long_imm = 1;
+        depend_rs = execute_opcode[3:0] != 4'b0111; // not MOV
+      end
 
     end
   end

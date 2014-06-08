@@ -4,7 +4,7 @@ module mcpu_alu(/*AUTOARG*/);
   input [3:0] opcode;
   input [2:0] compare_type;
   input [1:0] shift_type;
-  input [4:0] shift_amount;
+  input [5:0] shift_amount;
 
   output [31:0] result;
   output invalid;
@@ -48,16 +48,22 @@ module mcpu_shifter(/*AUTOARG*/);
 
   input [31:0] op2;
   input [1:0] shift_type;
-  input [4:0] shift_amount;
+  input [5:0] shift_amount;
 
   output reg [31:0] shifted_op2;
 
-  always @(*) 
-    case(shift_type)
-      2'b00: shifted_op2 = operand << shift_amount;
-      2'b01: shifted_op2 = operand >> shift_amount;
-      2'b10: shifted_op2 = $signed(operand) >>> shift_amount; // lol
-      2'b11: shifted_op2 = (operand >> shift_amount) | (operand << shift_amount);
-    endcase
+  always @(/*AUTOSENSE*/) begin
+    if(shift_amount[5] & (shift_type != 2'b11)) begin
+      if(shift_type == 2'b10) shifted_op2 = {32{operand[31]}};
+      else shifted_op2 = 32'b0;
+    end else begin
+      case(shift_type)
+        2'b00: shifted_op2 = operand << shift_amount[4:0];
+        2'b01: shifted_op2 = operand >> shift_amount[4:0];
+        2'b10: shifted_op2 = $signed(operand) >>> shift_amount[4:0]; // lol
+        2'b11: shifted_op2 = (operand >> shift_amount[4:0]) | (operand << shift_amount[4:0]);
+      endcase
+    end
+  end
 
 endmodule
