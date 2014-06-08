@@ -12,7 +12,7 @@
 #define LTC_STALLED_CYCLES_MAX 1000
 #define LTC_LATENCY_MAX 500
 
-void Check_MCPU_MEM_ltc::clk_pre() {
+void Check_MCPU_MEM_ltc::clk() {
 	/* Check: input stall */
 	if (ltc->arb2ltc_stall)
 		stalled_cycles++;
@@ -33,6 +33,8 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 		if (noisy) printf("Check_MCPU_MEM_ltc::clk_pre(): response valid\n");
 
 		SIM_CHECK(!respq.empty() && "ltc response came back without outbound read request");
+		if (respq.empty())
+			return;
 		
 		Check_MCPU_MEM_ltc::Response &resp = respq.front();
 		for (int i = 0; i < 32; i++)
@@ -72,7 +74,7 @@ void Check_MCPU_MEM_ltc::clk_pre() {
 	}
 }
 
-void Check_MCPU_MEM_ltc::clk_post() {
+void Check_MCPU_MEM_ltc::eval() {
 }
 
 int Check_MCPU_MEM_ltc::done() {

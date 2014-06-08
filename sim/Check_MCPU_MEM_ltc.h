@@ -31,8 +31,9 @@ public:
 		noisy = !!getenv("SIM_LTC_CMODEL_NOISY");
 	};
 	
-	void clk_pre();
-	void clk_post();
+	void eval();
+	void clk();
+	
 	int done();
 };
 

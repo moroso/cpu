@@ -24,8 +24,10 @@ public:
 	void write(uint32_t addr, uint8_t data[32], uint32_t be, int through);
 	void prefetch(uint32_t addr);
 	void clean(uint32_t addr);
-	void clk_pre();
-	void clk_post();
+	
+	void eval();
+	void clk();
+	
 	int done();
 };
 

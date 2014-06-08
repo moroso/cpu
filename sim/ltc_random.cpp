@@ -118,18 +118,18 @@ int main(int argc, char **argv, char **env) {
 #endif
 
 	while (!stim->done() || !check->done()) {
-		mc_cmod->clk_pre();
-		stim->clk_pre();
-		check->clk_pre();
+		mc_cmod->eval();
+		stim->eval();
+		check->eval();
 		ltc->eval();
 		main_time++;
 		TRACE;
 		
 		ltc->clkrst_mem_clk = 1;
 		ltc->eval();
-		mc_cmod->clk_post();
-		stim->clk_post();
-		check->clk_post();
+		mc_cmod->clk();
+		stim->clk();
+		check->clk();
 		ltc->eval();
 		main_time++;
 		TRACE;

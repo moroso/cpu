@@ -63,15 +63,21 @@ void Stim_MCPU_MEM_ltc::clean(uint32_t addr) {
 	cmdq.push(cmd);
 }
 
-void Stim_MCPU_MEM_ltc::clk_pre() {
-	if (ltc->arb2ltc_stall)
+void Stim_MCPU_MEM_ltc::eval() {
+}
+
+void Stim_MCPU_MEM_ltc::clk() {
+	/* Do nothing on a clock if stalled. */
+	if (ltc->arb2ltc_stall || !ltc->clkrst_mem_rst_n)
 		return;
 
+	/* Sometimes, generate a bubble. */
 	if (cmdq.empty() || (random() % 100 < 3)) {
 		ltc->arb2ltc_valid = 0;
 		return;
 	}
 
+	/* Otherwise, set up a command for the next clock. */
 	Stim_MCPU_MEM_ltc::Command &cmd = cmdq.front();
 	int i;
 	
@@ -83,9 +89,6 @@ void Stim_MCPU_MEM_ltc::clk_pre() {
 	ltc->arb2ltc_wbe = cmd.wbe;
 	
 	cmdq.pop();
-}
-
-void Stim_MCPU_MEM_ltc::clk_post() {
 }
 
 int Stim_MCPU_MEM_ltc::done() {
