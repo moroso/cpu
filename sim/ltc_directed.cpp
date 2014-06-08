@@ -63,7 +63,7 @@ int main(int argc, char **argv, char **env) {
 	const char *testname;
 	testname = getenv("LTC_DIRECTED_TEST_NAME");
 	if (!testname) {
-		printf("ltc_directed: no test name?  defaulting to basic");
+		printf("ltc_directed: no test name?  defaulting to basic\n");
 		testname = "basic";
 	}
 	
