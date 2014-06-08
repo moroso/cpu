@@ -69,6 +69,3 @@ void Cmod_MCPU_MEM_mc::clk() {
 	/* Set up ready for next time. */
 	*ltc2mc_avl_ready_0 = Sim::random(100) < 96;
 }
-
-void Cmod_MCPU_MEM_mc::eval() {
-}

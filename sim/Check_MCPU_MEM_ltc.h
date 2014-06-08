@@ -28,7 +28,6 @@ class Check_MCPU_MEM_ltc {
 public:
 	Check_MCPU_MEM_ltc(VMCPU_MEM_ltc *_ltc) : ltc(_ltc), stalled_cycles(0) { };
 	
-	void eval();
 	void clk();
 	
 	int done();

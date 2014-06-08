@@ -49,36 +49,32 @@ TESTPLAN_L9_tests =
 
 # L2C tests
 
-TB_ltc_directed_top  = MCPU_MEM_ltc
-TB_ltc_directed_cpps = ltc_directed.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
-ALL_TBS += ltc_directed
+TB_ltc_top  = MCPU_MEM_ltc
+TB_ltc_cpps = ltc.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+ALL_TBS += ltc
 
-TEST_ltc_basic_tb   = ltc_directed
+TEST_ltc_basic_tb   = ltc
 TEST_ltc_basic_env  = LTC_DIRECTED_TEST_NAME=basic
 
-TEST_ltc_backtoback_tb   = ltc_directed
+TEST_ltc_backtoback_tb   = ltc
 TEST_ltc_backtoback_env  = LTC_DIRECTED_TEST_NAME=backtoback
 
-TEST_ltc_evict_tb   = ltc_directed
+TEST_ltc_evict_tb   = ltc
 TEST_ltc_evict_env  = LTC_DIRECTED_TEST_NAME=evict
 
-TEST_ltc_regress_two_set_tb   = ltc_directed
+TEST_ltc_regress_two_set_tb   = ltc
 TEST_ltc_regress_two_set_env  = LTC_DIRECTED_TEST_NAME=regress_two_set
 
 TESTPLAN_L0_tests += ltc_basic ltc_backtoback ltc_evict
 TESTPLAN_L1_tests += ltc_regress_two_set
 ALL_TESTS += ltc_basic ltc_backtoback ltc_evict ltc_regress_two_set
 
-TB_ltc_random_top  = MCPU_MEM_ltc
-TB_ltc_random_cpps = ltc_random.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
-ALL_TBS += ltc_random
-
-TEST_ltc_random_0_tb = ltc_random
-TEST_ltc_random_0_env = LTC_RANDOM_SEED=0 LTC_RANDOM_ADDRESSES=256 LTC_RANDOM_OPERATIONS=4096
+TEST_ltc_random_0_tb = ltc
+TEST_ltc_random_0_env = LTC_DIRECTED_TEST_NAME=random SIM_RANDOM_SEED=0 LTC_RANDOM_ADDRESSES=256 LTC_RANDOM_OPERATIONS=4096
 TESTPLAN_L1_tests += ltc_random_0
 ALL_TESTS += ltc_random_0
 
-TEST_ltc_random_long_tb = ltc_random
-TEST_ltc_random_long_env = LTC_RANDOM_OPERATIONS=262144
+TEST_ltc_random_long_tb = ltc
+TEST_ltc_random_long_env = LTC_DIRECTED_TEST_NAME=random LTC_RANDOM_OPERATIONS=262144
 TESTPLAN_L9_tests += ltc_random_long
 ALL_TESTS += ltc_random_long

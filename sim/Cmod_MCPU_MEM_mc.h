@@ -50,7 +50,6 @@ public:
 		MC_CMOD_CONNECTIONS(MC_CMOD_CONNECTION_ARG,) int _bogus = 0
 		);
 
-	void eval();
 	void clk();
 };
 

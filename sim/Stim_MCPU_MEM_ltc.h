@@ -25,7 +25,6 @@ public:
 	void prefetch(uint32_t addr);
 	void clean(uint32_t addr);
 	
-	void eval();
 	void clk();
 	
 	int done();

@@ -12,7 +12,8 @@ VerilatedVcdC* tfp;
 #include "Stim_MCPU_MEM_ltc.h"
 #include "Check_MCPU_MEM_ltc.h"
 
-#define CYCLE_LIMIT 100000
+#define MAX_ADDRESSES 16384
+#define OPS_DEFAULT   4096
 
 #if VM_TRACE
 void _close_trace() {
@@ -21,8 +22,6 @@ void _close_trace() {
 #endif
 
 int main(int argc, char **argv, char **env) {
-	int cycles = 0;
-	
 	Sim::init(argc, argv);
 	
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
@@ -101,6 +100,37 @@ int main(int argc, char **argv, char **env) {
 		READ (3,0,0);
 		READ (3,1,0);
 		READ (0,0,0);
+	} else if (!strcmp(testname, "random")) {
+		uint32_t addresses[MAX_ADDRESSES];
+		int naddresses;
+		int nrandoms;
+		int randomize_bes;
+		
+		naddresses = Sim::param_u64("LTC_RANDOM_ADDRESSES", MAX_ADDRESSES);
+		if (naddresses > MAX_ADDRESSES)
+			naddresses = MAX_ADDRESSES;
+		
+		nrandoms = Sim::param_u64("LTC_RANDOM_OPERATIONS", OPS_DEFAULT);
+		
+		randomize_bes = !getenv("LTC_NO_RANDOMIZE_BES");
+		
+		for (int i = 0; i < naddresses; i++)
+			addresses[i] = Sim::random(0x100000);
+		
+		for (int i = 0; i < nrandoms; i++) {
+			uint8_t buf[32];
+			
+			switch (Sim::random(2)) {
+			case 0: /* read */
+				stim->read(addresses[Sim::random(naddresses)], Sim::random(2));
+				break;
+			case 1: /* write */
+				for (int j = 0; j < 32; j++)
+					buf[j] = random() % 256;
+				stim->write(addresses[Sim::random(naddresses)], buf, Sim::random(0x100000000) | (randomize_bes ? 0 : 0xffffffff), Sim::random(2));
+				break;
+			}
+		}
 	} else {
 		SIM_FATAL("test %s not supported", testname);
 	}
@@ -135,8 +165,8 @@ int main(int argc, char **argv, char **env) {
 		Sim::tick();
 		TRACE;
 		
-		cycles++;
-		SIM_CHECK(cycles < CYCLE_LIMIT);
+		if (Sim::main_time % 20000 == 0)
+			SIM_INFO("ran for %lu cycles", Sim::main_time / 2);
 	}
 	
 	Sim::finish();

@@ -64,9 +64,6 @@ void Stim_MCPU_MEM_ltc::clean(uint32_t addr) {
 	cmdq.push(cmd);
 }
 
-void Stim_MCPU_MEM_ltc::eval() {
-}
-
 void Stim_MCPU_MEM_ltc::clk() {
 	/* Do nothing on a clock if stalled. */
 	if (ltc->arb2ltc_stall || !ltc->clkrst_mem_rst_n)

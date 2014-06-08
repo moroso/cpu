@@ -74,9 +74,6 @@ void Check_MCPU_MEM_ltc::clk() {
 	}
 }
 
-void Check_MCPU_MEM_ltc::eval() {
-}
-
 int Check_MCPU_MEM_ltc::done() {
 	return respq.empty();
 }
