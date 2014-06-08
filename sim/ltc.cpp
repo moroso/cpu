@@ -25,7 +25,9 @@ int main(int argc, char **argv, char **env) {
 	Sim::init(argc, argv);
 	
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
-	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_CONNECT(*ltc));
+	Cmod_MCPU_MEM_mc_ports mc_ports;
+	Cmod_MCPU_MEM_mc_CONNECT(&mc_ports, ltc);
+	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(&mc_ports);
 	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
 	Check_MCPU_MEM_ltc *check = new Check_MCPU_MEM_ltc(ltc);
 
