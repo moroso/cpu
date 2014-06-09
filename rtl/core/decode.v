@@ -14,6 +14,7 @@ module mcpu_decode(/*AUTOARG*/
   input [2:0] pred_scoreboard;
   input [31:0] rs_data, rt_data;
   input [31:0] nextinst;
+  input prev_long_imm;
   
   output [8:0] execute_opcode;
   output [1:0] shift_type;
@@ -63,7 +64,7 @@ module mcpu_decode(/*AUTOARG*/
     op2 = 32'd0;
 
 
-    if(actual_preds[inst[31:30]] ^ inst[29]) begin
+    if((actual_preds[inst[31:30]] ^ inst[29]) & ~prev_long_imm) begin
       
       if(~inst[28]) begin // alu short
         rd_we = execute_opcode[3:0] != 4'b1111;

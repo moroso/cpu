@@ -5,8 +5,10 @@ RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/lib/FIFO.v \
-	rtl/core/alu.v \
-	rtl/core/decoder.v
+  rtl/core/core.v \
+  rtl/core/fetch.v \
+	rtl/core/decode.v \
+	rtl/core/alu.v 
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
