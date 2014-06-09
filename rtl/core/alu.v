@@ -1,4 +1,9 @@
-module mcpu_alu(/*AUTOARG*/);
+module mcpu_alu(/*AUTOARG*/
+   // Outputs
+   result, invalid,
+   // Inputs
+   op1, op2, opcode, compare_type, shift_type, shift_amount
+   );
 
   input [31:0] op1, op2;
   input [3:0] opcode;
@@ -13,9 +18,15 @@ module mcpu_alu(/*AUTOARG*/);
 
   wire [31:0] shifted_op2;
 
-  mcpu_shifter shifter(.*);
+  mcpu_shifter shifter(/*AUTOINST*/
+		       // Outputs
+		       .shifted_op2	(shifted_op2[31:0]),
+		       // Inputs
+		       .op2		(op2[31:0]),
+		       .shift_type	(shift_type[1:0]),
+		       .shift_amount	(shift_amount[5:0]));
 
-  always @(/*AUTOSENSE*/) begin
+  always @(/*AUTOSENSE*/compare_type or op1 or opcode or shifted_op2) begin
     result = 32'b0;
     invalid = 0;
     case(opcode)
@@ -44,7 +55,12 @@ module mcpu_alu(/*AUTOARG*/);
 
 endmodule
 
-module mcpu_shifter(/*AUTOARG*/);
+module mcpu_shifter(/*AUTOARG*/
+   // Outputs
+   shifted_op2,
+   // Inputs
+   op2, shift_type, shift_amount
+   );
 
   input [31:0] op2;
   input [1:0] shift_type;
@@ -52,7 +68,7 @@ module mcpu_shifter(/*AUTOARG*/);
 
   output reg [31:0] shifted_op2;
 
-  always @(/*AUTOSENSE*/) begin
+  always @(/*AUTOSENSE*/operand or shift_amount or shift_type) begin
     if(shift_amount[5] & (shift_type != 2'b11)) begin
       if(shift_type == 2'b10) shifted_op2 = {32{operand[31]}};
       else shifted_op2 = 32'b0;

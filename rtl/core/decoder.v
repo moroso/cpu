@@ -1,4 +1,12 @@
-module mcpu_decode(/*AUTOARG*/);
+module mcpu_decode(/*AUTOARG*/
+   // Outputs
+   execute_opcode, shift_type, shift_amount, oper_type, rd_num,
+   rs_num, rt_num, rd_we, pred_we, op1, op2, stall, long_imm,
+   link_bit,
+   // Inputs
+   inst, preds, reg_scoreboard, pred_scoreboard, rs_data, rt_data,
+   nextinst
+   );
 
   input [31:0] inst;
   input [2:0] preds;
@@ -21,8 +29,10 @@ module mcpu_decode(/*AUTOARG*/);
 
   /* AUTOREG */
 
+`include "oper_type.vh"
 
   wire depend_rt, depend_rs;
+  wire [3:0] actual_preds, actual_scoreboard;
 
 
   //each execute unit will only take the bits of this that it needs
@@ -34,11 +44,16 @@ module mcpu_decode(/*AUTOARG*/);
   assign rd_num = inst[9:5];
   assign link_bit = inst[25];
   assign op1 = rt_data;
+  assign actual_preds = {1'b1, preds};
+  assign actual_scoreboard = {1'b0, pred_scoreboard};
 
 
   //this is going to be enormous...
   //Also needs a pass to make it comprehensible
-  always @(/*AUTOSENSE*/) begin
+  always @(/*AUTOSENSE*/OPER_TYPE_ALU or OPER_TYPE_BRANCH
+	   or OPER_TYPE_LSU or OPER_TYPE_OTHER or actual_preds
+	   or execute_opcode or inst or nextinst or rs_data or rt_data) begin
+	   
     rd_we = 0;
     pred_we = 0;
     oper_type = OPER_TYPE_ALU; 
@@ -47,7 +62,8 @@ module mcpu_decode(/*AUTOARG*/);
     long_imm = 0;
     op2 = 32'd0;
 
-    if({1'b1, preds}[inst[31:30]] ^ inst[29]) begin // predicate is true
+
+    if(actual_preds[inst[31:30]] ^ inst[29]) begin
       
       if(~inst[28]) begin // alu short
         rd_we = execute_opcode[3:0] != 4'b1111;
@@ -124,7 +140,7 @@ module mcpu_decode(/*AUTOARG*/);
 
   assign stall = (depend_rt & reg_scoreboard[rt_num]) |
                  (depend_rs & reg_scoreboard[rs_num]) |  
-                 ({1'b1, pred_scoreboard}[inst[31:30]]) |
+                 (actual_scoreboard[inst[31:30]]) |
                  (rd_we & reg_scoreboard[rd_num]) |
                  (pred_we & rd_num < 5'd3 & pred_scoreboard[rd_num]);
 

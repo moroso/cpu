@@ -4,7 +4,9 @@
 RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
-	rtl/lib/FIFO.v
+	rtl/lib/FIFO.v \
+	rtl/core/alu.v \
+	rtl/core/decoder.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
@@ -17,7 +19,8 @@ RTL_SIM =
 RTL_INC = \
 	$(wildcard rtl/mc/lpddr2_phy/*.hex) \
 	rtl/mc/MCPU_MEM_ltc.vh \
-	rtl/lib/clog2.vh
+	rtl/lib/clog2.vh \
+	rtl/core/oper_type.vh
 
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu
