@@ -42,7 +42,7 @@ module FIFO(/*AUTOARG*/
 			mem_bypass <= 0;
 			wdata_m1a <= {WIDTH{1'b0}};
 		end else begin
-			mem_bypass <= empty_0a && push;
+			mem_bypass <= empty && push;
 			wdata_m1a <= wdata;
 		end
 	
@@ -53,7 +53,7 @@ module FIFO(/*AUTOARG*/
 			rptr <= {clog2(DEPTH){1'b0}};
 		end else begin
 			if (pop && !empty)
-				rptr <= rptr + {clog2(DEPTH)-1{1'b0}, 1'b1};
+				rptr <= rptr + {{clog2(DEPTH)-1{1'b0}}, 1'b1};
 		end
 	
 	/*** Write port ***/
@@ -66,7 +66,7 @@ module FIFO(/*AUTOARG*/
 			wptr <= {clog2(DEPTH){1'b0}};
 		end else begin
 			if (push && !full)
-				wptr <= wptr + {clog2(DEPTH)-1{1'b0}, 1'b1};
+				wptr <= wptr + {{clog2(DEPTH)-1{1'b0}}, 1'b1};
 		end
 
 endmodule
