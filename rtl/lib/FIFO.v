@@ -33,7 +33,7 @@ module FIFO(/*AUTOARG*/
 	/*** Read port ***/
 	reg [WIDTH-1:0] mem_rdata;
 	always @(posedge clk)
-		mem_rdata <= mem[rptr];
+		mem_rdata <= mem[rptr[clog2(DEPTH)-2:0]];
 
 	reg             mem_bypass;
 	reg [WIDTH-1:0] wdata_m1a;
@@ -59,7 +59,7 @@ module FIFO(/*AUTOARG*/
 	/*** Write port ***/
 	always @(posedge clk)
 		if (push && !full)
-			mem[wptr] <= wdata;
+			mem[wptr[clog2(DEPTH)-2:0]] <= wdata;
 	
 	always @(posedge clk or negedge rst_n)
 		if (~rst_n) begin
