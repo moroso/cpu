@@ -4,6 +4,7 @@
 RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
+	rtl/mc/MCPU_MEM_arb.v \
 	rtl/lib/FIFO.v
 
 RTL_FPGA = \
@@ -11,7 +12,8 @@ RTL_FPGA = \
 	rtl/mc/lpddr2_phy.v \
 	rtl/mc/MCPU_mc.v
 	
-RTL_SIM =
+RTL_SIM = \
+	rtl/tb/TB_MCPU_MEM_arb.v
 
 # .vh files and other misc things needed for sim or synth
 RTL_INC = \
@@ -78,3 +80,15 @@ TEST_ltc_random_long_tb = ltc
 TEST_ltc_random_long_env = LTC_DIRECTED_TEST_NAME=random LTC_RANDOM_OPERATIONS=262144
 TESTPLAN_L9_tests += ltc_random_long
 ALL_TESTS += ltc_random_long
+
+# ARB tests
+
+TB_arb_top  = TB_MCPU_MEM_arb
+TB_arb_cpps = arb.cpp Sim.cpp # Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp
+ALL_TBS += arb
+
+TEST_arb_basic_tb  = arb
+TEST_arb_basic_env =
+
+TESTPLAN_L0_tests += arb_basic
+ALL_TESTS += arb_basic

@@ -1,2 +1,4 @@
 -y mc
 -y lib
+-y ../mc
+-y ../lib
