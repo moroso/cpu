@@ -90,5 +90,5 @@ ALL_TBS += arb
 TEST_arb_basic_tb  = arb
 TEST_arb_basic_env =
 
-TESTPLAN_L0_tests += arb_basic
+#TESTPLAN_L0_tests += arb_basic
 ALL_TESTS += arb_basic
