@@ -1,12 +1,11 @@
-#ifndef _Stim_MCPU_MEM_ltc_H
-#define _Stim_MCPU_MEM_ltc_H
+#ifndef _Stim_MCPU_MEM_H
+#define _Stim_MCPU_MEM_H
 
 #include <queue>
 #include <inttypes.h>
-#include "VMCPU_MEM_ltc.h"
+#include "MCPU_MEM_ports.h"
 
-
-class Stim_MCPU_MEM_ltc {
+class Stim_MCPU_MEM {
 	struct Command {
 		uint8_t opcode;
 		uint32_t addr;
@@ -14,11 +13,11 @@ class Stim_MCPU_MEM_ltc {
 		uint32_t wbe;
 	};
 	
-	VMCPU_MEM_ltc *ltc;
+	MCPU_MEM_ports *ports;
 	std::queue<Command> cmdq;
 	
 public:
-	Stim_MCPU_MEM_ltc(VMCPU_MEM_ltc *_ltc) : ltc(_ltc) { };
+	Stim_MCPU_MEM(MCPU_MEM_ports *_ports) : ports(_ports) { };
 	
 	void read(uint32_t addr, int through);
 	void write(uint32_t addr, uint8_t data[32], uint32_t be, int through);

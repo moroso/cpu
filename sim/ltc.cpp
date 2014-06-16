@@ -9,7 +9,8 @@ VerilatedVcdC* tfp;
 #endif
 #include "VMCPU_MEM_ltc.h"
 #include "Cmod_MCPU_MEM_mc.h"
-#include "Stim_MCPU_MEM_ltc.h"
+#include "MCPU_MEM_ports.h"
+#include "Stim_MCPU_MEM.h"
 #include "Check_MCPU_MEM_ltc.h"
 
 #define MAX_ADDRESSES 16384
@@ -27,8 +28,10 @@ int main(int argc, char **argv, char **env) {
 	VMCPU_MEM_ltc *ltc = new VMCPU_MEM_ltc;
 	Cmod_MCPU_MEM_mc_ports mc_ports;
 	Cmod_MCPU_MEM_mc_CONNECT(&mc_ports, ltc);
+	MCPU_MEM_ports ltc_ports;
+	MCPU_MEM_ports_CONNECT(&ltc_ports, ltc, arb2ltc_);
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(&mc_ports);
-	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
+	Stim_MCPU_MEM *stim = new Stim_MCPU_MEM(&ltc_ports);
 	Check_MCPU_MEM_ltc *check = new Check_MCPU_MEM_ltc(ltc);
 
 #if VM_TRACE

@@ -52,7 +52,7 @@ TESTPLAN_L9_tests =
 # L2C tests
 
 TB_ltc_top  = MCPU_MEM_ltc
-TB_ltc_cpps = ltc.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp Check_MCPU_MEM_ltc.cpp
+TB_ltc_cpps = ltc.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM.cpp Check_MCPU_MEM_ltc.cpp
 ALL_TBS += ltc
 
 TEST_ltc_basic_tb   = ltc
@@ -84,7 +84,7 @@ ALL_TESTS += ltc_random_long
 # ARB tests
 
 TB_arb_top  = TB_MCPU_MEM_arb
-TB_arb_cpps = arb.cpp Sim.cpp # Cmod_MCPU_MEM_mc.cpp Stim_MCPU_MEM_ltc.cpp
+TB_arb_cpps = arb.cpp Sim.cpp Stim_MCPU_MEM.cpp # Cmod_MCPU_MEM_mc.cpp
 ALL_TBS += arb
 
 TEST_arb_basic_tb  = arb
