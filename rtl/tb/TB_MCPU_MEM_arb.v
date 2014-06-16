@@ -13,17 +13,17 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
    );
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
-	input [26:0]	cli0_addr;		// To arb of MCPU_MEM_arb.v
+	input [31:5]	cli0_addr;		// To arb of MCPU_MEM_arb.v
 	input [2:0]	cli0_opcode;		// To arb of MCPU_MEM_arb.v
 	input		cli0_valid;		// To arb of MCPU_MEM_arb.v
 	input [31:0]	cli0_wbe;		// To arb of MCPU_MEM_arb.v
 	input [255:0]	cli0_wdata;		// To arb of MCPU_MEM_arb.v
-	input [26:0]	cli1_addr;		// To arb of MCPU_MEM_arb.v
+	input [31:5]	cli1_addr;		// To arb of MCPU_MEM_arb.v
 	input [2:0]	cli1_opcode;		// To arb of MCPU_MEM_arb.v
 	input		cli1_valid;		// To arb of MCPU_MEM_arb.v
 	input [31:0]	cli1_wbe;		// To arb of MCPU_MEM_arb.v
 	input [255:0]	cli1_wdata;		// To arb of MCPU_MEM_arb.v
-	input [26:0]	cli2_addr;		// To arb of MCPU_MEM_arb.v
+	input [31:5]	cli2_addr;		// To arb of MCPU_MEM_arb.v
 	input [2:0]	cli2_opcode;		// To arb of MCPU_MEM_arb.v
 	input		cli2_valid;		// To arb of MCPU_MEM_arb.v
 	input [31:0]	cli2_wbe;		// To arb of MCPU_MEM_arb.v
@@ -70,7 +70,7 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 		
 		.cli2arb_valid({cli2_valid, cli1_valid, cli0_valid}),
 		.cli2arb_opcode({cli2_opcode[2:0], cli1_opcode[2:0], cli0_opcode[2:0]}),
-		.cli2arb_addr({cli2_addr[26:0], cli1_addr[26:0], cli0_addr[26:0]}),
+		.cli2arb_addr({cli2_addr[31:5], cli1_addr[31:5], cli0_addr[31:5]}),
 		.cli2arb_wdata({cli2_wdata[255:0], cli1_wdata[255:0], cli0_wdata[255:0]}),
 		.cli2arb_wbe({cli2_wbe[31:0], cli1_wbe[31:0], cli0_wbe[31:0]}),
 		); */
@@ -93,7 +93,7 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 		    .arb2ltc_rvalid	(arb2ltc_rvalid),
 		    .cli2arb_valid	({cli2_valid, cli1_valid, cli0_valid}), // Templated
 		    .cli2arb_opcode	({cli2_opcode[2:0], cli1_opcode[2:0], cli0_opcode[2:0]}), // Templated
-		    .cli2arb_addr	({cli2_addr[26:0], cli1_addr[26:0], cli0_addr[26:0]}), // Templated
+		    .cli2arb_addr	({cli2_addr[31:5], cli1_addr[31:5], cli0_addr[31:5]}), // Templated
 		    .cli2arb_wdata	({cli2_wdata[255:0], cli1_wdata[255:0], cli0_wdata[255:0]}), // Templated
 		    .cli2arb_wbe	({cli2_wbe[31:0], cli1_wbe[31:0], cli0_wbe[31:0]})); // Templated
 
