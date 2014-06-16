@@ -80,11 +80,11 @@ void Sim::log(Sim::Level lvl, const char *fmt, ...) {
 		va_end(ap);
 	}
 	
-	if (lvl >= Error) {
-		assert_failed();
-	}
-	
 	if (lvl >= Fatal) {
 		exit(1);
+	}
+
+	if (lvl >= Error) {
+		assert_failed();
 	}
 }
