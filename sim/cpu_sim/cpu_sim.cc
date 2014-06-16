@@ -1,7 +1,13 @@
 #include <queue>
+#include <sstream>
+#include <string>
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
-#include <sstream>
 
 // Set bit a through bit b (inclusive), as long as 0 <= a <= 31 and 0 <= b <= 31.
 // From http://stackoverflow.com/a/8774613 .
