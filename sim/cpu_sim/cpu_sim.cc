@@ -159,6 +159,8 @@ static_assert(array_size(OPCODE_STR) == OPCODES_COUNT, "Opcode count mismatch");
 
 struct reg_t {
     unsigned int reg:5;
+
+    reg_t (unsigned int r) : reg(r) {}
 };
 
 
@@ -350,7 +352,7 @@ decoded_instruction decode_instruction(instruction instr) {
             // BRANCH OR BRANCH/LINK
             if (BIT(instr, 26)) {
                 result.offset = BITS(instr, 5, 20);
-                result.rs = {rs_num};
+                result.rs = rs_num;
             } else {
                 result.offset = BITS(instr, 0, 25);
             }
@@ -388,8 +390,8 @@ decoded_instruction decode_instruction(instruction instr) {
         uint32_t constant = BITS(instr, 18, 10);
         uint32_t rotate = BITS(instr, 14, 4);
         result.constant = constant << (rotate * 2);
-        result.rs = {rs_num};
-        result.rd = {rd_num};
+        result.rs = rs_num;
+        result.rd = rd_num;
     }
 
     printf("decoded result pp:\n%s", result.to_string().c_str());
