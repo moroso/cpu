@@ -78,7 +78,7 @@ $(RUNDIR)/stamps/sim-genrtl: sim-symlinks
 	@mkdir -p $(RUNDIR)/sim/rtl
 	@cp $(RTL_COMMON) $(RTL_SIM) $(RTL_INC) $(RUNDIR)/sim/rtl
 	$(call say,Copying testbench for simulation to $(RUNDIR)/sim...)
-	@cp sim/* $(RUNDIR)/sim
+	@cp -R sim/* $(RUNDIR)/sim
 	@touch $(RUNDIR)/stamps/sim-genrtl
 
 # Here comes all the testplan mess.
