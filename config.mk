@@ -84,7 +84,7 @@ ALL_TESTS += ltc_random_long
 # ARB tests
 
 TB_arb_top  = TB_MCPU_MEM_arb
-TB_arb_cpps = arb.cpp Sim.cpp Stim_MCPU_MEM.cpp Check_MCPU_MEM.cpp # Cmod_MCPU_MEM_mc.cpp
+TB_arb_cpps = arb.cpp Sim.cpp Stim_MCPU_MEM.cpp Check_MCPU_MEM.cpp Cmod_MCPU_MEM_mc.cpp
 ALL_TBS += arb
 
 TEST_arb_basic_tb  = arb

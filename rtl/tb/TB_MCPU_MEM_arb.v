@@ -3,7 +3,8 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
    ltc2mc_avl_write_req_0, ltc2mc_avl_wdata_0, ltc2mc_avl_size_0,
    ltc2mc_avl_read_req_0, ltc2mc_avl_burstbegin_0, ltc2mc_avl_be_0,
    ltc2mc_avl_addr_0, cli2arb_rdata, cli2_stall, cli2_rvalid,
-   cli1_stall, cli1_rvalid, cli0_stall, cli0_rvalid,
+   cli1_stall, cli1_rvalid, cli0_stall, cli0_rvalid, cli0_rdata,
+   cli1_rdata, cli2_rdata,
    // Inputs
    ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
    clkrst_mem_rst_n, clkrst_mem_clk, cli2_wdata, cli2_wbe, cli2_valid,
@@ -63,6 +64,11 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 	wire [31:0]	arb2ltc_wbe;		// From arb of MCPU_MEM_arb.v
 	wire [255:0]	arb2ltc_wdata;		// From arb of MCPU_MEM_arb.v
 	// End of automatics
+	
+	output [255:0] cli0_rdata = cli2arb_rdata;
+	output [255:0] cli1_rdata = cli2arb_rdata;
+	output [255:0] cli2_rdata = cli2arb_rdata;
+	
 	
 	/* MCPU_MEM_arb AUTO_TEMPLATE(
 		.cli2arb_stall({cli2_stall, cli1_stall, cli0_stall}),

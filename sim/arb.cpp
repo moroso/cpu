@@ -8,10 +8,11 @@
 VerilatedVcdC* tfp;
 #endif
 #include "VTB_MCPU_MEM_arb.h"
-/*
 #include "Cmod_MCPU_MEM_mc.h"
-#include "Stim_MCPU_MEM_ltc.h"
-*/
+#include "MCPU_MEM_ports.h"
+#include "Stim_MCPU_MEM.h"
+#include "Check_MCPU_MEM.h"
+
 #define MAX_ADDRESSES 16384
 #define OPS_DEFAULT   4096
 
@@ -26,13 +27,25 @@ int main(int argc, char **argv, char **env) {
 	
 	VTB_MCPU_MEM_arb *tb = new VTB_MCPU_MEM_arb;
 
-#if 0	
 	Cmod_MCPU_MEM_mc_ports mc_ports;
 	Cmod_MCPU_MEM_mc_CONNECT(&mc_ports, tb);
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(&mc_ports);
-//	Stim_MCPU_MEM_ltc *stim = new Stim_MCPU_MEM_ltc(ltc);
-//	Check_MCPU_MEM_ltc *check = new Check_MCPU_MEM_ltc(ltc);
-
+	
+	MCPU_MEM_ports cli_ports[3];
+	MCPU_MEM_ports_CONNECT(&cli_ports[0], tb, cli0_);
+	MCPU_MEM_ports_CONNECT(&cli_ports[1], tb, cli1_);
+	MCPU_MEM_ports_CONNECT(&cli_ports[2], tb, cli2_);
+	
+	Stim_MCPU_MEM *stim[3];
+	stim[0] = new Stim_MCPU_MEM(&cli_ports[0]);
+	stim[1] = new Stim_MCPU_MEM(&cli_ports[1]);
+	stim[2] = new Stim_MCPU_MEM(&cli_ports[2]);
+	
+	Check_MCPU_MEM *check[3];
+	check[0] = new Check_MCPU_MEM(&cli_ports[0]);
+	check[1] = new Check_MCPU_MEM(&cli_ports[1]);
+	check[2] = new Check_MCPU_MEM(&cli_ports[2]);
+	
 #if VM_TRACE
 	Verilated::traceEverOn(true);
 	tfp = new VerilatedVcdC;
@@ -40,70 +53,52 @@ int main(int argc, char **argv, char **env) {
 	tfp->open("trace.vcd");
 	atexit(_close_trace);
 #endif
-	
+
 	uint8_t buf[32];
 
 #define GENBUF(vec) \
 		for (int i = 0; i < 32; i++) \
 			buf[i] = (vec << 4) ^ i;
-#define ADDR(tag, set, ofs) ((tag) << 7 | ((set) & 31) << 2 | ((ofs) & 3))
-#define WRITE(t,s,o) stim->write(ADDR(t,s,o), buf, 0xffffffff, 0)
-#define READ(t,s,o) stim->read(ADDR(t,s,o), 0)
+#define WRITE(c,addr) stim[c]->write(addr, buf, 0xffffffff, 0)
+#define READ(c,addr) stim[c]->read(addr, 0)
 	
 	const char *testname;
-	testname = Sim::param_str("LTC_DIRECTED_TEST_NAME", "basic");
+	testname = Sim::param_str("ARB_DIRECTED_TEST_NAME", "basic");
 	
 	if (!strcmp(testname, "basic")) {
 		/* Basic read-write test */
-		GENBUF(0);
-		WRITE(0,0,0);
-		READ (0,0,0);
-	} else if (!strcmp(testname, "backtoback")) {
-		/* Write back-to-back, then read back-to-back */
-		GENBUF(0);
-		WRITE(0,0,0);
-		GENBUF(1);
-		WRITE(1,0,0);
-		WRITE(1,0,1);
-		READ (0,0,0);
-		READ (1,0,0);
-		READ (0,0,0);
-		READ (1,0,1);
-		GENBUF(2);
-		WRITE(0,0,0);
-		READ (0,0,0);
-		GENBUF(3);
-		WRITE(0,0,1);
-		READ (0,0,1);
-	} else if (!strcmp(testname, "evict")) {
-		/* Basic evict test */
-		GENBUF(0);
-		WRITE(0,0,0);
-		GENBUF(1);
-		WRITE(1,0,0);
-		GENBUF(2);
-		WRITE(2,0,0);
-		GENBUF(3);
-		WRITE(3,0,0);
-		GENBUF(4);
-		WRITE(4,0,0);
-		GENBUF(5);
-		WRITE(5,0,0);
+		GENBUF( 0); WRITE(0, 0x0000);
+		GENBUF( 1); WRITE(0, 0x1000);
+		GENBUF( 2); WRITE(0, 0x2000);
+		GENBUF( 3); WRITE(0, 0x3000);
 		
-		READ (0,0,0);
-		READ (1,0,0);
-		READ (2,0,0);
-		READ (3,0,0);
-		READ (4,0,0);
-		READ (5,0,0);
-	} else if (!strcmp(testname, "regress_two_set")) {
-		GENBUF(0);
-		WRITE(0,0,0);
-		READ (1,0,0);
-		READ (2,0,0);
-		READ (3,0,0);
-		READ (3,1,0);
-		READ (0,0,0);
+		GENBUF( 4); WRITE(1, 0x4000);
+		GENBUF( 5); WRITE(1, 0x5000);
+		GENBUF( 6); WRITE(1, 0x6000);
+		GENBUF( 7); WRITE(1, 0x7000);
+		
+		GENBUF( 8); WRITE(2, 0x8000);
+		GENBUF( 9); WRITE(2, 0x9000);
+		GENBUF(10); WRITE(2, 0xA000);
+		GENBUF(11); WRITE(2, 0xB000);
+		
+		
+		READ(0, 0x0000);
+		READ(0, 0x1000);
+		READ(0, 0x2000);
+		READ(0, 0x3000);
+		
+		READ(1, 0x4000);
+		READ(1, 0x5000);
+		READ(1, 0x6000);
+		READ(1, 0x7000);
+		
+		READ(2, 0x8000);
+		READ(2, 0x9000);
+		READ(2, 0xA000);
+		READ(2, 0xB000);
+		
+#if 0
 	} else if (!strcmp(testname, "random")) {
 		uint32_t addresses[MAX_ADDRESSES];
 		int naddresses;
@@ -135,18 +130,19 @@ int main(int argc, char **argv, char **env) {
 				break;
 			}
 		}
+#endif
 	} else {
 		SIM_FATAL("test %s not supported", testname);
 	}
 	
 	/* Now, run the simulation */
-	ltc->clkrst_mem_clk = 0;
-	ltc->clkrst_mem_rst_n = 1;
-	ltc->eval();
-	ltc->clkrst_mem_rst_n = 0;
-	ltc->eval();
-	ltc->clkrst_mem_rst_n = 1;
-	ltc->eval();
+	tb->clkrst_mem_clk = 0;
+	tb->clkrst_mem_rst_n = 1;
+	tb->eval();
+	tb->clkrst_mem_rst_n = 0;
+	tb->eval();
+	tb->clkrst_mem_rst_n = 1;
+	tb->eval();
 	
 #if VM_TRACE
 #define TRACE tfp->dump(main_time)
@@ -154,25 +150,29 @@ int main(int argc, char **argv, char **env) {
 #define TRACE
 #endif
 
-	while (!stim->done() || !check->done()) {
-		ltc->clkrst_mem_clk = 1;
-		ltc->eval();
+	while (!stim[0]->done() || !check[0]->done() ||
+	       !stim[1]->done() || !check[1]->done() ||
+	       !stim[2]->done() || !check[2]->done()) {
+		tb->clkrst_mem_clk = 1;
+		tb->eval();
 		mc_cmod->clk();
-		stim->clk();
-		check->clk();
-		ltc->eval();
+		for (int i = 0; i < 3; i++) {
+			stim[i]->clk();
+			check[i]->clk();
+		}
+		tb->eval();
 		Sim::tick();
 		TRACE;
 		
-		ltc->clkrst_mem_clk = 0;
-		ltc->eval();
+		tb->clkrst_mem_clk = 0;
+		tb->eval();
 		Sim::tick();
 		TRACE;
 		
 		if (Sim::main_time % 20000 == 0)
 			SIM_INFO("ran for %lu cycles", Sim::main_time / 2);
 	}
-#endif	
+
 	Sim::finish();
 	
 	return 0;
