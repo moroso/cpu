@@ -1,12 +1,12 @@
-#ifndef _Check_MCPU_MEM_ltc_H
-#define _Check_MCPU_MEM_ltc_H
+#ifndef _Check_MCPU_MEM_H
+#define _Check_MCPU_MEM_H
 
 #include <map>
 #include <queue>
 #include <inttypes.h>
-#include "VMCPU_MEM_ltc.h"
+#include "MCPU_MEM_ports.h"
 
-class Check_MCPU_MEM_ltc {
+class Check_MCPU_MEM {
 	struct Atom {
 		uint8_t data[32];
 		uint32_t valid;
@@ -19,14 +19,14 @@ class Check_MCPU_MEM_ltc {
 		Atom atom;
 	};
 	
-	VMCPU_MEM_ltc *ltc;
+	MCPU_MEM_ports *ports;
 	std::map<uint32_t, Atom> memory;
 	std::queue<Response> respq;
 	
 	int stalled_cycles;
 
 public:
-	Check_MCPU_MEM_ltc(VMCPU_MEM_ltc *_ltc) : ltc(_ltc), stalled_cycles(0) { };
+	Check_MCPU_MEM(MCPU_MEM_ports *_ports) : ports(_ports), stalled_cycles(0) { };
 	
 	void clk();
 	

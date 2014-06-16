@@ -11,7 +11,7 @@ VerilatedVcdC* tfp;
 #include "Cmod_MCPU_MEM_mc.h"
 #include "MCPU_MEM_ports.h"
 #include "Stim_MCPU_MEM.h"
-#include "Check_MCPU_MEM_ltc.h"
+#include "Check_MCPU_MEM.h"
 
 #define MAX_ADDRESSES 16384
 #define OPS_DEFAULT   4096
@@ -32,7 +32,7 @@ int main(int argc, char **argv, char **env) {
 	MCPU_MEM_ports_CONNECT(&ltc_ports, ltc, arb2ltc_);
 	Cmod_MCPU_MEM_mc *mc_cmod = new Cmod_MCPU_MEM_mc(&mc_ports);
 	Stim_MCPU_MEM *stim = new Stim_MCPU_MEM(&ltc_ports);
-	Check_MCPU_MEM_ltc *check = new Check_MCPU_MEM_ltc(ltc);
+	Check_MCPU_MEM *check = new Check_MCPU_MEM(&ltc_ports);
 
 #if VM_TRACE
 	Verilated::traceEverOn(true);
