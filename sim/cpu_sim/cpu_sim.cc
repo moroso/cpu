@@ -217,9 +217,9 @@ struct decoded_instruction {
         result << string_format("- Instruction (%x):\n", raw_instr);
         result << string_format("  * [%cP%d] %s\n", pred_comp ? '~' : ' ', pred_reg, opcode_str(opcode));
         if (constant)
-            result << string_format("  * constant = %d\n", constant.get());
+            result << string_format("  * constant = %d (%x)\n", constant.get(), constant.get());
         if (offset)
-            result << string_format("  * offset = %d\n", offset.get());
+            result << string_format("  * offset = %d (%x)\n", offset.get(), offset.get());
         if (rs)
             result << string_format("  * rs = %d\n", rs->reg);
         if (rd)
@@ -278,9 +278,21 @@ asm:    B $0 (P3) / ADD R0 <- R0 + 0x1 (P3) / NOP / NOP
 binary: 110 1100 0000000000000000000000000 / 110 0 0000000001 0000 0000 00000 00000 / NOP*2
 hex:    D800 0000 / C004 0000 / (E000 0000) *2
 
+
+Third sample program (testing rotated constants):
+
+asm:    ADD R0 <- R0 + (0x1 ROT 0x0)  = 0x00000001 /
+        ADD R1 <- R1 + (0x1 ROT 0x2)  = 0x40000000 /
+        ADD R2 <- R2 + (0x1 ROT 0x16) = 0x00000400 /
+        ADD R3 <- R3 + (0x200 ROT 0x0) = 0x00000200
+binary: 110 0 0000000001 0000 0000 00000 00000 /
+        110 0 0000000001 0001 0000 00001 00001 /
+        110 0 0000000001 1011 0000 00010 00010 /
+        110 0 1000000000 0000 0000 00011 00011
+hex:    C004 0000 / C004 4021 / C006 C042 / C800 0063
 */
 
-instruction_packet ROM[] = { 0xD8000000, 0xC0040000, 0xE0000000, 0xE0000000 };
+instruction_packet ROM[] = { 0xC0040000, 0xC0044021, 0xC006C042, 0xC8000063 };
 
 
 // ALU (and comparison) ops
@@ -389,7 +401,7 @@ decoded_instruction decode_instruction(instruction instr) {
 
         uint32_t constant = BITS(instr, 18, 10);
         uint32_t rotate = BITS(instr, 14, 4);
-        result.constant = constant << (rotate * 2);
+        result.constant = (constant >> (rotate * 2)) | (constant << (32 - rotate * 2));
         result.rs = rs_num;
         result.rd = rd_num;
     }
