@@ -46,7 +46,6 @@ module MCPU_MEM_inst_loc(/*AUTOARG*/);
 	input [16:0]   mem_inst_ppg; // Physical page (29 - 12 = 17)
 	input [19:0]   mem_inst_vpg; // Virtual page (32 - 12 = 20)
 	input [11:0]   mem_inst_ppo; // Page offset
-	input [3:0]    mem_inst_wen; // Write enable for each byte
 	input          mem_inst_req; // Memory access requested
 	output [127:0] mem_inst_mdr; // Fetched instruction
 	output         mem_inst_rdy; // Memory access done
@@ -89,7 +88,7 @@ module MCPU_MEM_data_loc(/*AUTOARG*/);
 	input [11:0] mem_inst_ppo_0; // Page offset
 	input        mem_data_wen_0; // Write enable
 	input        mem_data_req_0; // Memory access requested
-	inout [31:0] mem_data_mdr_0; // Fetched data
+	inout [31:0] mem_data_mdr_0; // Fetched or stored data
 	output       mem_data_rdy_0; // Memory access done
 
 	/* Instruction cache / Core interface for port 1 */
@@ -98,7 +97,7 @@ module MCPU_MEM_data_loc(/*AUTOARG*/);
 	input [11:0] mem_inst_ppo_1; // Page offset
 	input        mem_data_wen_1; // Write enable
 	input        mem_data_req_1; // Memory access requested
-	inout [31:0] mem_data_mdr_1; // Fetched data
+	inout [31:0] mem_data_mdr_1; // Fetched or stored data
 	output       mem_data_rdy_1; // Memory access done
 
 	assign mem_data_mdr_0 = 0;
