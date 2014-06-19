@@ -62,48 +62,30 @@ typedef uint32_t instruction;
 typedef instruction instruction_packet[4];
 
 enum opcode_t {
-    ADD,
-    AND,
-    B,
-    BL,
-    BREAK,
-    CMPBC,
-    CMPBS,
-    CMPEQ,
-    CMPLES,
-    CMPLEU,
-    CMPLTS,
-    CMPLTU,
-    CPOP,
-    DIV,
-    ERET,
-    FENCE,
-    LB,
-    LH,
-    LL,
-    LW,
-    MFC,
-    MFHI,
-    MOV,
-    MTC,
-    MTHI,
-    MVN,
-    MULT,
-    NOR,
-    OR,
-    RSB,
-    SB,
-    SC,
-    SH,
-    SUB,
-    SW,
-    SXB,
-    SXH,
-    SYSCALL,
-    XOR,
+    OP_B,
+    OP_BL,
+    OP_BREAK,
+    OP_CPOP,
+    OP_DIV,
+    OP_ERET,
+    OP_FENCE,
+    OP_LB,
+    OP_LH,
+    OP_LL,
+    OP_LW,
+    OP_MFC,
+    OP_MFHI,
+    OP_MTC,
+    OP_MTHI,
+    OP_MULT,
+    OP_SB,
+    OP_SC,
+    OP_SH,
+    OP_SW,
+    OP_SYSCALL,
 
     // Non-opcodes
-    COMPARE_OP,
+    ALU_OP,
     INVALID_OP,
 };
 
@@ -111,18 +93,9 @@ const size_t OPCODES_COUNT = INVALID_OP + 1;
 const size_t MAX_OPCODE_LEN = 16;
 
 const char OPCODE_STR[][MAX_OPCODE_LEN] = {
-    "ADD",
-    "AND",
     "B",
     "BL",
     "BREAK",
-    "CMPBC",
-    "CMPBS",
-    "CMPEQ",
-    "CMPLES",
-    "CMPLEU",
-    "CMPLTS",
-    "CMPLTU",
     "CPOP",
     "DIV",
     "ERET",
@@ -133,46 +106,105 @@ const char OPCODE_STR[][MAX_OPCODE_LEN] = {
     "LW",
     "MFC",
     "MFHI",
-    "MOV",
     "MTC",
     "MTHI",
-    "MVN",
     "MULT",
-    "NOR",
-    "OR",
-    "RSB",
     "SB",
     "SC",
     "SH",
-    "SUB",
     "SW",
-    "SXB",
-    "SXH",
     "SYSCALL",
-    "XOR",
 
     // Non-opcodes
-    "<COMPARE>",
+    "<ALU>",
     "<INVALID>"
 };
 static_assert(array_size(OPCODE_STR) == OPCODES_COUNT, "Opcode count mismatch");
+
+// Must match instruction encoding
+enum aluop_t {
+    ALU_ADD,
+    ALU_AND,
+    ALU_NOR,
+    ALU_OR,
+    ALU_SUB,
+    ALU_RSB,
+    ALU_XOR,
+    ALU_COMPARE,
+    ALU_MOV,
+    ALU_MVN,
+    ALU_SXB,
+    ALU_SXH,
+    ALU_RESV1,
+    ALU_RESV2,
+    ALU_RESV3,
+    ALU_RESV4
+};
+
+const size_t ALUOPS_COUNT = ALU_RESV4 + 1;
+static_assert(ALUOPS_COUNT == 16, "Bad alu op list");
+
+const char ALUOP_STR[][MAX_OPCODE_LEN] = {
+    "ADD",
+    "AND",
+    "NOR",
+    "OR",
+    "SUB",
+    "RSB",
+    "XOR",
+    "<COMPARE>",
+    "MOV",
+    "MVN",
+    "SXB",
+    "SXH",
+    "<RESERVED 1>",
+    "<RESERVED 2>",
+    "<RESERVED 3>",
+    "<RESERVED 4>"
+};
+static_assert(array_size(ALUOP_STR) == ALUOPS_COUNT, "Aluops count mismatch");
+
+// Must match instruction encoding
+enum cmpop_t {
+    CMP_LTU,
+    CMP_LEU,
+    CMP_EQ,
+    CMP_RESV,
+    CMP_LTS,
+    CMP_LES,
+    CMP_BS,
+    CMP_BC
+};
+
+const size_t CMPOPS_COUNT = CMP_BC + 1;
+static_assert(CMPOPS_COUNT == 8, "Bad cmp op list");
+
+const char CMPOP_STR[][MAX_OPCODE_LEN] = {
+    "LTU",
+    "LEU",
+    "EQ",
+    "<RESERVED>",
+    "LTS",
+    "LES",
+    "BS",
+    "BC"
+};
+static_assert(array_size(CMPOP_STR) == CMPOPS_COUNT, "Cmpops count mismatch");
+
 
 struct reg_t {
     unsigned int reg:5;
 
     reg_t (unsigned int r) : reg(r) {}
+    operator int() { return reg; }
 };
 
+struct pred_reg_t {
+    unsigned int reg:2;
 
-// Pretty-printing
-
-const char *opcode_str(opcode_t opcode) {
-    if (opcode < OPCODES_COUNT) {
-        return OPCODE_STR[opcode];
-    } else {
-        return OPCODE_STR[INVALID_OP];
-    }
-}
+    pred_reg_t (unsigned int r) : reg(r) {}
+    operator int() { return reg; }
+};
 
 
 // From StackOverflow user Erik Aronesty, http://stackoverflow.com/a/8098080 .
@@ -198,24 +230,67 @@ std::string string_format(const std::string fmt_str, ...) {
 struct decoded_instruction {
     uint32_t raw_instr;  // For debugging
 
-    unsigned int pred_reg:2;
+    pred_reg_t pred_reg = 0;
     bool pred_comp;
     opcode_t opcode = INVALID_OP;
+    boost::optional<aluop_t> aluop;
+    boost::optional<cmpop_t> cmpop;
     boost::optional<uint32_t> constant;
     boost::optional<int32_t> offset;
     boost::optional<reg_t> rs;
     boost::optional<reg_t> rd;
     boost::optional<reg_t> rt;
+    boost::optional<pred_reg_t> pd;
+    boost::optional<uint32_t> shiftamt;
+    boost::optional<uint32_t> stype;
     bool long_imm = false;
 
-    bool is_cmp() {
-        return opcode >= CMPBC && opcode <= CMPLTU;
+    bool alu_unary() {
+        return aluop && aluop > ALU_COMPARE;
+    }
+
+    bool alu_binary() {
+        return aluop && aluop <= ALU_COMPARE;
+    }
+
+    bool alu_compare() {
+        return aluop && aluop == ALU_COMPARE;
+    }
+
+    std::string opcode_str() {
+        std::ostringstream result;
+
+        if (opcode < OPCODES_COUNT) {
+            result << OPCODE_STR[opcode];
+        } else {
+            result << OPCODE_STR[INVALID_OP];
+            return result.str();
+        }
+
+        if (aluop) {
+            result << " - " << ALUOP_STR[aluop.get()];
+        }
+
+        if (cmpop) {
+            result << " - " << CMPOP_STR[cmpop.get()];
+        }
+
+        return result.str();
     }
 
     std::string to_string() {
         std::ostringstream result;
-        result << string_format("- Instruction (%x):\n", raw_instr);
-        result << string_format("  * [%cP%d] %s\n", pred_comp ? '~' : ' ', pred_reg, opcode_str(opcode));
+        result << string_format("- Instruction (%x):", raw_instr);
+        if (raw_instr == 0xe0000000) {
+            result << " NOP\n";
+            return result.str();
+        } else if (pred_reg.reg == 3 && pred_comp) {
+            result << "\n  ** Instruction looks NOPpish **\n";
+        } else {
+            result << "\n";
+        }
+
+        result << string_format("  * [%cP%d] %s\n", pred_comp ? '~' : ' ', pred_reg.reg, opcode_str().c_str());
         if (constant)
             result << string_format("  * constant = %d (%x)\n", constant.get(), constant.get());
         if (offset)
@@ -226,6 +301,8 @@ struct decoded_instruction {
             result << string_format("  * rd = %d\n", rd->reg);
         if (rt)
             result << string_format("  * rt = %d\n", rt->reg);
+        if (pd)
+            result << string_format("  * pd = %d\n", pd->reg);
         if (long_imm)
             result << "  * [long immediate]\n";
 
@@ -292,72 +369,37 @@ binary: 110 0 0000000001 0000 0000 00000 00000 /
 hex:    C004 0000 / C004 4021 / C006 C042 / C800 0063
 */
 
-instruction_packet ROM[] = { 0xC0040000, 0xC0044021, 0xC006C042, 0xC8000063 };
-
-
-// ALU (and comparison) ops
-
-const opcode_t ALUOPS[] = {
-    ADD,
-    AND,
-    NOR,
-    OR,
-    SUB,
-    RSB,
-    XOR,
-    COMPARE_OP,
-    MOV,
-    MVN,
-    SXB,
-    SXH
+instruction ROM[] = {
+    0xC0040000, 0xC0044021, 0xC006C042, 0xC8000063,
+    0xE0000000, 0xE0000000, 0xE0000000, 0xE0000000
 };
-const size_t ALUOPS_COUNT = array_size(ALUOPS);
+size_t ROMLEN = array_size(ROM);
 
-const opcode_t CMPOPS[] = {
-    CMPLTU,
-    CMPLEU,
-    CMPEQ,
-    INVALID_OP,
-    CMPLTS,
-    CMPLES,
-    CMPBS,
-    CMPBC,
+// Order must match instruction encoding
+enum shift_type {
+    LSL,
+    LSR,
+    ASR,
+    ROR
 };
-const size_t CMPOPS_COUNT = array_size(CMPOPS);
-
-opcode_t decode_aluop(uint32_t bits) {
-    if (bits < ALUOPS_COUNT) {
-        return ALUOPS[bits];
-    } else {
-        return INVALID_OP;
-    }
-}
-
-opcode_t decode_cmpop(uint32_t bits) {
-    if (bits < CMPOPS_COUNT) {
-        return CMPOPS[bits];
-    } else {
-        return INVALID_OP;
-    }
-}
 
 
 // Instruction (and instruction packet) decoding
 
 decoded_instruction decode_instruction(instruction instr) {
-    printf("decoding instruction %x\n", instr);
     decoded_instruction result;
     result.raw_instr = instr;
 
     result.pred_reg = BITS(instr, 30, 2);
     result.pred_comp = BITS(instr, 29, 1);
 
-    opcode_t aluop = decode_aluop(BITS(instr, 10, 4));
-    opcode_t cmpop = decode_cmpop(BITS(instr, 7, 3));
+    aluop_t aluop = (aluop_t)BITS(instr, 10, 4);
+    cmpop_t cmpop = (cmpop_t)BITS(instr, 7, 3);
 
     uint32_t rs_num = BITS(instr, 0, 5);
     uint32_t rd_num = BITS(instr, 5, 5);
     uint32_t rt_num = BITS(instr, 14, 5);
+    uint32_t pd_num = BITS(instr, 5, 2);
 
     if (BIT(instr, 28)) {
         if (BIT(instr, 27)) {
@@ -371,14 +413,23 @@ decoded_instruction decode_instruction(instruction instr) {
 
             if (BIT(instr, 25)) {
                 // BRANCH/LINK
-                result.opcode = BL;
+                result.opcode = OP_BL;
             } else {
                 // BRANCH (PLAIN)
-                result.opcode = B;
+                result.opcode = OP_B;
             }
         } else {
             if (BIT(instr, 26)) {
                 // ALU REG
+                result.opcode = ALU_OP;
+                result.aluop = aluop;
+
+                if (aluop == ALU_COMPARE) {
+                    result.cmpop = cmpop;
+                    result.pd = pd_num;
+                } else {
+                    result.rd = rd_num;
+                }
             } else {
                 if (BIT(instr, 25)) {
                     // LOAD/STORE
@@ -393,20 +444,30 @@ decoded_instruction decode_instruction(instruction instr) {
         }
     } else {
         // ALU SHORT
-        if (aluop == COMPARE_OP) {
-            result.opcode = cmpop;
+        result.opcode = ALU_OP;
+        result.aluop = aluop;
+
+        if (aluop == ALU_COMPARE) {
+            result.cmpop = cmpop;
+            result.pd = pd_num;
         } else {
-            result.opcode = aluop;
+            result.rd = rd_num;
         }
 
         uint32_t constant = BITS(instr, 18, 10);
         uint32_t rotate = BITS(instr, 14, 4);
+
+        if (result.alu_unary()) {
+            // Last 5 bits are high bits of constant
+            constant |= (rs_num << 10);
+        } else {
+            // Last 5 bits are source register number
+            result.rs = rs_num;
+        }
+
         result.constant = (constant >> (rotate * 2)) | (constant << (32 - rotate * 2));
-        result.rs = rs_num;
-        result.rd = rd_num;
     }
 
-    printf("decoded result pp:\n%s", result.to_string().c_str());
     return result;
 }
 
@@ -425,20 +486,29 @@ struct regs_t {
 };
 regs_t regs;
 
-uint32_t shiftwith(uint32_t value, uint32_t shiftamt, uint32_t shf) {
-    return value; // XXX
+uint32_t shiftwith(uint32_t value, uint32_t shiftamt, shift_type stype) {
+    switch(stype) {
+        case LSL:
+            return value << shiftamt;
+        case LSR:
+            return value >> shiftamt;
+        case ASR:
+            return ((int32_t)value) >> shiftamt;
+        case ROR:
+            return (value >> shiftamt) | (value << (32 - shiftamt));
+    }
 }
 
 // Instruction (and instruction packet) execution
 
 void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
-    if (instr.opcode == B) {
+    if (instr.opcode == OP_B) {
         regs.pc = old_pc;
         regs.pc += instr.offset.get();
         if (instr.rs) {
             regs.pc += regs.r[instr.rs.get().reg];
         }
-    } else if (instr.opcode == ADD) {
+    } else if (instr.opcode == ALU_OP && instr.aluop == ALU_ADD) {
         uint32_t total = 0;
 
         if (instr.rs) {
@@ -448,7 +518,7 @@ void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
             total += instr.constant.get();
         }
         if (instr.rt) {
-            total += shiftwith(regs.r[instr.rt.get().reg], 0, 0); // XXX
+            total += shiftwith(regs.r[instr.rt.get().reg], instr.shiftamt.get(), (shift_type)instr.stype.get());
         }
 
         regs.r[instr.rd.get().reg] = total;
@@ -457,7 +527,7 @@ void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
 
 void execute_packet(decoded_packet packet) {
     uint32_t saved_pc = regs.pc;
-    ++regs.pc;
+    regs.pc += 4;
 
     for (int i = 0; i < 4; ++i) {
         execute_instruction(packet.instr[i], saved_pc);
@@ -470,15 +540,15 @@ void execute_packet(decoded_packet packet) {
 int main(int argc, char** argv) {
     printf("OSOROM simulator starting\n");
 
-    while(true) {
+    while(regs.pc < ROMLEN) {
         printf("regs.pc is now 0x%x\n", regs.pc);
         printf("regs.r = { ");
         for (int i = 0; i < 32; ++i) {
             printf("%x, ", regs.r[i]);
         }
         printf("}\n");
-        printf("Packet is %x / %x / %x / %x\n", ROM[regs.pc][0], ROM[regs.pc][1], ROM[regs.pc][2], ROM[regs.pc][3]);
-        decoded_packet packet = decode_packet(ROM[regs.pc]);
+        printf("Packet is %x / %x / %x / %x\n", ROM[regs.pc+0], ROM[regs.pc+1], ROM[regs.pc+2], ROM[regs.pc+3]);
+        decoded_packet packet = decode_packet(&ROM[regs.pc]);
         printf("Packet looks like:\n");
         printf("%s", packet.to_string().c_str());
         printf("Executing packet...\n");
