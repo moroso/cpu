@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
+#include <limits.h>
 
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
@@ -538,6 +540,14 @@ void execute_packet(decoded_packet packet) {
 // Driver / testing stub
 
 int main(int argc, char** argv) {
+    if (argc > 1) {
+        instruction instr = strtoul(argv[1], 0, 0);
+        printf("Disassembling single instruction %x (%u):\n", instr, instr);
+        decoded_instruction di = decode_instruction(instr);
+        printf("%s\n", di.to_string().c_str());
+        exit(0);
+    }
+
     printf("OSOROM simulator starting\n");
 
     while(regs.pc < ROMLEN) {
