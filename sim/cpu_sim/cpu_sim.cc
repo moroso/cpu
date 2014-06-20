@@ -539,10 +539,23 @@ decoded_instruction decode_instruction(instruction instr) {
         result.reserved_bits = (BIT(instr, 19) << 4) | BITS(instr, 10, 4);
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
+        result.optype = ALU_OP;
+        result.aluop = aluop;
+        result.rs = rs_num;
+        result.rd = rd_num;
+        result.rt = rt_num;
+        result.stype = BITS(instr, 19, 2);
     } else if (BITS(instr, 14, 10) == 0x000) {
         // ALU W/ LONG IMM
+        result.optype = ALU_OP;
+        result.aluop = aluop;
+        result.rs = rs_num;
+        result.rd = rd_num;
+        result.long_imm = true;
+        // Long immediate is in the following instruction slot; it will be extracted separately.
     } else {
         // UNDEFINED OP / BAD ENCODING
+        result.optype = INVALID_OP;
     }
 
     return result;
