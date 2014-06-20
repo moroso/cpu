@@ -291,6 +291,7 @@ struct decoded_instruction {
     boost::optional<pred_reg_t> pd;
     boost::optional<uint32_t> shiftamt;
     boost::optional<uint32_t> stype;
+    boost::optional<uint32_t> reserved_bits;
     bool long_imm = false;
 
     bool alu_unary() {
@@ -366,6 +367,12 @@ struct decoded_instruction {
             result << string_format("  * rt = %d\n", rt->reg);
         if (pd)
             result << string_format("  * pd = %d\n", pd->reg);
+        if (shiftamt)
+            result << string_format("  * shiftamt = %d (%x)\n", shiftamt.get());
+        if (stype)
+            result << string_format("  * stype = %x\n", stype.get());
+        if (reserved_bits && reserved_bits != 0x00)
+            result << string_format("  * WARNING: reserved bits nonzero (%x)\n", reserved_bits.get());
         if (long_imm)
             result << "  * [long immediate]\n";
 
@@ -524,6 +531,12 @@ decoded_instruction decode_instruction(instruction instr) {
         }
     } else if (BIT(instr, 24)) {
         // OTHER OPCODE
+        result.optype = OTHER_OP;
+        result.otherop = (otherop_t)BITS(instr, 20, 4);
+        result.rs = rs_num;
+        result.rd = rd_num;
+        result.rt = rt_num;
+        result.reserved_bits = (BIT(instr, 19) << 4) | BITS(instr, 10, 4);
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
     } else if (BITS(instr, 14, 10) == 0x000) {
