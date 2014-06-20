@@ -417,66 +417,7 @@ decoded_instruction decode_instruction(instruction instr) {
     uint32_t rt_num = BITS(instr, 14, 5);
     uint32_t pd_num = BITS(instr, 5, 2);
 
-    if (BIT(instr, 28)) {
-        if (BIT(instr, 27)) {
-            // BRANCH OR BRANCH/LINK
-            if (BIT(instr, 26)) {
-                result.offset = BITS(instr, 5, 20);
-                result.rs = rs_num;
-            } else {
-                result.offset = BITS(instr, 0, 25);
-            }
-
-            if (BIT(instr, 25)) {
-                // BRANCH/LINK
-                result.opcode = OP_BL;
-            } else {
-                // BRANCH (PLAIN)
-                result.opcode = OP_B;
-            }
-        } else {
-            if (BIT(instr, 26)) {
-                // ALU REG
-                result.opcode = ALU_OP;
-                result.aluop = aluop;
-                result.rs = rs_num;
-                result.rt = rt_num;
-                result.shiftamt = BITS(instr, 21, 5);
-                result.stype = BITS(instr, 19, 2);
-
-                if (aluop == ALU_COMPARE) {
-                    result.cmpop = cmpop;
-                    result.pd = pd_num;
-                } else {
-                    result.rd = rd_num;
-                }
-            } else {
-                if (BIT(instr, 25)) {
-                    // LOAD/STORE
-                    result.opcode = LSU_OP;
-
-                    result.lsuop = (lsuop_t)BITS(instr, 10, 3);
-                    result.rs = rs_num;
-
-                    if (BIT(instr, 12)) {
-                        // STORE
-                        result.rt = rt_num;
-                        result.offset = BITS(instr, 5, 5) | (BIT(instr, 13) << 5) | (BITS(instr, 19, 6) < 6);
-                    } else {
-                        // LOAD
-                        result.rd = rd_num;
-                        result.offset = BITS(instr, 13, 12);
-                    }
-                } else {
-                    if (BIT(instr, 24)) {
-                        // OTHER
-                    } else {
-                        // ALU FUNKY OR UNDEFINED OPCODE
-                    }
-                }
-            }
-        }
-    } else {
+    if (BIT(instr, 28) == 0x0) {
         // ALU SHORT
         result.opcode = ALU_OP;
         result.aluop = aluop;
@@ -500,6 +441,61 @@ decoded_instruction decode_instruction(instruction instr) {
         }
 
         result.constant = (constant >> (rotate * 2)) | (constant << (32 - rotate * 2));
+    } else if (BIT(instr, 27)) {
+        // BRANCH OR BRANCH/LINK
+        if (BIT(instr, 26)) {
+            result.offset = BITS(instr, 5, 20);
+            result.rs = rs_num;
+        } else {
+            result.offset = BITS(instr, 0, 25);
+        }
+
+        if (BIT(instr, 25)) {
+            // BRANCH/LINK
+            result.opcode = OP_BL;
+        } else {
+            // BRANCH (PLAIN)
+            result.opcode = OP_B;
+        }
+    } else if (BIT(instr, 26)) {
+        // ALU REG
+        result.opcode = ALU_OP;
+        result.aluop = aluop;
+        result.rs = rs_num;
+        result.rt = rt_num;
+        result.shiftamt = BITS(instr, 21, 5);
+        result.stype = BITS(instr, 19, 2);
+
+        if (aluop == ALU_COMPARE) {
+            result.cmpop = cmpop;
+            result.pd = pd_num;
+        } else {
+            result.rd = rd_num;
+        }
+    } else if (BIT(instr, 25)) {
+        // LOAD/STORE
+        result.opcode = LSU_OP;
+
+        result.lsuop = (lsuop_t)BITS(instr, 10, 3);
+        result.rs = rs_num;
+
+        if (BIT(instr, 12)) {
+            // STORE
+            result.rt = rt_num;
+            result.offset = BITS(instr, 5, 5) | (BIT(instr, 13) << 5) | (BITS(instr, 19, 6) < 6);
+        } else {
+            // LOAD
+            result.rd = rd_num;
+            result.offset = BITS(instr, 13, 12);
+        }
+    } else if (BIT(instr, 24)) {
+        // CONTROL
+    } else if (BITS(instr, 21, 3) == 0x1) {
+        // ALU 1OP REGSH
+    } else if (BITS(instr, 14, 10) == 0x000) {
+        // ALU W/ LONG IMM
+    } else {
+        // UNDEFINED OP / BAD ENCODING
     }
 
     return result;
