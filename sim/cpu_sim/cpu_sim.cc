@@ -63,51 +63,26 @@ struct instruction_commit {
 typedef uint32_t instruction;
 typedef instruction instruction_packet[4];
 
-enum opcode_t {
-    OP_B,
-    OP_BL,
-    OP_BREAK,
-    OP_CPOP,
-    OP_DIV,
-    OP_ERET,
-    OP_FENCE,
-    OP_MFC,
-    OP_MFHI,
-    OP_MTC,
-    OP_MTHI,
-    OP_MULT,
-    OP_SYSCALL,
-
-    // Non-opcodes
+enum optype_t {
+    BRANCH_OP,
     ALU_OP,
     LSU_OP,
-    INVALID_OP,
+    OTHER_OP,
+    INVALID_OP
 };
 
-const size_t OPCODES_COUNT = INVALID_OP + 1;
+const size_t OPTYPES_COUNT = INVALID_OP + 1;
 const size_t MAX_OPCODE_LEN = 16;
 
-const char OPCODE_STR[][MAX_OPCODE_LEN] = {
-    "B",
-    "BL",
-    "BREAK",
-    "CPOP",
-    "DIV",
-    "ERET",
-    "FENCE",
-    "MFC",
-    "MFHI",
-    "MTC",
-    "MTHI",
-    "MULT",
-    "SYSCALL",
-
-    // Non-opcodes
-    "<ALU>",
-    "<LSU>",
-    "<INVALID>"
+const char OPTYPE_STR[][MAX_OPCODE_LEN] = {
+    "<BRANCH_OP>",
+    "<ALU_OP>",
+    "<LSU_OP>",
+    "<OTHER_OP>",
+    "<INVALID_OP>"
 };
-static_assert(array_size(OPCODE_STR) == OPCODES_COUNT, "Opcode count mismatch");
+static_assert(array_size(OPTYPE_STR) == OPTYPES_COUNT, "Optype count mismatch");
+
 
 // Must match instruction encoding
 enum aluop_t {
@@ -152,6 +127,7 @@ const char ALUOP_STR[][MAX_OPCODE_LEN] = {
 };
 static_assert(array_size(ALUOP_STR) == ALUOPS_COUNT, "Aluops count mismatch");
 
+
 // Must match instruction encoding
 enum cmpop_t {
     CMP_LTU,
@@ -178,6 +154,7 @@ const char CMPOP_STR[][MAX_OPCODE_LEN] = {
     "BC"
 };
 static_assert(array_size(CMPOP_STR) == CMPOPS_COUNT, "Cmpops count mismatch");
+
 
 // Order must match instruction encoding
 enum shift_type {
@@ -214,6 +191,50 @@ const char LSUOP_STR[][MAX_OPCODE_LEN] = {
     "SC"
 };
 static_assert(array_size(LSUOP_STR) == LSUOPS_COUNT, "Lsuops count mismatch");
+
+
+// Order must match instruction encoding
+enum otherop_t {
+    OTHER_RESV0,
+    OTHER_BREAK,
+    OTHER_SYSCALL,
+    OTHER_FENCE,
+    OTHER_ERET,
+    OTHER_CPOP,
+    OTHER_MVC,
+    OTHER_MTC,
+    OTHER_MULT,
+    OTHER_DIV,
+    OTHER_MFHI,
+    OTHER_MTHI,
+    OTHER_SIMD0,
+    OTHER_SIMD1,
+    OTHER_SIMD2,
+    OTHER_SIMD3
+};
+
+const size_t OTHEROPS_COUNT = OTHER_SIMD3 + 1;
+static_assert(OTHEROPS_COUNT == 16, "Bad other op list");
+
+const char OTHEROP_STR[][MAX_OPCODE_LEN] = {
+    "<RESV0>",
+    "BREAK",
+    "SYSCALL",
+    "FENCE",
+    "ERET",
+    "CPOP",
+    "MFC",
+    "MTC",
+    "MULT",
+    "DIV",
+    "MFHI",
+    "MTHI",
+    "<SIMD0>",
+    "<SIMD1>",
+    "<SIMD2>",
+    "<SIMD3>"
+};
+static_assert(array_size(OTHEROP_STR) == OTHEROPS_COUNT, "Otherops count mismatch");
 
 
 struct reg_t {
@@ -256,10 +277,12 @@ struct decoded_instruction {
 
     pred_reg_t pred_reg = 0;
     bool pred_comp;
-    opcode_t opcode = INVALID_OP;
+    optype_t optype = INVALID_OP;
+    boost::optional<bool> branch_link;
     boost::optional<aluop_t> aluop;
     boost::optional<cmpop_t> cmpop;
     boost::optional<lsuop_t> lsuop;
+    boost::optional<otherop_t> otherop;
     boost::optional<uint32_t> constant;
     boost::optional<int32_t> offset;
     boost::optional<reg_t> rs;
@@ -282,10 +305,22 @@ struct decoded_instruction {
         return aluop && aluop == ALU_COMPARE;
     }
 
+    std::string branchop_str() {
+        if (branch_link.get() == true) {
+            return "BL";
+        } else {
+            return "B";
+        }
+    }
+
     std::string opcode_str() {
         std::ostringstream result;
 
-        result << OPCODE_STR[opcode];
+        result << OPTYPE_STR[optype];
+
+        if (optype == BRANCH_OP) {
+            result << " - " << branchop_str();
+        }
 
         if (aluop) {
             result << " - " << ALUOP_STR[aluop.get()];
@@ -297,6 +332,10 @@ struct decoded_instruction {
 
         if (lsuop) {
             result << " - " << LSUOP_STR[lsuop.get()];
+        }
+
+        if (otherop) {
+            result << " - " << OTHEROP_STR[otherop.get()];
         }
 
         return result.str();
@@ -419,7 +458,7 @@ decoded_instruction decode_instruction(instruction instr) {
 
     if (BIT(instr, 28) == 0x0) {
         // ALU SHORT
-        result.opcode = ALU_OP;
+        result.optype = ALU_OP;
         result.aluop = aluop;
 
         if (aluop == ALU_COMPARE) {
@@ -443,23 +482,18 @@ decoded_instruction decode_instruction(instruction instr) {
         result.constant = (constant >> (rotate * 2)) | (constant << (32 - rotate * 2));
     } else if (BIT(instr, 27)) {
         // BRANCH OR BRANCH/LINK
+        result.optype = BRANCH_OP;
+        result.branch_link = BIT(instr, 25);
+
         if (BIT(instr, 26)) {
             result.offset = BITS(instr, 5, 20);
             result.rs = rs_num;
         } else {
             result.offset = BITS(instr, 0, 25);
         }
-
-        if (BIT(instr, 25)) {
-            // BRANCH/LINK
-            result.opcode = OP_BL;
-        } else {
-            // BRANCH (PLAIN)
-            result.opcode = OP_B;
-        }
     } else if (BIT(instr, 26)) {
         // ALU REG
-        result.opcode = ALU_OP;
+        result.optype = ALU_OP;
         result.aluop = aluop;
         result.rs = rs_num;
         result.rt = rt_num;
@@ -474,7 +508,7 @@ decoded_instruction decode_instruction(instruction instr) {
         }
     } else if (BIT(instr, 25)) {
         // LOAD/STORE
-        result.opcode = LSU_OP;
+        result.optype = LSU_OP;
 
         result.lsuop = (lsuop_t)BITS(instr, 10, 3);
         result.rs = rs_num;
@@ -489,7 +523,7 @@ decoded_instruction decode_instruction(instruction instr) {
             result.offset = BITS(instr, 13, 12);
         }
     } else if (BIT(instr, 24)) {
-        // CONTROL
+        // OTHER OPCODE
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
     } else if (BITS(instr, 14, 10) == 0x000) {
@@ -532,13 +566,14 @@ uint32_t shiftwith(uint32_t value, uint32_t shiftamt, shift_type stype) {
 // Instruction (and instruction packet) execution
 
 void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
-    if (instr.opcode == OP_B) {
+    if (instr.optype == BRANCH_OP) {
+        // XXX This only handles B, not BL
         regs.pc = old_pc;
         regs.pc += instr.offset.get();
         if (instr.rs) {
             regs.pc += regs.r[instr.rs.get().reg];
         }
-    } else if (instr.opcode == ALU_OP && instr.aluop == ALU_ADD) {
+    } else if (instr.optype == ALU_OP && instr.aluop == ALU_ADD) {
         uint32_t total = 0;
 
         if (instr.rs) {
