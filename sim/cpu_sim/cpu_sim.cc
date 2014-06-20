@@ -71,23 +71,16 @@ enum opcode_t {
     OP_DIV,
     OP_ERET,
     OP_FENCE,
-    OP_LB,
-    OP_LH,
-    OP_LL,
-    OP_LW,
     OP_MFC,
     OP_MFHI,
     OP_MTC,
     OP_MTHI,
     OP_MULT,
-    OP_SB,
-    OP_SC,
-    OP_SH,
-    OP_SW,
     OP_SYSCALL,
 
     // Non-opcodes
     ALU_OP,
+    LSU_OP,
     INVALID_OP,
 };
 
@@ -102,23 +95,16 @@ const char OPCODE_STR[][MAX_OPCODE_LEN] = {
     "DIV",
     "ERET",
     "FENCE",
-    "LB",
-    "LH",
-    "LL",
-    "LW",
     "MFC",
     "MFHI",
     "MTC",
     "MTHI",
     "MULT",
-    "SB",
-    "SC",
-    "SH",
-    "SW",
     "SYSCALL",
 
     // Non-opcodes
     "<ALU>",
+    "<LSU>",
     "<INVALID>"
 };
 static_assert(array_size(OPCODE_STR) == OPCODES_COUNT, "Opcode count mismatch");
@@ -193,6 +179,42 @@ const char CMPOP_STR[][MAX_OPCODE_LEN] = {
 };
 static_assert(array_size(CMPOP_STR) == CMPOPS_COUNT, "Cmpops count mismatch");
 
+// Order must match instruction encoding
+enum shift_type {
+    LSL,
+    LSR,
+    ASR,
+    ROR
+};
+
+
+// Order must match instruction encoding
+enum lsuop_t {
+    LS_LB,
+    LS_LHW,
+    LS_LW,
+    LS_LL,
+    LS_SB,
+    LS_SHW,
+    LS_SW,
+    LS_SC
+};
+
+const size_t LSUOPS_COUNT = LS_SC + 1;
+static_assert(LSUOPS_COUNT == 8, "Bad lsu op list");
+
+const char LSUOP_STR[][MAX_OPCODE_LEN] = {
+    "LB",
+    "LHW",
+    "LW",
+    "LL",
+    "SB",
+    "SHW",
+    "SW",
+    "SC"
+};
+static_assert(array_size(LSUOP_STR) == LSUOPS_COUNT, "Lsuops count mismatch");
+
 
 struct reg_t {
     unsigned int reg:5;
@@ -237,6 +259,7 @@ struct decoded_instruction {
     opcode_t opcode = INVALID_OP;
     boost::optional<aluop_t> aluop;
     boost::optional<cmpop_t> cmpop;
+    boost::optional<lsuop_t> lsuop;
     boost::optional<uint32_t> constant;
     boost::optional<int32_t> offset;
     boost::optional<reg_t> rs;
@@ -262,12 +285,7 @@ struct decoded_instruction {
     std::string opcode_str() {
         std::ostringstream result;
 
-        if (opcode < OPCODES_COUNT) {
-            result << OPCODE_STR[opcode];
-        } else {
-            result << OPCODE_STR[INVALID_OP];
-            return result.str();
-        }
+        result << OPCODE_STR[opcode];
 
         if (aluop) {
             result << " - " << ALUOP_STR[aluop.get()];
@@ -275,6 +293,10 @@ struct decoded_instruction {
 
         if (cmpop) {
             result << " - " << CMPOP_STR[cmpop.get()];
+        }
+
+        if (lsuop) {
+            result << " - " << LSUOP_STR[lsuop.get()];
         }
 
         return result.str();
@@ -377,14 +399,6 @@ instruction ROM[] = {
 };
 size_t ROMLEN = array_size(ROM);
 
-// Order must match instruction encoding
-enum shift_type {
-    LSL,
-    LSR,
-    ASR,
-    ROR
-};
-
 
 // Instruction (and instruction packet) decoding
 
@@ -425,6 +439,10 @@ decoded_instruction decode_instruction(instruction instr) {
                 // ALU REG
                 result.opcode = ALU_OP;
                 result.aluop = aluop;
+                result.rs = rs_num;
+                result.rt = rt_num;
+                result.shiftamt = BITS(instr, 21, 5);
+                result.stype = BITS(instr, 19, 2);
 
                 if (aluop == ALU_COMPARE) {
                     result.cmpop = cmpop;
@@ -435,6 +453,20 @@ decoded_instruction decode_instruction(instruction instr) {
             } else {
                 if (BIT(instr, 25)) {
                     // LOAD/STORE
+                    result.opcode = LSU_OP;
+
+                    result.lsuop = (lsuop_t)BITS(instr, 10, 3);
+                    result.rs = rs_num;
+
+                    if (BIT(instr, 12)) {
+                        // STORE
+                        result.rt = rt_num;
+                        result.offset = BITS(instr, 5, 5) | (BIT(instr, 13) << 5) | (BITS(instr, 19, 6) < 6);
+                    } else {
+                        // LOAD
+                        result.rd = rd_num;
+                        result.offset = BITS(instr, 13, 12);
+                    }
                 } else {
                     if (BIT(instr, 24)) {
                         // OTHER
