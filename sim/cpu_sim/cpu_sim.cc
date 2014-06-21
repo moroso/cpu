@@ -412,9 +412,12 @@ std::queue<instruction_commit> instruction_commit_queue;
 
 /*
 
+NOP: ADD R0 <- R0 + R0 (!P3) -> [111 0 0000000000 0000 0000 00000 00000 -> E000 0000]
+HALT: BREAK 0x1FU -> [110 10001 00011 00000 1111 00000 00000 -> D118 3C00]
+
 First sample program (trivial infinite loop):
 
-asm:    B $0 (P3) / NOP / NOP / NOP (Expressing NOP as ADD R0 <- R0 + R0 (!P3))
+asm:    B $0 (P3) / NOP / NOP / NOP
 binary: 110 1100 0000000000000000000000000 / (111 0 0000000000 0000 0000 00000 00000) *3
 hex:    D800 0000 / (E000 0000) *3
 
@@ -439,9 +442,20 @@ binary: 110 0 0000000001 0000 0000 00000 00000 /
 hex:    C004 0000 / C004 4021 / C006 C042 / C800 0063
 */
 
-instruction ROM[] = {
-    0xC0040000, 0xC0044021, 0xC006C042, 0xC8000063,
-    0xE0000000, 0xE0000000, 0xE0000000, 0xE0000000
+const size_t MAX_PROG_LEN = 0x256;
+instruction ROM[][MAX_PROG_LEN] = {
+    {
+        0xC0040000, 0xC0044021, 0xC006C042, 0xC8000063,
+        0xD1183C00, 0xE0000000, 0xE0000000, 0xE0000000
+    },
+    {
+        0xD8000000, 0xE0000000, 0xE0000000, 0xE0000000,
+        0xD1183C00, 0xE0000000, 0xE0000000, 0xE0000000
+    },
+    {
+        0xD8000000, 0xC0040000, 0xE0000000, 0xE0000000,
+        0xD1183C00, 0xE0000000, 0xE0000000, 0xE0000000
+    },
 };
 size_t ROMLEN = array_size(ROM);
 
@@ -589,9 +603,9 @@ uint32_t shiftwith(uint32_t value, uint32_t shiftamt, shift_type stype) {
     }
 }
 
-// Instruction (and instruction packet) execution
+// Instruction (and instruction packet) execution; return true on MAGIC_HALT
 
-void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
+bool execute_instruction(decoded_instruction instr, uint32_t old_pc) {
     if (instr.optype == BRANCH_OP) {
         // XXX This only handles B, not BL
         regs.pc = old_pc;
@@ -613,16 +627,25 @@ void execute_instruction(decoded_instruction instr, uint32_t old_pc) {
         }
 
         regs.r[instr.rd.get().reg] = total;
+    } else if (instr.optype == OTHER_OP && instr.otherop == OTHER_BREAK && instr.reserved_bits == 0x1FU) {
+        // MAGIC_HALT
+        return true;
     }
+
+    return false;
 }
 
-void execute_packet(decoded_packet packet) {
+bool execute_packet(decoded_packet packet) {
     uint32_t saved_pc = regs.pc;
     regs.pc += 4;
 
     for (int i = 0; i < 4; ++i) {
-        execute_instruction(packet.instr[i], saved_pc);
+        if(execute_instruction(packet.instr[i], saved_pc)) {
+            return true;
+        }
     }
+
+    return false;
 }
 
 
@@ -639,20 +662,27 @@ int main(int argc, char** argv) {
 
     printf("OSOROM simulator starting\n");
 
-    while(regs.pc < ROMLEN) {
-        printf("regs.pc is now 0x%x\n", regs.pc);
-        printf("regs.r = { ");
-        for (int i = 0; i < 32; ++i) {
-            printf("%x, ", regs.r[i]);
+    for (int i = 0; i < ROMLEN; ++i) {
+        printf("Running test program #%d\n", i);
+        regs.pc = 0x0;
+        while(true) {
+            printf("regs.pc is now 0x%x\n", regs.pc);
+            printf("regs.r = { ");
+            for (int i = 0; i < 32; ++i) {
+                printf("%x, ", regs.r[i]);
+            }
+            printf("}\n");
+            printf("Packet is %x / %x / %x / %x\n", ROM[i][regs.pc+0], ROM[i][regs.pc+1], ROM[i][regs.pc+2], ROM[i][regs.pc+3]);
+            decoded_packet packet = decode_packet(&ROM[i][regs.pc]);
+            printf("Packet looks like:\n");
+            printf("%s", packet.to_string().c_str());
+            printf("Executing packet...\n");
+            if(execute_packet(packet)) {
+                printf("... BREAK 0x1FU -> end program\n");
+                break;
+            }
+            printf("...done.\n");
         }
-        printf("}\n");
-        printf("Packet is %x / %x / %x / %x\n", ROM[regs.pc+0], ROM[regs.pc+1], ROM[regs.pc+2], ROM[regs.pc+3]);
-        decoded_packet packet = decode_packet(&ROM[regs.pc]);
-        printf("Packet looks like:\n");
-        printf("%s", packet.to_string().c_str());
-        printf("Executing packet...\n");
-        execute_packet(packet);
-        printf("...done.\n");
     }
 
     printf("OROSOM simulator terminating\n");
