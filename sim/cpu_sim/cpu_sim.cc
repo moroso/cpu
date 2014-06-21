@@ -649,10 +649,29 @@ bool execute_packet(decoded_packet packet) {
 }
 
 
+uint32_t rand32() {
+    return
+        (rand() & 0xff) |
+        ((rand() & 0xff) << 8) |
+        ((rand() & 0xff) << 16) |
+        ((rand() & 0xff) << 24);
+}
+
 // Driver / testing stub
 
 int main(int argc, char** argv) {
     if (argc > 1) {
+        if (!strcmp(argv[1], "random")) {
+            srand(0);
+            printf("Random instruction mode\n");
+            while(true) {
+                instruction instr = rand32();
+                printf("Disassembling single instruction %x (%u):\n", instr, instr);
+                decoded_instruction di = decode_instruction(instr);
+                printf("%s\n\n\n", di.to_string().c_str());
+            }
+        }
+
         instruction instr = strtoul(argv[1], 0, 0);
         printf("Disassembling single instruction %x (%u):\n", instr, instr);
         decoded_instruction di = decode_instruction(instr);
