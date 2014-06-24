@@ -35,11 +35,14 @@ namespace Sim {
 
 double sc_time_stamp();
 
-#define SIM_DEBUG(fmt, ...) Sim::log(Sim::Debug, "D: %6lu ns: %s (%s:%d): " fmt "\n", Sim::main_time, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__ )
-#define SIM_INFO(fmt, ...)  Sim::log(Sim::Info , "I: %6lu ns: %s (%s:%d): " fmt "\n", Sim::main_time, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__ )
-#define SIM_ERROR(fmt, ...) Sim::log(Sim::Error, "E: %6lu ns: %s (%s:%d): " fmt "\n", Sim::main_time, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__ )
-#define SIM_FATAL(fmt, ...) Sim::log(Sim::Fatal, "F: %6lu ns: %s (%s:%d): " fmt "\n", Sim::main_time, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__ )
+#define SIM_LOG(c, l, fmt, ...) Sim::log(c, l ": %6lu ns: [%s] %s (%s:%d): " fmt "\n", Sim::main_time, instance, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__ )
 
+#define SIM_DEBUG(fmt, ...) SIM_LOG(Sim::Debug, "D", fmt, ##__VA_ARGS__ )
+#define SIM_INFO(fmt, ...) SIM_LOG(Sim::Info, "I", fmt, ##__VA_ARGS__ )
+#define SIM_ERROR(fmt, ...) SIM_LOG(Sim::Error, "E", fmt, ##__VA_ARGS__ )
+#define SIM_FATAL(fmt, ...) SIM_LOG(Sim::Fatal, "F", fmt, ##__VA_ARGS__ )
 #define SIM_CHECK(cond) do { if (!(cond)) { SIM_ERROR("checker failed: %s", #cond); } } while(0)
+
+static const char *instance = "global";
 
 #endif
