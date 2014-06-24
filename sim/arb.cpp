@@ -49,7 +49,7 @@ int main(int argc, char **argv, char **env) {
 #if VM_TRACE
 	Verilated::traceEverOn(true);
 	tfp = new VerilatedVcdC;
-	ltc->trace(tfp, 99);
+	tb->trace(tfp, 99);
 	tfp->open("trace.vcd");
 	atexit(_close_trace);
 #endif
@@ -145,7 +145,7 @@ int main(int argc, char **argv, char **env) {
 	tb->eval();
 	
 #if VM_TRACE
-#define TRACE tfp->dump(main_time)
+#define TRACE tfp->dump(Sim::main_time)
 #else
 #define TRACE
 #endif
