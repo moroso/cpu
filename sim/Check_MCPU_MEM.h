@@ -24,9 +24,12 @@ class Check_MCPU_MEM {
 	std::queue<Response> respq;
 	
 	int stalled_cycles;
+	
+	const char *instance;
 
 public:
-	Check_MCPU_MEM(MCPU_MEM_ports *_ports) : ports(_ports), stalled_cycles(0) { };
+	Check_MCPU_MEM(MCPU_MEM_ports *_ports) : ports(_ports), stalled_cycles(0), instance("unknown") { };
+	Check_MCPU_MEM(MCPU_MEM_ports *_ports, const char *instance) : ports(_ports), stalled_cycles(0), instance(instance) { };
 	
 	void clk();
 	

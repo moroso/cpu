@@ -42,9 +42,9 @@ int main(int argc, char **argv, char **env) {
 	stim[2] = new Stim_MCPU_MEM(&cli_ports[2]);
 	
 	Check_MCPU_MEM *check[3];
-	check[0] = new Check_MCPU_MEM(&cli_ports[0]);
-	check[1] = new Check_MCPU_MEM(&cli_ports[1]);
-	check[2] = new Check_MCPU_MEM(&cli_ports[2]);
+	check[0] = new Check_MCPU_MEM(&cli_ports[0], "check_arb0");
+	check[1] = new Check_MCPU_MEM(&cli_ports[1], "check_arb1");
+	check[2] = new Check_MCPU_MEM(&cli_ports[2], "check_arb2");
 	
 #if VM_TRACE
 	Verilated::traceEverOn(true);
