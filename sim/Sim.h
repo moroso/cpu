@@ -42,6 +42,7 @@ double sc_time_stamp();
 #define SIM_ERROR(fmt, ...) SIM_LOG(Sim::Error, "E", fmt, ##__VA_ARGS__ )
 #define SIM_FATAL(fmt, ...) SIM_LOG(Sim::Fatal, "F", fmt, ##__VA_ARGS__ )
 #define SIM_CHECK(cond) do { if (!(cond)) { SIM_ERROR("checker failed: %s", #cond); } } while(0)
+#define SIM_CHECK_MSG(cond, msg, ...) do { if (!(cond)) { SIM_ERROR("checker failed: " msg, ##__VA_ARGS__ ); } } while(0)
 
 static const char *instance = "global";
 

@@ -32,14 +32,17 @@ void Check_MCPU_MEM::clk() {
 	if (*ports->rvalid) {
 		SIM_DEBUG("response valid");
 
-		SIM_CHECK(!respq.empty() && "ltc response came back without outbound read request");
+		SIM_CHECK_MSG(!respq.empty(), "ltc response came back without outbound read request");
 		if (respq.empty())
 			return;
 		
 		Check_MCPU_MEM::Response &resp = respq.front();
 		for (int i = 0; i < 32; i++)
 			if (resp.atom.valid & (1 << i))
-				SIM_CHECK(resp.atom.data[i] == ((ports->rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
+				SIM_CHECK_MSG(resp.atom.data[i] == ((ports->rdata[i / 4] >> ((i % 4) * 8)) & 0xFF),
+				              "incorrect memory response (addr %08x, byte %d, expected %02x, got %02x)",
+				              resp.addr, i, resp.atom.data[i],
+				              ((ports->rdata[i / 4] >> ((i % 4) * 8)) & 0xFF));
 		
 		respq.pop();
 	}
