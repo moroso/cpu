@@ -120,12 +120,14 @@ module MCPU_MEM_arb(/*AUTOARG*/
 			cur_client <= {{(CLIENTS-1){1'b0}}, 1'b1};
 			credits_left <= CREDITS_DEFAULT;
 		end else begin
-			if ((credits_left == 0) || !sel_valid) begin
-				credits_left <= cli_credits[cur_client_num_next[CLIENTS_BITS-1:0]];
-				cur_client_num <= cur_client_num_next[CLIENTS_BITS-1:0];
-				cur_client <= {{(CLIENTS-1){1'b0}}, 1'b1} << cur_client_num_next;
-			end else
-				credits_left <= credits_left - 1;
+			if (~arb2ltc_stall) begin /* 1) Can't change out from under LTC.  2) Count requests, not clocks. */
+				if ((credits_left == 0) || !sel_valid) begin
+					credits_left <= cli_credits[cur_client_num_next[CLIENTS_BITS-1:0]];
+					cur_client_num <= cur_client_num_next[CLIENTS_BITS-1:0];
+					cur_client <= {{(CLIENTS-1){1'b0}}, 1'b1} << cur_client_num_next;
+				end else
+					credits_left <= credits_left - 1;
+			end
 		end
 	
 	/** Client rdata FIFO **/
