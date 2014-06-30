@@ -175,7 +175,7 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	/* Now route stalls back to the selected client. */
 	generate
-		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_stall[cli] = (cur_client_num != cli[CLIENTS_BITS-1:0]) || arb2ltc_stall || rdfifo_wait;
+		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_stall[cli] = ((cur_client_num != cli[CLIENTS_BITS-1:0]) || arb2ltc_stall || rdfifo_wait) && cli2arb_valid[cli];
 	endgenerate
 	
 	assign arb2ltc_valid = sel_valid && ~rdfifo_wait;
