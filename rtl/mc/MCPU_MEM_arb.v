@@ -87,6 +87,8 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	wire rdfifo_empty;
 	
 	wire rdfifo_wait;
+	
+	reg arb2ltc_stall_0a;
 
 	/** Client selection logic **/
 
@@ -132,6 +134,13 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	/** Client rdata FIFO **/
 	
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			arb2ltc_stall_0a <= 1;
+		end else begin
+			arb2ltc_stall_0a <= arb2ltc_stall;
+		end
+	
 	/* FIFO of all read pushes that are waiting for responses from LTC. 
 	 * Relatively small, since LTC's pipeline is relatively small...  */
 	
@@ -145,7 +154,7 @@ module MCPU_MEM_arb(/*AUTOARG*/
 		.rdata(rdfifo_rdata),
 		.empty(rdfifo_empty));
 	
-	assign rdfifo_push  = sel_valid && sel_has_rdata && ~rdfifo_full && ~arb2ltc_stall;
+	assign rdfifo_push  = sel_valid && sel_has_rdata && ~rdfifo_full && ~arb2ltc_stall_0a;
 	assign rdfifo_wdata = cur_client_num;
 	
 	assign rdfifo_pop   = arb2ltc_rvalid;
