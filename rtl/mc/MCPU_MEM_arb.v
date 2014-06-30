@@ -157,6 +157,7 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	generate
 		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_rvalid[cli] = (rdfifo_rdata == cli[CLIENTS_BITS-1:0]) && arb2ltc_rvalid;
 	endgenerate
+	assign cli2arb_rdata = arb2ltc_rdata;
 	
 	/** Master logic for routing selected client out to ltc **/
 	

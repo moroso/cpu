@@ -65,10 +65,13 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 	wire [255:0]	arb2ltc_wdata;		// From arb of MCPU_MEM_arb.v
 	// End of automatics
 	
-	output [255:0] cli0_rdata = cli2arb_rdata;
-	output [255:0] cli1_rdata = cli2arb_rdata;
-	output [255:0] cli2_rdata = cli2arb_rdata;
+	output wire [255:0] cli0_rdata;
+	output wire [255:0] cli1_rdata;
+	output wire [255:0] cli2_rdata;
 	
+	assign cli0_rdata = cli2arb_rdata;
+	assign cli1_rdata = cli2arb_rdata;
+	assign cli2_rdata = cli2arb_rdata;
 	
 	/* MCPU_MEM_arb AUTO_TEMPLATE(
 		.cli2arb_stall({cli2_stall, cli1_stall, cli0_stall}),
