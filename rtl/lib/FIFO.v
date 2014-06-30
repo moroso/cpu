@@ -28,7 +28,7 @@ module FIFO(/*AUTOARG*/
 	reg [clog2(DEPTH)-1:0] wptr;
 	
 	assign full = wptr == rptr + DEPTH;
-	assign empty = rptr == wptr;
+	assign empty = (rptr == wptr) && ~push;
 	
 	/*** Read port ***/
 	reg [WIDTH-1:0] mem_rdata;
