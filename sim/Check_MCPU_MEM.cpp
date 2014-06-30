@@ -32,7 +32,7 @@ void Check_MCPU_MEM::clk() {
 	if (*ports->rvalid) {
 		SIM_DEBUG("response valid");
 
-		SIM_CHECK_MSG(!respq.empty(), "ltc response came back without outbound read request");
+		SIM_CHECK_MSG(!respq.empty(), "mem response came back without outbound read request");
 		if (respq.empty())
 			return;
 		
