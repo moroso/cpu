@@ -42,7 +42,7 @@ module FIFO(/*AUTOARG*/
 			mem_bypass <= 0;
 			wdata_m1a <= {WIDTH{1'b0}};
 		end else begin
-			mem_bypass <= empty && push;
+			mem_bypass <= rptr == wptr /* i.e., empty */;
 			wdata_m1a <= wdata;
 		end
 	
