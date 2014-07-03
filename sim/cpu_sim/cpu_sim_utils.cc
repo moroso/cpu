@@ -1,5 +1,8 @@
 #include "cpu_sim.h"
 
+#include <string.h>
+#include <stdarg.h>
+
 // From StackOverflow user Erik Aronesty, http://stackoverflow.com/a/8098080 .
 std::string string_format(const std::string fmt_str, ...) {
     int final_n, n = ((int)fmt_str.size()) * 2; /* reserve 2 times as much as the length of the fmt_str */

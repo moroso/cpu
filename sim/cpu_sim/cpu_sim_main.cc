@@ -1,5 +1,7 @@
 #include "cpu_sim.h"
 
+#include <string.h>
+
 cpu_t cpu;
 
 /*
