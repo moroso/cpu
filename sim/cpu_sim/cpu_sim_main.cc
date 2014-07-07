@@ -1,4 +1,5 @@
 #include "cpu_sim.h"
+#include "cpu_sim_utils.h"
 
 #include <string.h>
 
@@ -61,15 +62,15 @@ int main(int argc, char** argv) {
             while(true) {
                 instruction instr = rand32();
                 printf("Disassembling single instruction %x (%u):\n", instr, instr);
-                decoded_instruction di(instr);
-                printf("%s\n\n\n", di.to_string().c_str());
+                shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
+                printf("%s\n\n\n", di->to_string().c_str());
             }
         }
 
         instruction instr = strtoul(argv[1], 0, 0);
         printf("Disassembling single instruction %x (%u):\n", instr, instr);
-        decoded_instruction di(instr);
-        printf("%s\n", di.to_string().c_str());
+        shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
+        printf("%s\n", di->to_string().c_str());
         exit(0);
     }
 
@@ -90,7 +91,7 @@ int main(int argc, char** argv) {
             printf("Packet looks like:\n");
             printf("%s", packet.to_string().c_str());
             printf("Executing packet...\n");
-            if(packet.execute_packet(cpu)) {
+            if(packet.execute(cpu)) {
                 printf("... BREAK 0x1FU -> end program\n");
                 break;
             }

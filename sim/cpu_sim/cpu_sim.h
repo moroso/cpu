@@ -1,7 +1,15 @@
+#pragma once
+
+#include <memory>
+
 #include <stdlib.h>
 
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
+
+
+using std::shared_ptr;
+
 
 // Set bit a through bit b (inclusive), as long as 0 <= a <= 31 and 0 <= b <= 31.
 // From http://stackoverflow.com/a/8774613 .
@@ -243,8 +251,6 @@ struct pred_reg_t {
     operator int() { return reg; }
 };
 
-std::string string_format(const std::string fmt_str, ...);
-
 struct regs_t {
     uint32_t r[32];
     uint32_t pc;
@@ -264,7 +270,6 @@ struct decoded_instruction {
     boost::optional<aluop_t> aluop;
     boost::optional<cmpop_t> cmpop;
     boost::optional<lsuop_t> lsuop;
-    boost::optional<otherop_t> otherop;
     boost::optional<uint32_t> constant;
     boost::optional<int32_t> offset;
     boost::optional<reg_t> rs;
@@ -273,35 +278,31 @@ struct decoded_instruction {
     boost::optional<pred_reg_t> pd;
     boost::optional<uint32_t> shiftamt;
     boost::optional<uint32_t> stype;
-    boost::optional<uint32_t> reserved_bits;
     bool long_imm = false;
 
-    decoded_instruction(instruction);
+    static shared_ptr<decoded_instruction> decode_instruction(instruction);
 
     decoded_instruction() {
         // XXX: I'm so sorry.
     }
 
-    bool alu_unary();
-    bool alu_binary();
-    bool alu_compare();
+    virtual bool alu_unary();
+    virtual bool alu_binary();
+    virtual bool alu_compare();
 
-    std::string branchop_str();
-    std::string opcode_str();
-    std::string to_string();
+    virtual std::string branchop_str();
+    virtual std::string opcode_str();
+    virtual std::string to_string();
 
-    bool execute_instruction(cpu_t &cpu, uint32_t old_pc);
+    virtual bool execute(cpu_t &cpu, uint32_t old_pc);
 };
 
 struct decoded_packet {
-    decoded_instruction instr[4];
+    shared_ptr<decoded_instruction> instr[4];
 
     decoded_packet(instruction_packet);
 
     std::string to_string();
 
-    bool execute_packet(cpu_t &cpu);
+    bool execute(cpu_t &cpu);
 };
-
-uint32_t shiftwith(uint32_t value, uint32_t shiftamt, shift_type stype);
-uint32_t rand32();
