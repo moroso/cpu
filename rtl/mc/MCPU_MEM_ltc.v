@@ -42,6 +42,35 @@
  * LTC is going to be an enormous pain to verify.  Let's just hope we get it
  * right the first time.
  *
+ *** Protocol details
+ *
+ * This has changed since the initial implementation, so read carefully!
+ *
+ * stall goes inactive on the cycle *before* the LTC is ready to receive a
+ * new set of inputs.  That is to say, LTC expects all of its inputs to be
+ * flopped by a block that looks like this:
+ *
+ *   always @(posedge clkrst_mem_clk)
+ *     if (~arb2ltc_stall)
+ *       {arb2ltc_opcode, ...} <= ...
+ *
+ * This is a change from previous behavior, in which it was permissible to
+ * change LTC's inputs /on the same cycle it deasserted stall/.
+ *
+ * From an LTC implementation perspective, this means that LTC's
+ * stall-deassert has to "predict" when it will be ready -- stall deasserts
+ * when the /next/ cycle will be a non-miss cycle for a read, or when the
+ * /next/ cycle will be a write.
+ *
+ *         _____       _____       _____       _____
+ *  clk   /     \_____/     \_____/     \_____/     \_____
+ *        |           |           |           | 
+ *           ___________________________________   _______
+ *  cmd   __/___________________________________\_/_______
+ *        |           |           |           |
+ *             ______________________                 ____
+ *  stall ____/                      \_______________/
+ *
  *** Implementation details
  *
  * All outputs are zero.  Lol!
@@ -144,6 +173,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	
 	wire        arb2ltc_is_read_0a  = arb2ltc_valid_0a && ((arb2ltc_opcode == LTC_OPC_READ) || (arb2ltc_opcode == LTC_OPC_READTHROUGH));
 	wire        arb2ltc_is_write_0a = arb2ltc_valid_0a && ((arb2ltc_opcode == LTC_OPC_WRITE) || (arb2ltc_opcode == LTC_OPC_WRITETHROUGH));
+	wire        arb2ltc_is_bogus_0a = arb2ltc_valid_0a && ((arb2ltc_opcode == LTC_OPC_PREFETCH) || (arb2ltc_opcode == LTC_OPC_CLEAN));
 	
 	reg         arb2ltc_valid_1a;
 	reg [2:0]   arb2ltc_opcode_1a;
@@ -311,10 +341,13 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
 	wire   dirty_0a = set_dirty_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
 	
-	/* XXX: This logic to solve the refill-vs-write race is not quite
-	 * what it should be.  It fixes the visible bug, but delaying
-	 * resp_wr by a cycle really shouldn't be necessary.*/
-	assign stall_0a = miss_0a || resp_override || resp_override_1a;
+	/* Stalls always take place when we're about to override on a
+	 * response, since that steals the /next/ cycle.  Additionally, if
+	 * we're missing, we also stall.
+	 */
+	assign stall_0a = resp_override ||
+	                  (arb2ltc_is_read_0a && miss_0a) || 
+	                  (arb2ltc_is_write_0a && miss_0a);
 	
 	always @(*) begin
 		rd_valid_0a = arb2ltc_is_read_0a && ~miss_0a && ~resp_override;

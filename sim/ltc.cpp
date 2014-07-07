@@ -150,7 +150,7 @@ int main(int argc, char **argv, char **env) {
 	ltc->eval();
 	
 #if VM_TRACE
-#define TRACE tfp->dump(main_time)
+#define TRACE tfp->dump(Sim::main_time)
 #else
 #define TRACE
 #endif
@@ -160,6 +160,7 @@ int main(int argc, char **argv, char **env) {
 		ltc->eval();
 		mc_cmod->clk();
 		stim->clk();
+		ltc->eval();
 		check->clk();
 		ltc->eval();
 		Sim::tick();

@@ -21,6 +21,8 @@ void Stim_MCPU_MEM::read(uint32_t addr, int through) {
 	cmd.wbe = random();
 	
 	cmdq.push(cmd);
+	
+	SIM_DEBUG("generating read, address %08x", addr);
 }
 
 void Stim_MCPU_MEM::write(uint32_t addr, uint8_t data[32], uint32_t be, int through) {
@@ -65,26 +67,36 @@ void Stim_MCPU_MEM::clean(uint32_t addr) {
 }
 
 void Stim_MCPU_MEM::clk() {
+	if (!stall_1a && !*ports->stall) {
+		*ports->valid = next_valid;
+		*ports->opcode = next_opcode;
+		*ports->addr = next_addr;
+		for (int i = 0; i < 8; i++)
+			ports->wdata[i] = next_wdata[i];
+		*ports->wbe = next_wbe;
+	}
+	stall_1a = *ports->stall;
+	
 	/* Do nothing on a clock if stalled. */
 	if (*ports->stall || !ports->clkrst_mem_rst_n)
 		return;
 
 	/* Sometimes, generate a bubble. */
 	if (cmdq.empty() || Sim::random(100) < 3) {
-		*ports->valid = 0;
+		next_valid = 0;
 		return;
 	}
 
 	/* Otherwise, set up a command for the next clock. */
 	Stim_MCPU_MEM::Command &cmd = cmdq.front();
-	int i;
 	
-	*ports->valid = 1;
-	*ports->opcode = cmd.opcode;
-	*ports->addr = cmd.addr;
-	for (i = 0; i < 8; i++)
-		ports->wdata[i] = cmd.wdata[i];
-	*ports->wbe = cmd.wbe;
+	SIM_DEBUG("emitting new opcode");
+	next_valid = 1;
+	next_opcode = cmd.opcode;
+	next_addr = cmd.addr;
+	for (int i = 0; i < 8; i++)
+		next_wdata[i] = cmd.wdata[i];
+	next_wbe = cmd.wbe;
 	
 	cmdq.pop();
 }
