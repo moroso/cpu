@@ -17,48 +17,8 @@
 #include <boost/format.hpp>
 
 
-bool decoded_instruction::alu_unary() {
-    return aluop && aluop > ALU_COMPARE;
-}
-
-bool decoded_instruction::alu_binary() {
-    return aluop && aluop <= ALU_COMPARE;
-}
-
-bool decoded_instruction::alu_compare() {
-    return aluop && aluop == ALU_COMPARE;
-}
-
-std::string decoded_instruction::branchop_str() {
-    if (branch_link.get() == true) {
-        return "BL";
-    } else {
-        return "B";
-    }
-}
-
 std::string decoded_instruction::opcode_str() {
-    std::ostringstream result;
-
-    result << OPTYPE_STR[optype];
-
-    if (optype == BRANCH_OP) {
-        result << " - " << branchop_str();
-    }
-
-    if (aluop) {
-        result << " - " << ALUOP_STR[aluop.get()];
-    }
-
-    if (cmpop) {
-        result << " - " << CMPOP_STR[cmpop.get()];
-    }
-
-    if (lsuop) {
-        result << " - " << LSUOP_STR[lsuop.get()];
-    }
-
-    return result.str();
+    return std::string(OPTYPE_STR[optype]);
 }
 
 std::string decoded_instruction::to_string() {
@@ -84,8 +44,6 @@ std::string decoded_instruction::to_string() {
         result << string_format("  * rd = %d\n", rd->reg);
     if (rt)
         result << string_format("  * rt = %d\n", rt->reg);
-    if (pd)
-        result << string_format("  * pd = %d\n", pd->reg);
     if (shiftamt)
         result << string_format("  * shiftamt = %d (%x)\n", shiftamt.get());
     if (stype)
@@ -109,12 +67,15 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 
     if (BIT(instr, 28) == 0x0) {
         // ALU SHORT
+        shared_ptr<alu_instruction> alu(new alu_instruction());
+        result = alu;
+
         result->optype = ALU_OP;
-        result->aluop = aluop;
+        alu->aluop = aluop;
 
         if (aluop == ALU_COMPARE) {
-            result->cmpop = cmpop;
-            result->pd = pd_num;
+            alu->cmpop = cmpop;
+            alu->pd = pd_num;
         } else {
             result->rd = rd_num;
         }
@@ -122,7 +83,7 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         uint32_t constant = BITS(instr, 18, 10);
         uint32_t rotate = BITS(instr, 14, 4);
 
-        if (result->alu_unary()) {
+        if (alu->alu_unary()) {
             // Last 5 bits are high bits of constant
             constant |= (rs_num << 10);
         } else {
@@ -133,8 +94,11 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         result->constant = (constant >> (rotate * 2)) | (constant << (32 - rotate * 2));
     } else if (BIT(instr, 27)) {
         // BRANCH OR BRANCH/LINK
+        shared_ptr<branch_instruction> branch(new branch_instruction());
+        result = branch;
+
         result->optype = BRANCH_OP;
-        result->branch_link = BIT(instr, 25);
+        branch->branch_link = BIT(instr, 25);
 
         if (BIT(instr, 26)) {
             result->offset = BITS(instr, 5, 20);
@@ -144,24 +108,29 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         }
     } else if (BIT(instr, 26)) {
         // ALU REG
+        shared_ptr<alu_instruction> alu(new alu_instruction());
+        result = alu;
+
         result->optype = ALU_OP;
-        result->aluop = aluop;
+        alu->aluop = aluop;
         result->rs = rs_num;
         result->rt = rt_num;
         result->shiftamt = BITS(instr, 21, 5);
         result->stype = BITS(instr, 19, 2);
 
         if (aluop == ALU_COMPARE) {
-            result->cmpop = cmpop;
-            result->pd = pd_num;
+            alu->cmpop = cmpop;
+            alu->pd = pd_num;
         } else {
             result->rd = rd_num;
         }
     } else if (BIT(instr, 25)) {
         // LOAD/STORE
+        shared_ptr<loadstore_instruction> loadstore(new loadstore_instruction());
+        result = loadstore;
         result->optype = LSU_OP;
 
-        result->lsuop = (lsuop_t)BITS(instr, 10, 3);
+        loadstore->lsuop = (lsuop_t)BITS(instr, 10, 3);
         result->rs = rs_num;
 
         if (BIT(instr, 12)) {
@@ -187,16 +156,22 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         other->reserved_bits = (BIT(instr, 19) << 4) | BITS(instr, 10, 4);
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
+         shared_ptr<alu_instruction> alu(new alu_instruction());
+        result = alu;
+
         result->optype = ALU_OP;
-        result->aluop = aluop;
+        alu->aluop = aluop;
         result->rs = rs_num;
         result->rd = rd_num;
         result->rt = rt_num;
         result->stype = BITS(instr, 19, 2);
     } else if (BITS(instr, 14, 10) == 0x000) {
         // ALU W/ LONG IMM
+        shared_ptr<alu_instruction> alu(new alu_instruction());
+        result = alu;
+
         result->optype = ALU_OP;
-        result->aluop = aluop;
+        alu->aluop = aluop;
         result->rs = rs_num;
         result->rd = rd_num;
         result->long_imm = true;
@@ -216,32 +191,8 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 }
 
 bool decoded_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
-    if (this->optype == BRANCH_OP) {
-        // XXX This only handles B, not BL
-        cpu.regs.pc = old_pc;
-        cpu.regs.pc += this->offset.get();
-        if (this->rs) {
-            cpu.regs.pc += cpu.regs.r[this->rs.get().reg];
-        }
-    } else if (this->optype == ALU_OP && this->aluop == ALU_ADD) {
-        uint32_t total = 0;
-
-        if (this->rs) {
-            total += cpu.regs.r[this->rs.get().reg];
-        }
-        if (this->constant) {
-            total += this->constant.get();
-        }
-        if (this->rt) {
-            total += shiftwith(cpu.regs.r[this->rt.get().reg], this->shiftamt.get(), (shift_type)this->stype.get());
-        }
-
-        cpu.regs.r[this->rd.get().reg] = total;
-    }
-
     return false;
 }
-
 
 
 std::string decoded_packet::to_string() {

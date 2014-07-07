@@ -266,16 +266,11 @@ struct decoded_instruction {
     pred_reg_t pred_reg = 0;
     bool pred_comp;
     optype_t optype = INVALID_OP;
-    boost::optional<bool> branch_link;
-    boost::optional<aluop_t> aluop;
-    boost::optional<cmpop_t> cmpop;
-    boost::optional<lsuop_t> lsuop;
     boost::optional<uint32_t> constant;
     boost::optional<int32_t> offset;
     boost::optional<reg_t> rs;
     boost::optional<reg_t> rd;
     boost::optional<reg_t> rt;
-    boost::optional<pred_reg_t> pd;
     boost::optional<uint32_t> shiftamt;
     boost::optional<uint32_t> stype;
     bool long_imm = false;
@@ -286,11 +281,6 @@ struct decoded_instruction {
         // XXX: I'm so sorry.
     }
 
-    virtual bool alu_unary();
-    virtual bool alu_binary();
-    virtual bool alu_compare();
-
-    virtual std::string branchop_str();
     virtual std::string opcode_str();
     virtual std::string to_string();
 
