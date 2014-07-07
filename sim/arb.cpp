@@ -37,9 +37,9 @@ int main(int argc, char **argv, char **env) {
 	MCPU_MEM_ports_CONNECT(&cli_ports[2], tb, cli2_);
 	
 	Stim_MCPU_MEM *stim[3];
-	stim[0] = new Stim_MCPU_MEM(&cli_ports[0]);
-	stim[1] = new Stim_MCPU_MEM(&cli_ports[1]);
-	stim[2] = new Stim_MCPU_MEM(&cli_ports[2]);
+	stim[0] = new Stim_MCPU_MEM(&cli_ports[0], "stim_arb0");
+	stim[1] = new Stim_MCPU_MEM(&cli_ports[1], "stim_arb1");
+	stim[2] = new Stim_MCPU_MEM(&cli_ports[2], "stim_arb2");
 	
 	Check_MCPU_MEM *check[3];
 	check[0] = new Check_MCPU_MEM(&cli_ports[0], "check_arb0");
@@ -158,6 +158,7 @@ int main(int argc, char **argv, char **env) {
 		mc_cmod->clk();
 		for (int i = 0; i < 3; i++) {
 			stim[i]->clk();
+			tb->eval();
 			check[i]->clk();
 		}
 		tb->eval();
