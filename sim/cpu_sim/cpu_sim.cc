@@ -190,6 +190,14 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
     return result;
 }
 
+bool decoded_instruction::predicate_ok(cpu_t &cpu) {
+    if (pred_reg.reg == 3) {
+        return !pred_comp;
+    } else {
+        return pred_comp ^ cpu.regs.p[pred_reg.reg];
+    }
+}
+
 bool decoded_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
     return false;
 }

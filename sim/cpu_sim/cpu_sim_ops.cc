@@ -48,6 +48,10 @@ bool other_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
 }
 
 bool branch_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
+    if (!predicate_ok(cpu)) {
+        return false;
+    }
+
     // XXX This only handles B, not BL
     cpu.regs.pc = old_pc;
     cpu.regs.pc += this->offset.get();
@@ -82,6 +86,10 @@ std::string alu_instruction::opcode_str() {
 }
 
 bool alu_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
+    if (!predicate_ok(cpu)) {
+        return false;
+    }
+
     uint32_t op1, op2;
 
     if (alu_binary()) {
