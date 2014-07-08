@@ -80,6 +80,35 @@ int main(int argc, char** argv) {
             }
         }
 
+        if (!strcmp(argv[1], "test")) {
+            printf("OSOROM simulator starting in test mode\n");
+
+            for (int i = 0; i < ROMLEN; ++i) {
+                printf("Running test program #%d\n", i);
+                cpu.regs.pc = 0x0;
+                while(true) {
+                    printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
+                    printf("cpu.regs.r = { ");
+                    for (int i = 0; i < 32; ++i) {
+                        printf("%x, ", cpu.regs.r[i]);
+                    }
+                    printf("}\n");
+                    printf("Packet is %x / %x / %x / %x\n", ROM[i][cpu.regs.pc+0], ROM[i][cpu.regs.pc+1], ROM[i][cpu.regs.pc+2], ROM[i][cpu.regs.pc+3]);
+                    decoded_packet packet(&ROM[i][cpu.regs.pc]);
+                    printf("Packet looks like:\n");
+                    printf("%s", packet.to_string().c_str());
+                    printf("Executing packet...\n");
+                    if(packet.execute(cpu)) {
+                        printf("... BREAK 0x1FU -> end program\n");
+                        break;
+                    }
+                    printf("...done.\n");
+                }
+            }
+
+            printf("OROSOM simulator terminating\n");
+        }
+
         instruction instr = strtoul(argv[1], 0, 0);
         printf("Disassembling single instruction %x (%u):\n", instr, instr);
         shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
@@ -87,29 +116,40 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
+
     printf("OSOROM simulator starting\n");
 
-    for (int i = 0; i < ROMLEN; ++i) {
-        printf("Running test program #%d\n", i);
-        cpu.regs.pc = 0x0;
-        while(true) {
-            printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
-            printf("cpu.regs.r = { ");
-            for (int i = 0; i < 32; ++i) {
-                printf("%x, ", cpu.regs.r[i]);
-            }
-            printf("}\n");
-            printf("Packet is %x / %x / %x / %x\n", ROM[i][cpu.regs.pc+0], ROM[i][cpu.regs.pc+1], ROM[i][cpu.regs.pc+2], ROM[i][cpu.regs.pc+3]);
-            decoded_packet packet(&ROM[i][cpu.regs.pc]);
-            printf("Packet looks like:\n");
-            printf("%s", packet.to_string().c_str());
-            printf("Executing packet...\n");
-            if(packet.execute(cpu)) {
-                printf("... BREAK 0x1FU -> end program\n");
-                break;
-            }
-            printf("...done.\n");
+    // XXX why ain't I just using a vector like a sane person
+    instruction *RAM = (instruction *)malloc(sizeof(instruction));
+    size_t RAMLEN = 1;
+
+    size_t i = 0;
+    while(read(STDIN_FILENO, (RAM + i), sizeof(instruction)) > 0) {
+        ++i;
+        if (i == RAMLEN) {
+            RAMLEN *= 2;
+            RAM = (instruction *)realloc(RAM, RAMLEN * sizeof(instruction));
         }
+    }
+
+    cpu.regs.pc = 0x0;
+    while(true) {
+        printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
+        printf("cpu.regs.r = { ");
+        for (int i = 0; i < 32; ++i) {
+            printf("%x, ", cpu.regs.r[i]);
+        }
+        printf("}\n");
+        printf("Packet is %x / %x / %x / %x\n", RAM[cpu.regs.pc+0], RAM[cpu.regs.pc+1], RAM[cpu.regs.pc+2], RAM[cpu.regs.pc+3]);
+        decoded_packet packet(&RAM[cpu.regs.pc]);
+        printf("Packet looks like:\n");
+        printf("%s", packet.to_string().c_str());
+        printf("Executing packet...\n");
+        if(packet.execute(cpu)) {
+            printf("... BREAK 0x1FU -> end program\n");
+            break;
+        }
+        printf("...done.\n");
     }
 
     printf("OROSOM simulator terminating\n");
