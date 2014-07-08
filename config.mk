@@ -93,5 +93,10 @@ TEST_arb_basic_env =
 TEST_arb_random_0_tb  = arb
 TEST_arb_random_0_env = ARB_DIRECTED_TEST_NAME=random SIM_RANDOM_SEED=0 ARB_RANDOM_ADDRESSES=256 ARB_RANDOM_OPERATIONS=4096
 
+TEST_arb_random_long_tb  = arb
+TEST_arb_random_long_env = ARB_DIRECTED_TEST_NAME=random ARB_RANDOM_OPERATIONS=262144
+
 TESTPLAN_L0_tests += arb_basic
-ALL_TESTS += arb_basic arb_random_0
+TESTPLAN_L1_tests += arb_random_0
+TESTPLAN_L9_tests += arb_random_long
+ALL_TESTS += arb_basic arb_random_0 arb_random_long
