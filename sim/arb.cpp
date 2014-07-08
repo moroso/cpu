@@ -113,7 +113,7 @@ int main(int argc, char **argv, char **env) {
 		randomize_bes = !getenv("ARB_NO_RANDOMIZE_BES");
 		
 		for (int i = 0; i < naddresses * 3; i++)
-			addresses[i] = Sim::random(0x100000);
+			addresses[i] = Sim::random(0x40000) + (i / naddresses) * 0x40000;
 		
 		for (int i = 0; i < nrandoms; i++) {
 			uint8_t buf[32];
