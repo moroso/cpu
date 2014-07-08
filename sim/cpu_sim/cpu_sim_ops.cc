@@ -13,6 +13,17 @@
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
 
+no_instruction::no_instruction(uint32_t raw) {
+    raw_instr = raw;
+}
+
+std::string no_instruction::opcode_str() {
+    return std::string("<NO INSTRUCTION (LONG IMMEDIATE)>");
+}
+
+std::string no_instruction::to_string() {
+    return string_format("- No instruction (long immediate: %x)\n", raw_instr);
+}
 
 std::string other_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + OTHEROP_STR[otherop];

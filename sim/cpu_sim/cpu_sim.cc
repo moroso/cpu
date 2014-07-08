@@ -206,6 +206,15 @@ std::string decoded_packet::to_string() {
 decoded_packet::decoded_packet(instruction_packet packet) {
     for (int i = 0; i < 4; ++i) {
         this->instr[i] = decoded_instruction::decode_instruction(packet[i]);
+        if (this->instr[i]->long_imm) {
+            if (i == 3) {
+                printf("ERROR: Invalid long imm in slot 3! XXX (this should cause an exception)\n");
+            } else {
+                this->instr[i]->constant = packet[i + 1];
+                ++i;
+                this->instr[i] = shared_ptr<no_instruction>(new no_instruction(packet[i]));
+            }
+        }
     }
 }
 

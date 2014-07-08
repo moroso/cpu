@@ -2,6 +2,13 @@
 
 #include "cpu_sim.h"
 
+struct no_instruction : public decoded_instruction {
+    no_instruction(uint32_t raw);
+
+    std::string opcode_str();
+    std::string to_string();
+};
+
 struct other_instruction : public decoded_instruction {
     otherop_t otherop;
     uint32_t reserved_bits;
