@@ -90,5 +90,8 @@ ALL_TBS += arb
 TEST_arb_basic_tb  = arb
 TEST_arb_basic_env =
 
-#TESTPLAN_L0_tests += arb_basic
-ALL_TESTS += arb_basic
+TEST_arb_random_0_tb  = arb
+TEST_arb_random_0_env = ARB_DIRECTED_TEST_NAME=random SIM_RANDOM_SEED=0 ARB_RANDOM_ADDRESSES=256 ARB_RANDOM_OPERATIONS=4096
+
+TESTPLAN_L0_tests += arb_basic
+ALL_TESTS += arb_basic arb_random_0

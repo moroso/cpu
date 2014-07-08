@@ -98,39 +98,38 @@ int main(int argc, char **argv, char **env) {
 		READ(2, 0xA000);
 		READ(2, 0xB000);
 		
-#if 0
 	} else if (!strcmp(testname, "random")) {
-		uint32_t addresses[MAX_ADDRESSES];
+		uint32_t addresses[MAX_ADDRESSES * 3];
 		int naddresses;
 		int nrandoms;
 		int randomize_bes;
 		
-		naddresses = Sim::param_u64("LTC_RANDOM_ADDRESSES", MAX_ADDRESSES);
+		naddresses = Sim::param_u64("ARB_RANDOM_ADDRESSES", MAX_ADDRESSES);
 		if (naddresses > MAX_ADDRESSES)
 			naddresses = MAX_ADDRESSES;
 		
-		nrandoms = Sim::param_u64("LTC_RANDOM_OPERATIONS", OPS_DEFAULT);
+		nrandoms = Sim::param_u64("ARB_RANDOM_OPERATIONS", OPS_DEFAULT);
 		
-		randomize_bes = !getenv("LTC_NO_RANDOMIZE_BES");
+		randomize_bes = !getenv("ARB_NO_RANDOMIZE_BES");
 		
-		for (int i = 0; i < naddresses; i++)
+		for (int i = 0; i < naddresses * 3; i++)
 			addresses[i] = Sim::random(0x100000);
 		
 		for (int i = 0; i < nrandoms; i++) {
 			uint8_t buf[32];
+			int chan = Sim::random(3);
 			
 			switch (Sim::random(2)) {
 			case 0: /* read */
-				stim->read(addresses[Sim::random(naddresses)], Sim::random(2));
+				stim[chan]->read(addresses[chan * naddresses + Sim::random(naddresses)], Sim::random(2));
 				break;
 			case 1: /* write */
 				for (int j = 0; j < 32; j++)
 					buf[j] = random() % 256;
-				stim->write(addresses[Sim::random(naddresses)], buf, Sim::random(0x100000000) | (randomize_bes ? 0 : 0xffffffff), Sim::random(2));
+				stim[chan]->write(addresses[chan * naddresses + Sim::random(naddresses)], buf, Sim::random(0x100000000) | (randomize_bes ? 0 : 0xffffffff), Sim::random(2));
 				break;
 			}
 		}
-#endif
 	} else {
 		SIM_FATAL("test %s not supported", testname);
 	}
