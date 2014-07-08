@@ -253,6 +253,7 @@ struct pred_reg_t {
 
 struct regs_t {
     uint32_t r[32];
+    bool p[4];
     uint32_t pc;
 };
 
@@ -272,7 +273,7 @@ struct decoded_instruction {
     boost::optional<reg_t> rd;
     boost::optional<reg_t> rt;
     boost::optional<uint32_t> shiftamt;
-    boost::optional<uint32_t> stype;
+    boost::optional<shift_type> stype;
     bool long_imm = false;
 
     static shared_ptr<decoded_instruction> decode_instruction(instruction);

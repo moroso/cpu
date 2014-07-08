@@ -82,21 +82,100 @@ std::string alu_instruction::opcode_str() {
 }
 
 bool alu_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
-    // XXX incomplete
-    if (this->aluop == ALU_ADD) {
-        uint32_t total = 0;
+    uint32_t op1, op2;
 
-        if (this->rs) {
-            total += cpu.regs.r[this->rs.get().reg];
-        }
-        if (this->constant) {
-            total += this->constant.get();
-        }
-        if (this->rt) {
-            total += shiftwith(cpu.regs.r[this->rt.get().reg], this->shiftamt.get(), (shift_type)this->stype.get());
+    if (alu_binary()) {
+        op1 = cpu.regs.r[rs.get().reg];
+    }
+
+    if (constant) {
+        op2 = constant.get();
+    } else if (rs && alu_unary()) {
+        op2 = cpu.regs.r[rs.get().reg];
+        op2 = shiftwith(op2, cpu.regs.r[rt.get().reg], stype.get());
+    } else {
+        op2 = cpu.regs.r[rt.get().reg];
+        op2 = shiftwith(op2, shiftamt.get(), stype.get());
+    }
+
+    if (aluop != ALU_COMPARE) {
+        uint32_t result;
+        switch(aluop) {
+            case ALU_ADD:
+                result = op1 + op2;
+                break;
+            case ALU_AND:
+                result = op1 & op2;
+                break;
+            case ALU_NOR:
+                result = ~(op1 | op2);
+                break;
+            case ALU_OR:
+                result = op1 | op2;
+                break;
+            case ALU_SUB:
+                result = op1 - op2;
+                break;
+            case ALU_RSB:
+                result = op2 - op1;
+                break;
+            case ALU_XOR:
+                result = op1 ^ op2;
+                break;
+            case ALU_MOV:
+                result = op2;
+                break;
+            case ALU_MVN:
+                result = ~op2;
+                break;
+            case ALU_SXB:
+                result = (uint32_t)(((int32_t)op2 << 24) >> 24);
+                break;
+            case ALU_SXH:
+                result = (uint32_t)(((int32_t)op2 << 16) >> 16);
+                break;
+            default:
+                result = 0;
+                printf("ERROR: Reserved instruction executed. XXX This should be an exception!\n");
+                break;
         }
 
-        cpu.regs.r[this->rd.get().reg] = total;
+        cpu.regs.r[rd.get().reg] = result;
+    } else {
+        if (pd.get().reg == 3) {
+            printf("WARNING: Writes into P3 from compare instructions are ignored.\n");
+            return false;
+        }
+        bool result;
+        switch(cmpop.get()) {
+            case CMP_LTU:
+                result = op1 < op2;
+                break;
+            case CMP_LTS:
+                result = (int32_t)op1 < (int32_t)op2;
+                break;
+            case CMP_LEU:
+                result = op1 <= op2;
+                break;
+            case CMP_LES:
+                result = (int32_t)op1 <= (int32_t)op2;
+                break;
+            case CMP_EQ:
+                result = op1 == op2;
+                break;
+            case CMP_BS:
+                result = op1 & op2;
+                break;
+            case CMP_BC:
+                result = ~op1 & op2;
+                break;
+            case CMP_RESV:
+                result = 0;
+                printf("ERROR: Reserved instruction executed. XXX This should be an exception!\n");
+                break;
+        }
+
+        cpu.regs.p[pd.get().reg] = result;
     }
 
     return false;

@@ -116,7 +116,7 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         result->rs = rs_num;
         result->rt = rt_num;
         result->shiftamt = BITS(instr, 21, 5);
-        result->stype = BITS(instr, 19, 2);
+        result->stype = (shift_type)BITS(instr, 19, 2);
 
         if (aluop == ALU_COMPARE) {
             alu->cmpop = cmpop;
@@ -164,7 +164,7 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         result->rs = rs_num;
         result->rd = rd_num;
         result->rt = rt_num;
-        result->stype = BITS(instr, 19, 2);
+        result->stype = (shift_type)BITS(instr, 19, 2);
     } else if (BITS(instr, 14, 10) == 0x000) {
         // ALU W/ LONG IMM
         shared_ptr<alu_instruction> alu(new alu_instruction());
