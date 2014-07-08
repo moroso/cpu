@@ -88,7 +88,8 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	wire rdfifo_wait;
 	
-	reg arb2ltc_stall_0a;
+	reg arb2ltc_rvalid_1a;
+	reg [255:0] arb2ltc_rdata_1a;
 
 	/** Client selection logic **/
 
@@ -136,9 +137,11 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 		if (~clkrst_mem_rst_n) begin
-			arb2ltc_stall_0a <= 1;
+			arb2ltc_rvalid_1a <= 0;
+			arb2ltc_rdata_1a <= {256{1'b0}};
 		end else begin
-			arb2ltc_stall_0a <= arb2ltc_stall;
+			arb2ltc_rvalid_1a <= arb2ltc_rvalid;
+			arb2ltc_rdata_1a <= arb2ltc_rdata;
 		end
 	
 	/* FIFO of all read pushes that are waiting for responses from LTC. 
@@ -154,7 +157,7 @@ module MCPU_MEM_arb(/*AUTOARG*/
 		.rdata(rdfifo_rdata),
 		.empty(rdfifo_empty));
 	
-	assign rdfifo_push  = sel_valid && sel_has_rdata && ~rdfifo_full && ~arb2ltc_stall_0a;
+	assign rdfifo_push  = sel_valid && sel_has_rdata && ~rdfifo_full && ~arb2ltc_stall;
 	assign rdfifo_wdata = cur_client_num;
 	
 	assign rdfifo_pop   = arb2ltc_rvalid;
@@ -166,9 +169,9 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	/* And route rdata back to clients. */
 	generate
-		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_rvalid[cli] = (rdfifo_rdata == cli[CLIENTS_BITS-1:0]) && arb2ltc_rvalid;
+		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_rvalid[cli] = (rdfifo_rdata == cli[CLIENTS_BITS-1:0]) && arb2ltc_rvalid_1a;
 	endgenerate
-	assign cli2arb_rdata = arb2ltc_rdata;
+	assign cli2arb_rdata = arb2ltc_rdata_1a;
 	
 	/** Master logic for routing selected client out to ltc **/
 	
