@@ -15,7 +15,7 @@ struct other_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
-    bool execute(cpu_t &cpu, uint32_t old_pc);
+    bool execute(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct alu_instruction : public decoded_instruction {
@@ -29,7 +29,7 @@ struct alu_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
-    bool execute(cpu_t &cpu, uint32_t old_pc);
+    bool execute(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct branch_instruction : public decoded_instruction {
@@ -37,7 +37,7 @@ struct branch_instruction : public decoded_instruction {
 
     std::string branchop_str();
     std::string opcode_str();
-    bool execute(cpu_t &cpu, uint32_t old_pc);
+    bool execute(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct loadstore_instruction : public decoded_instruction {

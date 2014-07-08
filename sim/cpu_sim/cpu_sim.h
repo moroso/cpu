@@ -286,7 +286,7 @@ struct decoded_instruction {
     virtual std::string to_string();
 
     virtual bool predicate_ok(cpu_t &cpu);
-    virtual bool execute(cpu_t &cpu, uint32_t old_pc);
+    virtual bool execute(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct decoded_packet {

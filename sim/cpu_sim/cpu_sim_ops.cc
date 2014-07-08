@@ -38,7 +38,11 @@ std::string other_instruction::to_string() {
     return result;
 }
 
-bool other_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
+bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+    if (!predicate_ok(old_cpu)) {
+        return false;
+    }
+
     if (otherop == OTHER_BREAK && reserved_bits == 0x1FU) {
         // MAGIC_HALT
         return true;
@@ -47,18 +51,22 @@ bool other_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
     return false;
 }
 
-bool branch_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
-    if (!predicate_ok(cpu)) {
+bool branch_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+    if (!predicate_ok(old_cpu)) {
         return false;
     }
 
+    uint32_t target;
     // XXX This only handles B, not BL
-    cpu.regs.pc = old_pc;
-    cpu.regs.pc += this->offset.get();
-    if (this->rs) {
-        cpu.regs.pc += cpu.regs.r[this->rs.get().reg];
+    if (rs) {
+        target = old_cpu.regs.r[rs.get().reg];
+    } else {
+        target = old_cpu.regs.pc;
     }
+    target += this->offset.get();
 
+    target &= ~0xF;
+    cpu.regs.pc = target;
     return false;
 }
 
@@ -85,24 +93,24 @@ std::string alu_instruction::opcode_str() {
     return result;
 }
 
-bool alu_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
-    if (!predicate_ok(cpu)) {
+bool alu_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+    if (!predicate_ok(old_cpu)) {
         return false;
     }
 
     uint32_t op1, op2;
 
     if (alu_binary()) {
-        op1 = cpu.regs.r[rs.get().reg];
+        op1 = old_cpu.regs.r[rs.get().reg];
     }
 
     if (constant) {
         op2 = constant.get();
     } else if (rs && alu_unary()) {
-        op2 = cpu.regs.r[rs.get().reg];
-        op2 = shiftwith(op2, cpu.regs.r[rt.get().reg], stype.get());
+        op2 = old_cpu.regs.r[rs.get().reg];
+        op2 = shiftwith(op2, old_cpu.regs.r[rt.get().reg], stype.get());
     } else {
-        op2 = cpu.regs.r[rt.get().reg];
+        op2 = old_cpu.regs.r[rt.get().reg];
         op2 = shiftwith(op2, shiftamt.get(), stype.get());
     }
 

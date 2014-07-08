@@ -102,9 +102,13 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 
         if (BIT(instr, 26)) {
             result->offset = BITS(instr, 5, 20);
+            // Sign extend and left-shift by 4 bits;
+            result->offset = (result->offset.get() << 12) >> 8;
             result->rs = rs_num;
         } else {
             result->offset = BITS(instr, 0, 25);
+            // Sign extend and left-shift by 4 bits;
+            result->offset = (result->offset.get() << 7) >> 3;
         }
     } else if (BIT(instr, 26)) {
         // ALU REG
@@ -198,7 +202,7 @@ bool decoded_instruction::predicate_ok(cpu_t &cpu) {
     }
 }
 
-bool decoded_instruction::execute(cpu_t &cpu, uint32_t old_pc) {
+bool decoded_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     return false;
 }
 
@@ -227,11 +231,11 @@ decoded_packet::decoded_packet(instruction_packet packet) {
 }
 
 bool decoded_packet::execute(cpu_t &cpu) {
-    uint32_t saved_pc = cpu.regs.pc;
+    cpu_t old_cpu = cpu;
     cpu.regs.pc += 4;
 
     for (int i = 0; i < 4; ++i) {
-        if(this->instr[i]->execute(cpu, saved_pc)) {
+        if(this->instr[i]->execute(cpu, old_cpu)) {
             return true;
         }
     }
