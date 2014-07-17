@@ -117,7 +117,10 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 
         result->optype = ALU_OP;
         alu->aluop = aluop;
-        result->rs = rs_num;
+
+        if (alu->alu_binary()) {
+            result->rs = rs_num;
+        }
         result->rt = rt_num;
         result->shiftamt = BITS(instr, 21, 5);
         result->stype = (shift_type)BITS(instr, 19, 2);
