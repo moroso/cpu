@@ -44,8 +44,15 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     }
 
     if (otherop == OTHER_BREAK && reserved_bits == 0x1FU) {
-        // MAGIC_HALT
-        return true;
+        switch (cpu.regs.r[30]) {
+            case 0:
+                // MAGIC_HALT
+                return true;
+            case 1:
+                // MAGIC_PRINT_R0
+                printf("R0 HAS VALUE %d (%x)\n", cpu.regs.r[0], cpu.regs.r[0]);
+                break;
+        }
     }
 
     return false;
