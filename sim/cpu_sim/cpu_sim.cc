@@ -45,7 +45,7 @@ std::string decoded_instruction::to_string() {
     if (rt)
         result << string_format("  * rt = %d\n", rt->reg);
     if (shiftamt)
-        result << string_format("  * shiftamt = %d (%x)\n", shiftamt.get());
+        result << string_format("  * shiftamt = %d (%x)\n", shiftamt.get(), shiftamt.get());
     if (stype)
         result << string_format("  * stype = %x\n", stype.get());
     if (long_imm)

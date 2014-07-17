@@ -67,6 +67,29 @@ instruction ROM[][MAX_PROG_LEN] = {
 };
 size_t ROMLEN = array_size(ROM);
 
+void run_program(instruction* mem) {
+    cpu.regs.pc = 0x0;
+    while(true) {
+        printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
+        printf("cpu.regs.r = { ");
+        for (int i = 0; i < 32; ++i) {
+            printf("%x, ", cpu.regs.r[i]);
+        }
+        printf("}\n");
+        size_t instr_num = cpu.regs.pc/4;
+        printf("Packet is %x / %x / %x / %x\n", mem[instr_num], mem[instr_num+1], mem[instr_num+2], mem[instr_num+3]);
+        decoded_packet packet(&mem[instr_num]);
+        printf("Packet looks like:\n");
+        printf("%s", packet.to_string().c_str());
+        printf("Executing packet...\n");
+        if(packet.execute(cpu)) {
+            printf("... BREAK 0x1FU -> end program\n");
+            break;
+        }
+        printf("...done.\n");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc > 1) {
         if (!strcmp(argv[1], "random")) {
@@ -85,26 +108,7 @@ int main(int argc, char** argv) {
 
             for (int i = 0; i < ROMLEN; ++i) {
                 printf("Running test program #%d\n", i);
-                cpu.regs.pc = 0x0;
-                while(true) {
-                    printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
-                    printf("cpu.regs.r = { ");
-                    for (int i = 0; i < 32; ++i) {
-                        printf("%x, ", cpu.regs.r[i]);
-                    }
-                    printf("}\n");
-                    size_t instr_num = cpu.regs.pc/4;
-                    printf("Packet is %x / %x / %x / %x\n", ROM[i][instr_num], ROM[i][instr_num+1], ROM[i][instr_num+2], ROM[i][instr_num+3]);
-                    decoded_packet packet(&ROM[i][instr_num]);
-                    printf("Packet looks like:\n");
-                    printf("%s", packet.to_string().c_str());
-                    printf("Executing packet...\n");
-                    if(packet.execute(cpu)) {
-                        printf("... BREAK 0x1FU -> end program\n");
-                        break;
-                    }
-                    printf("...done.\n");
-                }
+                run_program(ROM[i]);
             }
 
             printf("OROSOM simulator terminating\n");
@@ -133,25 +137,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    cpu.regs.pc = 0x0;
-    while(true) {
-        printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
-        printf("cpu.regs.r = { ");
-        for (int i = 0; i < 32; ++i) {
-            printf("%x, ", cpu.regs.r[i]);
-        }
-        printf("}\n");
-        printf("Packet is %x / %x / %x / %x\n", RAM[cpu.regs.pc+0], RAM[cpu.regs.pc+1], RAM[cpu.regs.pc+2], RAM[cpu.regs.pc+3]);
-        decoded_packet packet(&RAM[cpu.regs.pc]);
-        printf("Packet looks like:\n");
-        printf("%s", packet.to_string().c_str());
-        printf("Executing packet...\n");
-        if(packet.execute(cpu)) {
-            printf("... BREAK 0x1FU -> end program\n");
-            break;
-        }
-        printf("...done.\n");
-    }
-
+    run_program(RAM);
     printf("OROSOM simulator terminating\n");
 }
