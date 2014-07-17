@@ -232,7 +232,7 @@ decoded_packet::decoded_packet(instruction_packet packet) {
 
 bool decoded_packet::execute(cpu_t &cpu) {
     cpu_t old_cpu = cpu;
-    cpu.regs.pc += 4;
+    cpu.regs.pc += 0x10;
 
     for (int i = 0; i < 4; ++i) {
         if(this->instr[i]->execute(cpu, old_cpu)) {

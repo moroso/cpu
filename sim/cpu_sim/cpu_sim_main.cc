@@ -93,8 +93,9 @@ int main(int argc, char** argv) {
                         printf("%x, ", cpu.regs.r[i]);
                     }
                     printf("}\n");
-                    printf("Packet is %x / %x / %x / %x\n", ROM[i][cpu.regs.pc+0], ROM[i][cpu.regs.pc+1], ROM[i][cpu.regs.pc+2], ROM[i][cpu.regs.pc+3]);
-                    decoded_packet packet(&ROM[i][cpu.regs.pc]);
+                    size_t instr_num = cpu.regs.pc/4;
+                    printf("Packet is %x / %x / %x / %x\n", ROM[i][instr_num], ROM[i][instr_num+1], ROM[i][instr_num+2], ROM[i][instr_num+3]);
+                    decoded_packet packet(&ROM[i][instr_num]);
                     printf("Packet looks like:\n");
                     printf("%s", packet.to_string().c_str());
                     printf("Executing packet...\n");
