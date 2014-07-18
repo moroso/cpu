@@ -41,7 +41,11 @@ struct branch_instruction : public decoded_instruction {
 };
 
 struct loadstore_instruction : public decoded_instruction {
-    lsuop_t lsuop;
+    lsuop_t lsuop;  // This is redundant with the fields below, but it's convenient to keep it.
+    bool store;
+    bool linked;
+    size_t width;
 
     std::string opcode_str();
+    bool execute(cpu_t &cpu, cpu_t &old_cpu);
 };

@@ -18,6 +18,8 @@ using std::shared_ptr;
 #define BITS(word, idx, count) ((word & BIT_MASK(idx, idx + count - 1)) >> idx)
 #define BIT(word, idx) BITS(word, idx, 1)
 
+#define SIGN_EXTEND_32(value, from_bits) ( (( (int32_t)(value) ) << (32-(from_bits))) >> (32-(from_bits)) )
+
 #define array_size(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef uint32_t address_t;
@@ -255,10 +257,17 @@ struct regs_t {
     uint32_t r[32];
     bool p[4];
     uint32_t pc;
+    bool link;
+};
+
+union mem_t {
+    instruction code[];
+    uint8_t data[];
 };
 
 struct cpu_t {
     regs_t regs;
+    mem_t *ram;
 };
 
 struct decoded_instruction {

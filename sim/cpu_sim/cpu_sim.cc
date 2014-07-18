@@ -102,13 +102,11 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 
         if (BIT(instr, 26)) {
             result->offset = BITS(instr, 5, 20);
-            // Sign extend and left-shift by 4 bits;
-            result->offset = (result->offset.get() << 12) >> 8;
+            result->offset = SIGN_EXTEND_32(result->offset.get(), 20) << 4;
             result->rs = rs_num;
         } else {
             result->offset = BITS(instr, 0, 25);
-            // Sign extend and left-shift by 4 bits;
-            result->offset = (result->offset.get() << 7) >> 3;
+            result->offset = SIGN_EXTEND_32(result->offset.get(), 25) << 4;
         }
     } else if (BIT(instr, 26)) {
         // ALU REG
@@ -138,17 +136,34 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         result->optype = LSU_OP;
 
         loadstore->lsuop = (lsuop_t)BITS(instr, 10, 3);
+
+        switch (loadstore->lsuop & 0x3) {
+            case 0x00:
+                loadstore->width = 1;
+                break;
+            case 0x01:
+                loadstore->width = 2;
+                break;
+            case 0x10:
+            case 0x11:
+                loadstore->width = 4;
+                break;
+        }
+        loadstore->store = loadstore->lsuop >> 2;
+        loadstore->linked = (loadstore->lsuop & 0x3) == 0x3;
+
         result->rs = rs_num;
 
         if (BIT(instr, 12)) {
             // STORE
             result->rt = rt_num;
-            result->offset = BITS(instr, 5, 5) | (BIT(instr, 13) << 5) | (BITS(instr, 19, 6) < 6);
+            result->offset = BITS(instr, 5, 5) | (BIT(instr, 13) << 5) | (BITS(instr, 19, 6) << 6);
         } else {
             // LOAD
             result->rd = rd_num;
             result->offset = BITS(instr, 13, 12);
         }
+        result->offset = SIGN_EXTEND_32(result->offset.get(), 12);
     } else if (BIT(instr, 24)) {
         // OTHER OPCODE
         shared_ptr<other_instruction> other(new other_instruction());

@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#define SIM_RAM_BYTES 64 * 1024  // Ought to be enough for anybody
+
 cpu_t cpu;
 
 /*
@@ -67,8 +69,10 @@ instruction ROM[][MAX_PROG_LEN] = {
 };
 size_t ROMLEN = array_size(ROM);
 
-void run_program(instruction* mem) {
+void run_program() {
+    instruction *mem = cpu.ram->code;
     cpu.regs.pc = 0x0;
+
     while(true) {
         printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
         printf("cpu.regs.r = { ");
@@ -91,6 +95,8 @@ void run_program(instruction* mem) {
 }
 
 int main(int argc, char** argv) {
+    cpu.ram = (mem_t *)malloc(SIM_RAM_BYTES);
+
     if (argc > 1) {
         if (!strcmp(argv[1], "random")) {
             srand(0);
@@ -108,7 +114,9 @@ int main(int argc, char** argv) {
 
             for (int i = 0; i < ROMLEN; ++i) {
                 printf("Running test program #%d\n", i);
-                run_program(ROM[i]);
+                bzero(cpu.ram, SIM_RAM_BYTES);
+                memcpy(cpu.ram, ROM[i], MAX_PROG_LEN);
+                run_program();
             }
 
             printf("OROSOM simulator terminating\n");
@@ -124,19 +132,11 @@ int main(int argc, char** argv) {
 
     printf("OSOROM simulator starting\n");
 
-    // XXX why ain't I just using a vector like a sane person
-    instruction *RAM = (instruction *)malloc(sizeof(instruction));
-    size_t RAMLEN = 1;
-
     size_t i = 0;
-    while(read(STDIN_FILENO, (RAM + i), sizeof(instruction)) > 0) {
+    while(read(STDIN_FILENO, (cpu.ram + i), sizeof(instruction)) > 0) {
         ++i;
-        if (i == RAMLEN) {
-            RAMLEN *= 2;
-            RAM = (instruction *)realloc(RAM, RAMLEN * sizeof(instruction));
-        }
     }
 
-    run_program(RAM);
+    run_program();
     printf("OROSOM simulator terminating\n");
 }

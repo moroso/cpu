@@ -152,10 +152,10 @@ bool alu_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
                 result = ~op2;
                 break;
             case ALU_SXB:
-                result = (uint32_t)(((int32_t)op2 << 24) >> 24);
+                result = (uint32_t)SIGN_EXTEND_32(op2, 8);
                 break;
             case ALU_SXH:
-                result = (uint32_t)(((int32_t)op2 << 16) >> 16);
+                result = (uint32_t)SIGN_EXTEND_32(op2, 16);
                 break;
             default:
                 result = 0;
@@ -227,4 +227,48 @@ bool alu_instruction::alu_compare() {
 
 std::string loadstore_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + LSUOP_STR[lsuop];
+}
+
+bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+    if (!predicate_ok(old_cpu)) {
+        return false;
+    }
+
+    uint32_t addr_mask = ~(width - 1);
+    uint32_t mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
+
+    if (store) {
+        if (linked) {
+            if (!cpu.regs.link) {
+                printf("ERROR: XXX should throw exception here\n");
+                return false;
+            }
+        }
+        // Big-endian: copy starting at the lsb
+        mem_addr += width - 1;
+
+        uint32_t val = old_cpu.regs.r[rt.get()];
+
+        for (int i = 0; i < width; ++i) {
+            cpu.ram->data[mem_addr] = val & 0xFF;
+            mem_addr--;
+            val >>= 1;
+        }
+    } else {
+        uint32_t val = 0;
+
+        for (int i = 0; i < width; ++i) {
+            val <<= 1;
+            val += cpu.ram->data[mem_addr];
+            mem_addr++;
+        }
+
+        cpu.regs.r[rd.get()] = val;
+
+        if (linked) {
+            cpu.regs.link = true;
+        }
+    }
+
+    return false;
 }
