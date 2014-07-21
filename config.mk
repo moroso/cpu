@@ -5,6 +5,7 @@ RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_arb.v \
+	rtl/mc/MCPU_MEM_preload.v \
 	rtl/lib/FIFO.v
 
 RTL_FPGA = \
@@ -13,7 +14,8 @@ RTL_FPGA = \
 	rtl/mc/MCPU_mc.v
 	
 RTL_SIM = \
-	rtl/tb/TB_MCPU_MEM_arb.v
+	rtl/tb/TB_MCPU_MEM_arb.v \
+	rtl/tb/TB_MCPU_MEM_preload.v
 
 # .vh files and other misc things needed for sim or synth
 RTL_INC = \
@@ -100,3 +102,13 @@ TESTPLAN_L0_tests += arb_basic
 TESTPLAN_L1_tests += arb_random_0
 TESTPLAN_L9_tests += arb_random_long
 ALL_TESTS += arb_basic arb_random_0 arb_random_long
+
+# Preloader tests
+
+TB_pre_top = TB_MCPU_MEM_preload
+TB_pre_cpps = pre.cpp Sim.cpp Stim_MCPU_MEM.cpp Check_MCPU_MEM.cpp Cmod_MCPU_MEM_mc.cpp
+ALL_TBS += pre
+
+TEST_pre_basic_tb = pre
+TEST_pre_basic_env =
+ALL_TESTS += pre_basic
