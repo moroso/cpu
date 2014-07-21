@@ -99,7 +99,7 @@ int main(int argc, char **argv, char **env) {
         
         SIM_INFO("preloader completed after %lu cycles", Sim::main_time / 2);
 
-	while (stim->done() || !check->done()) {
+	while (!stim->done() || !check->done()) {
 		tb->clkrst_mem_clk = 1;
 		tb->eval();
 		mc_cmod->clk();
