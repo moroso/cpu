@@ -111,4 +111,5 @@ ALL_TBS += pre
 
 TEST_pre_basic_tb = pre
 TEST_pre_basic_env =
+TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic

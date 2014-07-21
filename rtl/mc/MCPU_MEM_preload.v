@@ -39,7 +39,13 @@ module MCPU_MEM_preload(/*AUTOARG*/
 	output          pre2core_done;
 	
 	/*** Stub ***/
-	/* state machine: LTC_OPC_WRITE */
+	
+	/* We write out atoms at a time, so we'll keep a RAM full of atoms. */
+	reg [255:0] rom [(ROM_SIZE / 32):0];
+	
+	initial
+        	$readmemh(ROM_FILE, rom);
+	
 	assign pre2arb_valid = 0;
 	assign pre2core_done = 0;
 endmodule

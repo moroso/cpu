@@ -96,17 +96,18 @@ tb_$(1): $(RUNDIR)/sim/$(1)/V$$($(1)_top)
 endef
 $(foreach tb,$(ALL_TBS),$(eval $(call TB_template,$(tb))))
 
-TB_binary = $(RUNDIR)/sim/$(1)/V$(TB_$(1)_top)
+TB_binary = ../../sim/$(1)/V$(TB_$(1)_top)
 
 # Then, the rules to run tests.
 define TEST_template
-$(RUNDIR)/testlog/$(1): tb_$$(TEST_$(1)_tb)
+$(RUNDIR)/test/$(1)/log: tb_$$(TEST_$(1)_tb)
 	$(call say,"Running test: $(1)")
-	@mkdir -p $(RUNDIR)/testlog
-	$$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) > $$@
+	@mkdir -p $(RUNDIR)/test/$(1)
+	$$(if $$(TEST_$(1)_rom),cp $$(TEST_$(1)_rom) $(RUNDIR)/test/$(1)/bootrom.hex)
+	$$(TEST_$(1)_env) (cd $(RUNDIR)/test/$(1); $$(call TB_binary,$$(TEST_$(1)_tb)) > log)
 
 .PHONY: test_$(1)
-test_$(1): $(RUNDIR)/testlog/$(1)
+test_$(1): $(RUNDIR)/test/$(1)/log
 endef
 
 $(foreach test,$(ALL_TESTS),$(eval $(call TEST_template,$(test))))
