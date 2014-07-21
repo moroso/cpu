@@ -135,7 +135,6 @@ int main(int argc, char** argv) {
     size_t i = 0;
     while(read(STDIN_FILENO, (uint32_t*)cpu.ram + i, sizeof(instruction)) > 0) {
         ++i;
-        printf("%d instructions read. %d\n", i, (uint32_t*)cpu.ram + i);
     }
 
     run_program();
