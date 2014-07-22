@@ -138,14 +138,14 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         loadstore->lsuop = (lsuop_t)BITS(instr, 10, 3);
 
         switch (loadstore->lsuop & 0x3) {
-            case 0x00:
+            case 0x0:
                 loadstore->width = 1;
                 break;
-            case 0x01:
+            case 0x1:
                 loadstore->width = 2;
                 break;
-            case 0x10:
-            case 0x11:
+            case 0x2:
+            case 0x3:
                 loadstore->width = 4;
                 break;
         }
@@ -178,7 +178,7 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         other->reserved_bits = (BIT(instr, 19) << 4) | BITS(instr, 10, 4);
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
-         shared_ptr<alu_instruction> alu(new alu_instruction());
+        shared_ptr<alu_instruction> alu(new alu_instruction());
         result = alu;
 
         result->optype = ALU_OP;

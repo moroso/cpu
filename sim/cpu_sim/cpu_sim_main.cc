@@ -69,6 +69,13 @@ instruction ROM[][MAX_PROG_LEN] = {
 };
 size_t ROMLEN = array_size(ROM);
 
+// XXX endian
+void dump_ram() {
+    for (size_t i = 0; i < 0x200 / sizeof(instruction); i++) {
+        printf("%x ", cpu.ram->code[i]);
+    }
+}
+
 void run_program() {
     instruction *mem = cpu.ram->code;
     cpu.regs.pc = 0x0;
@@ -80,6 +87,8 @@ void run_program() {
             printf("%x, ", cpu.regs.r[i]);
         }
         printf("}\n");
+        printf("RAM dump:\n");
+        dump_ram();
         size_t instr_num = cpu.regs.pc/4;
         printf("Packet is %x / %x / %x / %x\n", mem[instr_num], mem[instr_num+1], mem[instr_num+2], mem[instr_num+3]);
         decoded_packet packet(&mem[instr_num]);

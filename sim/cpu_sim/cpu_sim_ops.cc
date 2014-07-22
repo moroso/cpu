@@ -252,13 +252,13 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
         for (int i = 0; i < width; ++i) {
             cpu.ram->data[mem_addr] = val & 0xFF;
             mem_addr--;
-            val >>= 1;
+            val >>= 8;
         }
     } else {
         uint32_t val = 0;
 
         for (int i = 0; i < width; ++i) {
-            val <<= 1;
+            val <<= 8;
             val += cpu.ram->data[mem_addr];
             mem_addr++;
         }
