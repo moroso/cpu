@@ -4,9 +4,20 @@
 RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
+<<<<<<< HEAD
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/lib/FIFO.v
+=======
+	rtl/lib/FIFO.v \
+	rtl/core/mcpu_core.v \
+	rtl/core/stage_fetch.v \
+	rtl/core/stage_fetchtlb.v \
+	rtl/core/decode.v \
+	rtl/core/alu.v \
+	rtl/core/regfile.v \
+	rtl/core/scoreboard.v 
+>>>>>>> core_wip
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
@@ -21,7 +32,8 @@ RTL_SIM = \
 RTL_INC = \
 	$(wildcard rtl/mc/lpddr2_phy/*.hex) \
 	rtl/mc/MCPU_MEM_ltc.vh \
-	rtl/lib/clog2.vh
+	rtl/lib/clog2.vh \
+	rtl/core/oper_type.vh
 
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu
@@ -83,6 +95,7 @@ TEST_ltc_random_long_env = LTC_DIRECTED_TEST_NAME=random LTC_RANDOM_OPERATIONS=2
 TESTPLAN_L9_tests += ltc_random_long
 ALL_TESTS += ltc_random_long
 
+
 # ARB tests
 
 TB_arb_top  = TB_MCPU_MEM_arb
@@ -113,3 +126,8 @@ TEST_pre_basic_tb = pre
 TEST_pre_basic_env =
 TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic
+
+TB_core_sim_top = mcpu_core
+TB_core_sim_cpps = core_sim.cpp
+ALL_TBS += core_sim
+
