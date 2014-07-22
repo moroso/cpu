@@ -5,10 +5,13 @@ RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/lib/FIFO.v \
-  rtl/core/core.v \
-  rtl/core/fetch.v \
+	rtl/core/mcpu_core.v \
+	rtl/core/stage_fetch.v \
+	rtl/core/stage_fetchtlb.v \
 	rtl/core/decode.v \
-	rtl/core/alu.v 
+	rtl/core/alu.v \
+	rtl/core/regfile.v \
+	rtl/core/scoreboard.v 
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
@@ -83,3 +86,7 @@ TEST_ltc_random_9_tb = ltc_random
 TEST_ltc_random_9_env = LTC_RANDOM_OPERATIONS=65536
 TESTPLAN_L9_tests += ltc_random_long
 ALL_TESTS += ltc_random_long
+
+TB_core_sim_top = mcpu_core
+TB_core_sim_cpps = core_sim.cpp
+ALL_TBS += core_sim

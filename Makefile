@@ -215,6 +215,10 @@ $(RUNDIR)/stamps/fpga: fpga-asm $(if $(STA),fpga-sta) $(if $(SVF),fpga-svf) $(if
 auto:
 	emacs -l utils/nogit.el -l utils/verilog-mode.el --batch $(RTL_COMMON) $(RTL_FPGA) $(RTL_SIM) -f verilog-batch-auto
 
+.PHONY: unauto
+unauto:
+	emacs -l utils/nogit.el -l utils/verilog-mode.el --batch $(RTL_COMMON) $(RTL_FPGA) $(RTL_SIM) -f verilog-batch-delete-auto
+
 #tests:
 #	make -C tests
 
