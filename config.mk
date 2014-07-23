@@ -4,11 +4,8 @@
 RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/mc/MCPU_MEM_ltc.v \
-<<<<<<< HEAD
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
-	rtl/lib/FIFO.v
-=======
 	rtl/lib/FIFO.v \
 	rtl/core/mcpu_core.v \
 	rtl/core/stage_fetch.v \
@@ -17,7 +14,7 @@ RTL_COMMON = \
 	rtl/core/alu.v \
 	rtl/core/regfile.v \
 	rtl/core/scoreboard.v 
->>>>>>> core_wip
+
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
