@@ -3,8 +3,6 @@
 
 #include <string.h>
 
-#define SIM_RAM_BYTES 64 * 1024  // Ought to be enough for anybody
-
 cpu_t cpu;
 
 /*

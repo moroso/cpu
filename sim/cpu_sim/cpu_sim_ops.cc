@@ -253,6 +253,10 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
         uint32_t val = old_cpu.regs.r[rt.get()];
 
         for (int i = 0; i < width; ++i) {
+            if (mem_addr >= SIM_RAM_BYTES) {
+                printf("FATAL: Load/store outside RAM\n");
+                abort();
+            }
             cpu.ram->data[mem_addr] = val & 0xFF;
             mem_addr--;
             val >>= 8;
@@ -261,6 +265,10 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
         uint32_t val = 0;
 
         for (int i = 0; i < width; ++i) {
+            if (mem_addr >= SIM_RAM_BYTES) {
+                printf("FATAL: Load/store outside RAM\n");
+                abort();
+            }
             val <<= 8;
             val += cpu.ram->data[mem_addr];
             mem_addr++;

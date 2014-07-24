@@ -11,6 +11,9 @@
 using std::shared_ptr;
 
 
+#define SIM_RAM_BYTES 64 * 1024  // Ought to be enough for anybody
+
+
 // Set bit a through bit b (inclusive), as long as 0 <= a <= 31 and 0 <= b <= 31.
 // From http://stackoverflow.com/a/8774613 .
 #define BIT_MASK(a, b) (((unsigned) -1 >> (31 - (b))) & ~((1U << (a)) - 1))
