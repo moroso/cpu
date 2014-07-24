@@ -247,8 +247,6 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
                 return false;
             }
         }
-        // Big-endian: copy starting at the lsb
-        mem_addr += width - 1;
 
         uint32_t val = old_cpu.regs.r[rt.get()];
 
@@ -257,12 +255,13 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
                 printf("FATAL: Load/store outside RAM\n");
                 abort();
             }
-            cpu.ram->data[mem_addr] = val & 0xFF;
-            mem_addr--;
+            cpu.ram->data[mem_addr + i] = val & 0xFF;
             val >>= 8;
         }
     } else {
         uint32_t val = 0;
+        // Little-endian: copy starting at the msb
+        mem_addr += width - 1;
 
         for (int i = 0; i < width; ++i) {
             if (mem_addr >= SIM_RAM_BYTES) {
@@ -271,7 +270,7 @@ bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
             }
             val <<= 8;
             val += cpu.ram->data[mem_addr];
-            mem_addr++;
+            mem_addr--;
         }
 
         cpu.regs.r[rd.get()] = val;

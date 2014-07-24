@@ -67,11 +67,27 @@ instruction ROM[][MAX_PROG_LEN] = {
 };
 size_t ROMLEN = array_size(ROM);
 
-// XXX endian
-void dump_ram() {
-    for (size_t i = 0; i < 0x200 / sizeof(instruction); i++) {
-        printf("%x ", cpu.ram->code[i]);
+const size_t PRINT_LEN = 0x100;
+
+void dump_ram_at(uint32_t addr, uint32_t highlight_addr) {
+    for (size_t i = addr; i < addr + PRINT_LEN; i += 4) {
+        uint32_t val = *(uint32_t *)(cpu.ram->data + i);
+        if (i == highlight_addr) {
+            printf(">%08x<", val);
+        } else {
+            printf(" %08x ", val);
+        }
     }
+}
+
+void dump_ram() {
+    const size_t STACK_BASE = 0x1000;
+    printf("First %zu bytes of RAM:\n", PRINT_LEN);
+    dump_ram_at(0, 0xffffffff);
+    printf("\n");
+    printf("First %zu bytes of stack (@0x%zx):\n", PRINT_LEN, STACK_BASE);
+    dump_ram_at(STACK_BASE, cpu.regs.r[30]);
+    printf("\n");
 }
 
 void run_program() {
@@ -140,8 +156,12 @@ int main(int argc, char** argv) {
     printf("OSOROM simulator starting\n");
 
     size_t i = 0;
-    while(read(STDIN_FILENO, (uint32_t*)cpu.ram + i, sizeof(instruction)) > 0) {
+    while(read(STDIN_FILENO, &cpu.ram->data[i], 1) > 0) {
         ++i;
+        if (i >= SIM_RAM_BYTES) {
+            printf("FATAL: Program larger than RAM\n");
+            abort();
+        }
     }
 
     run_program();
