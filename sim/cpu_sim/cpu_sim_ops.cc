@@ -64,7 +64,6 @@ bool branch_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     }
 
     uint32_t target;
-    // XXX This only handles B, not BL
     if (rs) {
         target = old_cpu.regs.r[rs.get().reg];
     } else {
@@ -74,6 +73,10 @@ bool branch_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
 
     target &= ~0xF;
     cpu.regs.pc = target;
+    if (branch_link) {
+        cpu.regs.r[31] = old_cpu.regs.pc;
+    }
+
     return false;
 }
 
