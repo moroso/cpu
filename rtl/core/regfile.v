@@ -6,7 +6,6 @@ module regfile(/*AUTOARG*/
    // Outputs
    rf2d_rs_data0, rf2d_rs_data1, rf2d_rs_data2, rf2d_rs_data3,
    rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3, preds,
-   mem,
    // Inputs
    wb2rf_rd_num0, wb2rf_rd_num1, wb2rf_rd_num2, wb2rf_rd_num3,
    d2rf_rs_num0, d2rf_rs_num1, d2rf_rs_num2, d2rf_rs_num3,
@@ -29,7 +28,7 @@ module regfile(/*AUTOARG*/
     output wire [31:0] rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3;
     output reg [2:0] preds;
 
-    output reg [31:0] mem[0:31] /* verilator public */;
+    reg [31:0] mem[0:31] /* verilator public */;
     integer i;
 
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin

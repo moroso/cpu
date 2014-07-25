@@ -1,4 +1,6 @@
 #include "Vmcpu_core.h"
+#include "Vmcpu_core_mcpu_core.h"
+#include "Vmcpu_core_regfile.h"
 #include "Sim.h"
 #include "verilated.h"
 #include <fcntl.h>
@@ -80,39 +82,10 @@ int main(int argc, char **argv){
 		core->eval();
 
 		printf("Cycle %d: FT PC is %x, fetch PC is %x\n", 
-			cycles, core->ft2f_out_virtpc * 16, core->ft2f_in_virtpc * 16);
+			cycles, core->v->ft2f_out_virtpc * 16, core->v->ft2f_in_virtpc * 16);
 
 		printf("f_valid: %d, dcd_valid: %d, pc_valid: %d, wb_valid: %d\n", 
-			core->f_valid, core->dcd_valid, core->pc_valid, core->wb_valid);
-
-		printf("Decoding Packet: %x %x %x %x\n", 
-			core->f2d_in_packet[0], core->f2d_in_packet[1], core->f2d_in_packet[2], core->f2d_in_packet[3]);
-
-		printf("PC Lane 0: rd_num = %d, %s%s rt_data = %x, sop = %x, shift type = %d, shift amount = %d, ALU output %x\n",
-			core->d2pc_in_rd_num0, core->d2pc_in_rd_we0 ? "rd_we, " : "", core->d2pc_in_pred_we0 ? "pred_we, " : "",
-			core->d2pc_in_rt_data0, core->d2pc_in_sop0, core->d2pc_in_shift_type0, core->d2pc_in_shift_amount0,
-			core->pc2wb_out_result0);
-		printf("PC Lane 1: rd_num = %d, %s%s rt_data = %x, sop = %x, shift type = %d, shift amount = %d, ALU output %x\n",
-			core->d2pc_in_rd_num1, core->d2pc_in_rd_we1 ? "rd_we, " : "", core->d2pc_in_pred_we1 ? "pred_we, " : "",
-			core->d2pc_in_rt_data1, core->d2pc_in_sop1, core->d2pc_in_shift_type1, core->d2pc_in_shift_amount1,
-			core->pc2wb_out_result1);
-		printf("PC Lane 2: rd_num = %d, %s%s rt_data = %x, sop = %x, shift type = %d, shift amount = %d, ALU output %x\n",
-			core->d2pc_in_rd_num2, core->d2pc_in_rd_we2 ? "rd_we, " : "", core->d2pc_in_pred_we2 ? "pred_we, " : "",
-			core->d2pc_in_rt_data2, core->d2pc_in_sop2, core->d2pc_in_shift_type2, core->d2pc_in_shift_amount2,
-			core->pc2wb_out_result2);
-		printf("PC Lane 3: rd_num = %d, %s%s rt_data = %x, sop = %x, shift type = %d, shift amount = %d, ALU output %x\n",
-			core->d2pc_in_rd_num3, core->d2pc_in_rd_we3 ? "rd_we, " : "", core->d2pc_in_pred_we3 ? "pred_we, " : "",
-			core->d2pc_in_rt_data3, core->d2pc_in_sop3, core->d2pc_in_shift_type3, core->d2pc_in_shift_amount3,
-			core->pc2wb_out_result3);
-
-		printf("WB Lane 0: rd_num = %d, %s%s rd_data = %x\n", core->wb2rf_rd_num0,
-			core->wb2rf_rd_we0 ? "reg_we, " : "", core->wb2rf_pred_we0 ? "pred_we, " : "", core->wb2rf_rd_data0);
-		printf("WB Lane 1: rd_num = %d, %s%s rd_data = %x\n", core->wb2rf_rd_num1,
-			core->wb2rf_rd_we1 ? "reg_we, " : "", core->wb2rf_pred_we1 ? "pred_we, " : "", core->wb2rf_rd_data1);
-		printf("WB Lane 2: rd_num = %d, %s%s rd_data = %x\n", core->wb2rf_rd_num2,
-			core->wb2rf_rd_we2 ? "reg_we, " : "", core->wb2rf_pred_we2 ? "pred_we, " : "", core->wb2rf_rd_data2);
-		printf("WB Lane 3: rd_num = %d, %s%s rd_data = %x\n", core->wb2rf_rd_num3,
-			core->wb2rf_rd_we3 ? "reg_we, " : "", core->wb2rf_pred_we3 ? "pred_we, " : "", core->wb2rf_rd_data3);
+			core->v->f_valid, core->v->dcd_valid, core->v->pc_valid, core->v->wb_valid);
 
 		Sim::tick();
 		TRACE;
@@ -140,6 +113,6 @@ int main(int argc, char **argv){
 	printf("Execution completed after %d cycles\n", cycles);
 	printf("Beginning register dump\n");
 	for(int i = 0; i < 32; i++){
-		printf("R%d: 0x%x\n", i, core->mem[i]);
+		printf("R%d: 0x%x\n", i, core->v->regs->mem[i]);
 	}
 }

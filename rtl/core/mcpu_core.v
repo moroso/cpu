@@ -2,27 +2,6 @@
 module mcpu_core(/*AUTOARG*/
    // Outputs
    int_clear, ft2itlb_valid, ft2itlb_virtpage, f2ic_paddr, f2ic_valid,
-   mem, ft2f_out_virtpc, pc2wb_out_result0, pc2wb_out_result1,
-   pc2wb_out_result2, pc2wb_out_result3, ft2f_in_physpage,
-   ft2f_in_virtpc, f2d_in_packet, f2d_in_virtpc, d2pc_in_sop3,
-   d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0, d2pc_in_rt_data3,
-   d2pc_in_rt_data2, d2pc_in_rt_data1, d2pc_in_rt_data0,
-   d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0,
-   d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1,
-   d2pc_in_pred_we0, d2pc_in_rd_num3, d2pc_in_rd_num2,
-   d2pc_in_rd_num1, d2pc_in_rd_num0, d2pc_in_oper_type3,
-   d2pc_in_oper_type2, d2pc_in_oper_type1, d2pc_in_oper_type0,
-   d2pc_in_shift_type3, d2pc_in_shift_type2, d2pc_in_shift_type1,
-   d2pc_in_shift_type0, d2pc_in_shift_amount3, d2pc_in_shift_amount2,
-   d2pc_in_shift_amount1, d2pc_in_shift_amount0,
-   d2pc_in_execute_opcode3, d2pc_in_execute_opcode2,
-   d2pc_in_execute_opcode1, d2pc_in_execute_opcode0, d2pc_in_invalid3,
-   d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0,
-   wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0,
-   wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0,
-   wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0,
-   wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0,
-   f_valid, dcd_valid, pc_valid, wb_valid,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    ft2itlb_ready, ft2itlb_physpage, ft2itlb_pagefault, ic2f_packet,
@@ -53,7 +32,7 @@ module mcpu_core(/*AUTOARG*/
   input [127:0] ic2f_packet;
   input ic2f_ready;
 
-  output [31:0]   mem [0:31]; // registers
+//  output [31:0]   mem [0:31]; // registers
 
   /* TODO something about MMIOs */
 
@@ -114,6 +93,10 @@ module mcpu_core(/*AUTOARG*/
   wire [127:0]		f2d_out_packet;		// From f of stage_fetch.v
   wire [27:0]		f2d_out_virtpc;		// From f of stage_fetch.v
   wire [19:0]		ft2f_out_physpage;	// From ft of stage_fetchtlb.v
+  wire [31:0]		pc2wb_out_result0;	// From alu0 of alu.v
+  wire [31:0]		pc2wb_out_result1;	// From alu1 of alu.v
+  wire [31:0]		pc2wb_out_result2;	// From alu2 of alu.v
+  wire [31:0]		pc2wb_out_result3;	// From alu3 of alu.v
   wire			pc_alu_invalid0;	// From alu0 of alu.v
   wire			pc_alu_invalid1;	// From alu1 of alu.v
   wire			pc_alu_invalid2;	// From alu2 of alu.v
@@ -131,36 +114,31 @@ module mcpu_core(/*AUTOARG*/
   wire [31:0]		sb2d_reg_scoreboard;	// From sb of scoreboard.v
   // End of automatics
 
-  output wire [27:0]   ft2f_out_virtpc;  // From ft of stage_fetchtlb.v
-  output wire [31:0]    pc2wb_out_result0;  // From alu0 of alu.v
-  output wire [31:0]    pc2wb_out_result1;  // From alu1 of alu.v
-  output wire [31:0]    pc2wb_out_result2;  // From alu2 of alu.v
-  output wire [31:0]    pc2wb_out_result3;  // From alu3 of alu.v
-
   // wires that get missed because they're not module outputs :/
-  output wire [19:0] ft2f_in_physpage;
-  output wire [27:0] ft2f_in_virtpc;
-  output wire [127:0] f2d_in_packet;
-  output wire [27:0] f2d_in_virtpc;
-  output wire [31:0] d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0;
-  output wire [31:0] d2pc_in_rt_data3, d2pc_in_rt_data2, d2pc_in_rt_data1, d2pc_in_rt_data0;
-  output wire d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0;
-  output wire d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0;
-  output wire [4:0] d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0;
-  output wire [1:0] d2pc_in_oper_type3, d2pc_in_oper_type2, d2pc_in_oper_type1, d2pc_in_oper_type0;
-  output wire [1:0] d2pc_in_shift_type3, d2pc_in_shift_type2, d2pc_in_shift_type1, d2pc_in_shift_type0;
-  output wire [5:0] d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0;
-  output wire [8:0] d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
-  output wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
+  wire [27:0] ft2f_out_virtpc /* verilator public */;  // From ft of stage_fetchtlb.v
+  wire [19:0] ft2f_in_physpage /* verilator public */;
+  wire [27:0] ft2f_in_virtpc /* verilator public */;
+  wire [127:0] f2d_in_packet /* verilator public */;
+  wire [27:0] f2d_in_virtpc;
+  wire [31:0] d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0;
+  wire [31:0] d2pc_in_rt_data3, d2pc_in_rt_data2, d2pc_in_rt_data1, d2pc_in_rt_data0;
+  wire d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0;
+  wire d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0;
+  wire [4:0] d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0;
+  wire [1:0] d2pc_in_oper_type3, d2pc_in_oper_type2, d2pc_in_oper_type1, d2pc_in_oper_type0;
+  wire [1:0] d2pc_in_shift_type3, d2pc_in_shift_type2, d2pc_in_shift_type1, d2pc_in_shift_type0;
+  wire [5:0] d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0;
+  wire [8:0] d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
+  wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
   wire d2pc_out_invalid3;
 
-  output wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0;
-  output wire [4:0] wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0;
-  output wire wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0;
-  output wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0;
+  wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0;
+  wire [4:0] wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0;
+  wire wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0;
+  wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0;
 
   //stage status signals
-  output wire f_valid, dcd_valid, pc_valid, wb_valid;
+  wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */, wb_valid /* verilator public */;
   wire ft2f_readyout, ft2f_readyin, f2d_readyout, f2d_readyin;
   wire d2pc_readyout, d2pc_readyin, pc2wb_readyout, pc2wb_readyin;
   wire ft2f_progress, f2d_progress, d2pc_progress, pc2wb_progress;
@@ -205,7 +183,6 @@ module mcpu_core(/*AUTOARG*/
 	       .rf2d_rt_data2		(rf2d_rt_data2[31:0]),
 	       .rf2d_rt_data3		(rf2d_rt_data3[31:0]),
 	       .preds			(preds[2:0]),
-	       .mem			(mem/*[31:0]*/),
 	       // Inputs
 	       .wb2rf_rd_num0		(wb2rf_rd_num0[4:0]),
 	       .wb2rf_rd_num1		(wb2rf_rd_num1[4:0]),
