@@ -39,25 +39,68 @@ module MCPU_core(/*AUTOARG*/
   /*AUTOREG*/
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
-  wire [8:0]		d2pc_out_execute_opcode;// From d0 of MCPU_CORE_decode.v, ...
-  wire			d2pc_out_invalid;	// From d0 of MCPU_CORE_decode.v, ...
-  wire [11:0]		d2pc_out_lsu_offset;	// From d0 of MCPU_CORE_decode.v, ...
-  wire [1:0]		d2pc_out_oper_type;	// From d0 of MCPU_CORE_decode.v, ...
-  wire			d2pc_out_pred_we;	// From d0 of MCPU_CORE_decode.v, ...
-  wire [4:0]		d2pc_out_rd_num;	// From d0 of MCPU_CORE_decode.v, ...
-  wire			d2pc_out_rd_we;		// From d0 of MCPU_CORE_decode.v, ...
-  wire [5:0]		d2pc_out_shift_amount;	// From d0 of MCPU_CORE_decode.v, ...
-  wire [1:0]		d2pc_out_shift_type;	// From d0 of MCPU_CORE_decode.v, ...
-  wire [31:0]		d2pc_out_sop;		// From d0 of MCPU_CORE_decode.v, ...
-  wire [4:0]		d2rf_rs_num;		// From d0 of MCPU_CORE_decode.v, ...
-  wire [4:0]		d2rf_rt_num;		// From d0 of MCPU_CORE_decode.v, ...
-  wire			dep_stall;		// From d0 of MCPU_CORE_decode.v, ...
+  wire [8:0]		d2pc_out_execute_opcode0;// From d0 of MCPU_CORE_decode.v
+  wire [8:0]		d2pc_out_execute_opcode1;// From d1 of MCPU_CORE_decode.v
+  wire [8:0]		d2pc_out_execute_opcode2;// From d2 of MCPU_CORE_decode.v
+  wire [8:0]		d2pc_out_execute_opcode3;// From d3 of MCPU_CORE_decode.v
+  wire			d2pc_out_invalid0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_invalid1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_invalid2;	// From d2 of MCPU_CORE_decode.v
+  wire [11:0]		d2pc_out_lsu_offset0;	// From d0 of MCPU_CORE_decode.v
+  wire [11:0]		d2pc_out_lsu_offset1;	// From d1 of MCPU_CORE_decode.v
+  wire [11:0]		d2pc_out_lsu_offset2;	// From d2 of MCPU_CORE_decode.v
+  wire [11:0]		d2pc_out_lsu_offset3;	// From d3 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_oper_type0;	// From d0 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_oper_type1;	// From d1 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_oper_type2;	// From d2 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_oper_type3;	// From d3 of MCPU_CORE_decode.v
+  wire			d2pc_out_pred_we0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_pred_we1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_pred_we2;	// From d2 of MCPU_CORE_decode.v
+  wire			d2pc_out_pred_we3;	// From d3 of MCPU_CORE_decode.v
+  wire [4:0]		d2pc_out_rd_num0;	// From d0 of MCPU_CORE_decode.v
+  wire [4:0]		d2pc_out_rd_num1;	// From d1 of MCPU_CORE_decode.v
+  wire [4:0]		d2pc_out_rd_num2;	// From d2 of MCPU_CORE_decode.v
+  wire [4:0]		d2pc_out_rd_num3;	// From d3 of MCPU_CORE_decode.v
+  wire			d2pc_out_rd_we0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_rd_we1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_rd_we2;	// From d2 of MCPU_CORE_decode.v
+  wire			d2pc_out_rd_we3;	// From d3 of MCPU_CORE_decode.v
+  wire [5:0]		d2pc_out_shift_amount0;	// From d0 of MCPU_CORE_decode.v
+  wire [5:0]		d2pc_out_shift_amount1;	// From d1 of MCPU_CORE_decode.v
+  wire [5:0]		d2pc_out_shift_amount2;	// From d2 of MCPU_CORE_decode.v
+  wire [5:0]		d2pc_out_shift_amount3;	// From d3 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_shift_type0;	// From d0 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_shift_type1;	// From d1 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_shift_type2;	// From d2 of MCPU_CORE_decode.v
+  wire [1:0]		d2pc_out_shift_type3;	// From d3 of MCPU_CORE_decode.v
+  wire [31:0]		d2pc_out_sop0;		// From d0 of MCPU_CORE_decode.v
+  wire [31:0]		d2pc_out_sop1;		// From d1 of MCPU_CORE_decode.v
+  wire [31:0]		d2pc_out_sop2;		// From d2 of MCPU_CORE_decode.v
+  wire [31:0]		d2pc_out_sop3;		// From d3 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rs_num0;		// From d0 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rs_num1;		// From d1 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rs_num2;		// From d2 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rs_num3;		// From d3 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rt_num0;		// From d0 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rt_num1;		// From d1 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rt_num2;		// From d2 of MCPU_CORE_decode.v
+  wire [4:0]		d2rf_rt_num3;		// From d3 of MCPU_CORE_decode.v
+  wire			dep_stall0;		// From d0 of MCPU_CORE_decode.v
+  wire			dep_stall1;		// From d1 of MCPU_CORE_decode.v
+  wire			dep_stall2;		// From d2 of MCPU_CORE_decode.v
+  wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
   wire [127:0]		f2d_out_packet;		// From f of MCPU_CORE_stage_fetch.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
   wire [19:0]		ft2f_out_physpage;	// From ft of MCPU_CORE_stage_fetchtlb.v
-  wire			long_imm;		// From d0 of MCPU_CORE_decode.v, ...
-  wire [31:0]		pc2wb_out_result;	// From alu0 of MCPU_CORE_alu.v, ...
-  wire			pc_alu_invalid;		// From alu0 of MCPU_CORE_alu.v, ...
+  wire [31:0]		pc2wb_out_result0;	// From alu0 of MCPU_CORE_alu.v
+  wire [31:0]		pc2wb_out_result1;	// From alu1 of MCPU_CORE_alu.v
+  wire [31:0]		pc2wb_out_result2;	// From alu2 of MCPU_CORE_alu.v
+  wire [31:0]		pc2wb_out_result3;	// From alu3 of MCPU_CORE_alu.v
+  wire			pc_alu_invalid0;	// From alu0 of MCPU_CORE_alu.v
+  wire			pc_alu_invalid1;	// From alu1 of MCPU_CORE_alu.v
+  wire			pc_alu_invalid2;	// From alu2 of MCPU_CORE_alu.v
+  wire			pc_alu_invalid3;	// From alu3 of MCPU_CORE_alu.v
   wire [2:0]		preds;			// From regs of MCPU_CORE_regfile.v
   wire [31:0]		rf2d_rs_data0;		// From regs of MCPU_CORE_regfile.v
   wire [31:0]		rf2d_rs_data1;		// From regs of MCPU_CORE_regfile.v
@@ -257,7 +300,7 @@ module MCPU_core(/*AUTOARG*/
 		   .clkrst_core_rst_n	(clkrst_core_rst_n));
 
 
-  /* decode AUTO_TEMPLATE(
+  /* MCPU_CORE_decode AUTO_TEMPLATE(
     .rf2d_rs_data(rf2d_rs_data@[]),
     .rf2d_rt_data(rf2d_rt_data@[]),
     .d2pc_out_execute_opcode(d2pc_out_execute_opcode@[]),
@@ -284,26 +327,26 @@ module MCPU_core(/*AUTOARG*/
       .prev_long_imm(1'b0),
       /*AUTOINST*/
 		      // Outputs
-		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode[8:0]),
-		      .d2pc_out_shift_type(d2pc_out_shift_type[1:0]),
-		      .d2pc_out_shift_amount(d2pc_out_shift_amount[5:0]),
-		      .d2pc_out_oper_type(d2pc_out_oper_type[1:0]),
-		      .d2pc_out_rd_num	(d2pc_out_rd_num[4:0]),
-		      .d2pc_out_rd_we	(d2pc_out_rd_we),
-		      .d2pc_out_pred_we	(d2pc_out_pred_we),
-		      .d2rf_rs_num	(d2rf_rs_num[4:0]),
-		      .d2rf_rt_num	(d2rf_rt_num[4:0]),
-		      .d2pc_out_sop	(d2pc_out_sop[31:0]),
-		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset[11:0]),
-		      .dep_stall	(dep_stall),
-		      .long_imm		(long_imm),
-		      .d2pc_out_invalid	(d2pc_out_invalid),
+		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode0[8:0]), // Templated
+		      .d2pc_out_shift_type(d2pc_out_shift_type0[1:0]), // Templated
+		      .d2pc_out_shift_amount(d2pc_out_shift_amount0[5:0]), // Templated
+		      .d2pc_out_oper_type(d2pc_out_oper_type0[1:0]), // Templated
+		      .d2pc_out_rd_num	(d2pc_out_rd_num0[4:0]), // Templated
+		      .d2pc_out_rd_we	(d2pc_out_rd_we0),	 // Templated
+		      .d2pc_out_pred_we	(d2pc_out_pred_we0),	 // Templated
+		      .d2rf_rs_num	(d2rf_rs_num0[4:0]),	 // Templated
+		      .d2rf_rt_num	(d2rf_rt_num0[4:0]),	 // Templated
+		      .d2pc_out_sop	(d2pc_out_sop0[31:0]),	 // Templated
+		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset0[11:0]), // Templated
+		      .dep_stall	(dep_stall0),		 // Templated
+		      .long_imm		(long_imm0),		 // Templated
+		      .d2pc_out_invalid	(d2pc_out_invalid0),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
 		      .sb2d_pred_scoreboard(sb2d_pred_scoreboard[2:0]),
-		      .rf2d_rs_data	(rf2d_rs_data[31:0]),
-		      .rf2d_rt_data	(rf2d_rt_data[31:0]));
+		      .rf2d_rs_data	(rf2d_rs_data0[31:0]),	 // Templated
+		      .rf2d_rt_data	(rf2d_rt_data0[31:0]));	 // Templated
 
   MCPU_CORE_decode d1(
       .inst(f2d_in_packet[63:32]),
@@ -311,26 +354,26 @@ module MCPU_core(/*AUTOARG*/
       .prev_long_imm(long_imm0),
       /*AUTOINST*/
 		      // Outputs
-		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode[8:0]),
-		      .d2pc_out_shift_type(d2pc_out_shift_type[1:0]),
-		      .d2pc_out_shift_amount(d2pc_out_shift_amount[5:0]),
-		      .d2pc_out_oper_type(d2pc_out_oper_type[1:0]),
-		      .d2pc_out_rd_num	(d2pc_out_rd_num[4:0]),
-		      .d2pc_out_rd_we	(d2pc_out_rd_we),
-		      .d2pc_out_pred_we	(d2pc_out_pred_we),
-		      .d2rf_rs_num	(d2rf_rs_num[4:0]),
-		      .d2rf_rt_num	(d2rf_rt_num[4:0]),
-		      .d2pc_out_sop	(d2pc_out_sop[31:0]),
-		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset[11:0]),
-		      .dep_stall	(dep_stall),
-		      .long_imm		(long_imm),
-		      .d2pc_out_invalid	(d2pc_out_invalid),
+		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode1[8:0]), // Templated
+		      .d2pc_out_shift_type(d2pc_out_shift_type1[1:0]), // Templated
+		      .d2pc_out_shift_amount(d2pc_out_shift_amount1[5:0]), // Templated
+		      .d2pc_out_oper_type(d2pc_out_oper_type1[1:0]), // Templated
+		      .d2pc_out_rd_num	(d2pc_out_rd_num1[4:0]), // Templated
+		      .d2pc_out_rd_we	(d2pc_out_rd_we1),	 // Templated
+		      .d2pc_out_pred_we	(d2pc_out_pred_we1),	 // Templated
+		      .d2rf_rs_num	(d2rf_rs_num1[4:0]),	 // Templated
+		      .d2rf_rt_num	(d2rf_rt_num1[4:0]),	 // Templated
+		      .d2pc_out_sop	(d2pc_out_sop1[31:0]),	 // Templated
+		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset1[11:0]), // Templated
+		      .dep_stall	(dep_stall1),		 // Templated
+		      .long_imm		(long_imm1),		 // Templated
+		      .d2pc_out_invalid	(d2pc_out_invalid1),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
 		      .sb2d_pred_scoreboard(sb2d_pred_scoreboard[2:0]),
-		      .rf2d_rs_data	(rf2d_rs_data[31:0]),
-		      .rf2d_rt_data	(rf2d_rt_data[31:0]));
+		      .rf2d_rs_data	(rf2d_rs_data1[31:0]),	 // Templated
+		      .rf2d_rt_data	(rf2d_rt_data1[31:0]));	 // Templated
 
   MCPU_CORE_decode d2(
       .inst(f2d_in_packet[95:64]),
@@ -338,26 +381,26 @@ module MCPU_core(/*AUTOARG*/
       .prev_long_imm(long_imm1),
       /*AUTOINST*/
 		      // Outputs
-		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode[8:0]),
-		      .d2pc_out_shift_type(d2pc_out_shift_type[1:0]),
-		      .d2pc_out_shift_amount(d2pc_out_shift_amount[5:0]),
-		      .d2pc_out_oper_type(d2pc_out_oper_type[1:0]),
-		      .d2pc_out_rd_num	(d2pc_out_rd_num[4:0]),
-		      .d2pc_out_rd_we	(d2pc_out_rd_we),
-		      .d2pc_out_pred_we	(d2pc_out_pred_we),
-		      .d2rf_rs_num	(d2rf_rs_num[4:0]),
-		      .d2rf_rt_num	(d2rf_rt_num[4:0]),
-		      .d2pc_out_sop	(d2pc_out_sop[31:0]),
-		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset[11:0]),
-		      .dep_stall	(dep_stall),
-		      .long_imm		(long_imm),
-		      .d2pc_out_invalid	(d2pc_out_invalid),
+		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode2[8:0]), // Templated
+		      .d2pc_out_shift_type(d2pc_out_shift_type2[1:0]), // Templated
+		      .d2pc_out_shift_amount(d2pc_out_shift_amount2[5:0]), // Templated
+		      .d2pc_out_oper_type(d2pc_out_oper_type2[1:0]), // Templated
+		      .d2pc_out_rd_num	(d2pc_out_rd_num2[4:0]), // Templated
+		      .d2pc_out_rd_we	(d2pc_out_rd_we2),	 // Templated
+		      .d2pc_out_pred_we	(d2pc_out_pred_we2),	 // Templated
+		      .d2rf_rs_num	(d2rf_rs_num2[4:0]),	 // Templated
+		      .d2rf_rt_num	(d2rf_rt_num2[4:0]),	 // Templated
+		      .d2pc_out_sop	(d2pc_out_sop2[31:0]),	 // Templated
+		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset2[11:0]), // Templated
+		      .dep_stall	(dep_stall2),		 // Templated
+		      .long_imm		(long_imm2),		 // Templated
+		      .d2pc_out_invalid	(d2pc_out_invalid2),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
 		      .sb2d_pred_scoreboard(sb2d_pred_scoreboard[2:0]),
-		      .rf2d_rs_data	(rf2d_rs_data[31:0]),
-		      .rf2d_rt_data	(rf2d_rt_data[31:0]));
+		      .rf2d_rs_data	(rf2d_rs_data2[31:0]),	 // Templated
+		      .rf2d_rt_data	(rf2d_rt_data2[31:0]));	 // Templated
 
   wire dcd_invalid3;
   MCPU_CORE_decode d3(
@@ -367,25 +410,25 @@ module MCPU_core(/*AUTOARG*/
       .d2pc_out_invalid(dcd_invalid3),
       /*AUTOINST*/
 		      // Outputs
-		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode[8:0]),
-		      .d2pc_out_shift_type(d2pc_out_shift_type[1:0]),
-		      .d2pc_out_shift_amount(d2pc_out_shift_amount[5:0]),
-		      .d2pc_out_oper_type(d2pc_out_oper_type[1:0]),
-		      .d2pc_out_rd_num	(d2pc_out_rd_num[4:0]),
-		      .d2pc_out_rd_we	(d2pc_out_rd_we),
-		      .d2pc_out_pred_we	(d2pc_out_pred_we),
-		      .d2rf_rs_num	(d2rf_rs_num[4:0]),
-		      .d2rf_rt_num	(d2rf_rt_num[4:0]),
-		      .d2pc_out_sop	(d2pc_out_sop[31:0]),
-		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset[11:0]),
-		      .dep_stall	(dep_stall),
-		      .long_imm		(long_imm),
+		      .d2pc_out_execute_opcode(d2pc_out_execute_opcode3[8:0]), // Templated
+		      .d2pc_out_shift_type(d2pc_out_shift_type3[1:0]), // Templated
+		      .d2pc_out_shift_amount(d2pc_out_shift_amount3[5:0]), // Templated
+		      .d2pc_out_oper_type(d2pc_out_oper_type3[1:0]), // Templated
+		      .d2pc_out_rd_num	(d2pc_out_rd_num3[4:0]), // Templated
+		      .d2pc_out_rd_we	(d2pc_out_rd_we3),	 // Templated
+		      .d2pc_out_pred_we	(d2pc_out_pred_we3),	 // Templated
+		      .d2rf_rs_num	(d2rf_rs_num3[4:0]),	 // Templated
+		      .d2rf_rt_num	(d2rf_rt_num3[4:0]),	 // Templated
+		      .d2pc_out_sop	(d2pc_out_sop3[31:0]),	 // Templated
+		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset3[11:0]), // Templated
+		      .dep_stall	(dep_stall3),		 // Templated
+		      .long_imm		(long_imm3),		 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
 		      .sb2d_pred_scoreboard(sb2d_pred_scoreboard[2:0]),
-		      .rf2d_rs_data	(rf2d_rs_data[31:0]),
-		      .rf2d_rt_data	(rf2d_rt_data[31:0]));
+		      .rf2d_rs_data	(rf2d_rs_data3[31:0]),	 // Templated
+		      .rf2d_rt_data	(rf2d_rt_data3[31:0]));	 // Templated
 
   assign d2pc_out_invalid3 = dcd_invalid3 | long_imm3;
   wire dcd_depstall;
@@ -426,7 +469,7 @@ module MCPU_core(/*AUTOARG*/
 	     .clkrst_core_clk		(clkrst_core_clk),
 	     .clkrst_core_rst_n		(clkrst_core_rst_n));
 
-  /* alu AUTO_TEMPLATE(
+  /* MCPU_CORE_alu AUTO_TEMPLATE(
     .d2pc_in_rt_data(d2pc_in_rt_data@[]),
     .d2pc_in_sop(d2pc_in_sop@[]),
     .d2pc_in_execute_opcode(d2pc_in_execute_opcode@[]),
@@ -439,51 +482,51 @@ module MCPU_core(/*AUTOARG*/
 
   MCPU_CORE_alu alu0(/*AUTOINST*/
 		     // Outputs
-		     .pc2wb_out_result	(pc2wb_out_result[31:0]),
-		     .pc_alu_invalid	(pc_alu_invalid),
+		     .pc2wb_out_result	(pc2wb_out_result0[31:0]), // Templated
+		     .pc_alu_invalid	(pc_alu_invalid0),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data[31:0]),
-		     .d2pc_in_sop	(d2pc_in_sop[31:0]),
-		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode[3:0]),
-		     .compare_type	(compare_type[2:0]),
-		     .d2pc_in_shift_type(d2pc_in_shift_type[1:0]),
-		     .d2pc_in_shift_amount(d2pc_in_shift_amount[5:0]));
+		     .d2pc_in_rt_data	(d2pc_in_rt_data0[31:0]), // Templated
+		     .d2pc_in_sop	(d2pc_in_sop0[31:0]),	 // Templated
+		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode0[3:0]), // Templated
+		     .compare_type	(d2pc_in_rd_num0[4:2]),	 // Templated
+		     .d2pc_in_shift_type(d2pc_in_shift_type0[1:0]), // Templated
+		     .d2pc_in_shift_amount(d2pc_in_shift_amount0[5:0])); // Templated
 
   MCPU_CORE_alu alu1(/*AUTOINST*/
 		     // Outputs
-		     .pc2wb_out_result	(pc2wb_out_result[31:0]),
-		     .pc_alu_invalid	(pc_alu_invalid),
+		     .pc2wb_out_result	(pc2wb_out_result1[31:0]), // Templated
+		     .pc_alu_invalid	(pc_alu_invalid1),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data[31:0]),
-		     .d2pc_in_sop	(d2pc_in_sop[31:0]),
-		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode[3:0]),
-		     .compare_type	(compare_type[2:0]),
-		     .d2pc_in_shift_type(d2pc_in_shift_type[1:0]),
-		     .d2pc_in_shift_amount(d2pc_in_shift_amount[5:0]));
+		     .d2pc_in_rt_data	(d2pc_in_rt_data1[31:0]), // Templated
+		     .d2pc_in_sop	(d2pc_in_sop1[31:0]),	 // Templated
+		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode1[3:0]), // Templated
+		     .compare_type	(d2pc_in_rd_num1[4:2]),	 // Templated
+		     .d2pc_in_shift_type(d2pc_in_shift_type1[1:0]), // Templated
+		     .d2pc_in_shift_amount(d2pc_in_shift_amount1[5:0])); // Templated
 
   MCPU_CORE_alu alu2(/*AUTOINST*/
 		     // Outputs
-		     .pc2wb_out_result	(pc2wb_out_result[31:0]),
-		     .pc_alu_invalid	(pc_alu_invalid),
+		     .pc2wb_out_result	(pc2wb_out_result2[31:0]), // Templated
+		     .pc_alu_invalid	(pc_alu_invalid2),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data[31:0]),
-		     .d2pc_in_sop	(d2pc_in_sop[31:0]),
-		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode[3:0]),
-		     .compare_type	(compare_type[2:0]),
-		     .d2pc_in_shift_type(d2pc_in_shift_type[1:0]),
-		     .d2pc_in_shift_amount(d2pc_in_shift_amount[5:0]));
+		     .d2pc_in_rt_data	(d2pc_in_rt_data2[31:0]), // Templated
+		     .d2pc_in_sop	(d2pc_in_sop2[31:0]),	 // Templated
+		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode2[3:0]), // Templated
+		     .compare_type	(d2pc_in_rd_num2[4:2]),	 // Templated
+		     .d2pc_in_shift_type(d2pc_in_shift_type2[1:0]), // Templated
+		     .d2pc_in_shift_amount(d2pc_in_shift_amount2[5:0])); // Templated
 
   MCPU_CORE_alu alu3(/*AUTOINST*/
 		     // Outputs
-		     .pc2wb_out_result	(pc2wb_out_result[31:0]),
-		     .pc_alu_invalid	(pc_alu_invalid),
+		     .pc2wb_out_result	(pc2wb_out_result3[31:0]), // Templated
+		     .pc_alu_invalid	(pc_alu_invalid3),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data[31:0]),
-		     .d2pc_in_sop	(d2pc_in_sop[31:0]),
-		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode[3:0]),
-		     .compare_type	(compare_type[2:0]),
-		     .d2pc_in_shift_type(d2pc_in_shift_type[1:0]),
-		     .d2pc_in_shift_amount(d2pc_in_shift_amount[5:0]));
+		     .d2pc_in_rt_data	(d2pc_in_rt_data3[31:0]), // Templated
+		     .d2pc_in_sop	(d2pc_in_sop3[31:0]),	 // Templated
+		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode3[3:0]), // Templated
+		     .compare_type	(d2pc_in_rd_num3[4:2]),	 // Templated
+		     .d2pc_in_shift_type(d2pc_in_shift_type3[1:0]), // Templated
+		     .d2pc_in_shift_amount(d2pc_in_shift_amount3[5:0])); // Templated
 
   assign pc2wb_readyin = 1;
   assign pc2wb_readyout = pc_valid; // for now, PC always takes one cycle
