@@ -14,8 +14,8 @@ RTL_COMMON = \
 	rtl/core/MCPU_CORE_decode.v \
 	rtl/core/MCPU_CORE_alu.v \
 	rtl/core/MCPU_CORE_regfile.v \
-	rtl/core/MCPU_CORE_scoreboard.v 
-
+	rtl/core/MCPU_CORE_scoreboard.v \
+	rtl/core/cache/MCPU_CACHE_ic_dummy.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
@@ -24,7 +24,8 @@ RTL_FPGA = \
 	
 RTL_SIM = \
 	rtl/tb/TB_MCPU_MEM_arb.v \
-	rtl/tb/TB_MCPU_MEM_preload.v
+	rtl/tb/TB_MCPU_MEM_preload.v \
+	rtl/tb/TB_MCPU_core.v
 
 # .vh files and other misc things needed for sim or synth
 RTL_INC = \
@@ -129,3 +130,6 @@ TB_core_sim_top = MCPU_core
 TB_core_sim_cpps = core_sim.cpp Sim.cpp
 ALL_TBS += core_sim
 
+TB_core_sys_top = TB_MCPU_core
+TB_core_sys_cpps = core_sys.cpp Sim.cpp
+ALL_TBS += core_sys
