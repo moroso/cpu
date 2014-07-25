@@ -101,6 +101,11 @@ void run_program() {
             printf("%x, ", cpu.regs.r[i]);
         }
         printf("}\n");
+        printf("cpu.regs.p = { ");
+        for (int i = 0; i < 3; ++i) {
+            printf("%d, ", cpu.regs.p[i]);
+        }
+        printf("}\n");
         printf("RAM dump:\n");
         dump_ram();
         size_t instr_num = cpu.regs.pc/4;
