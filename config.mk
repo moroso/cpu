@@ -125,6 +125,6 @@ TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic
 
 TB_core_sim_top = mcpu_core
-TB_core_sim_cpps = core_sim.cpp
+TB_core_sim_cpps = core_sim.cpp Sim.cpp
 ALL_TBS += core_sim
 

@@ -1,10 +1,28 @@
 #include "Vmcpu_core.h"
+#include "Sim.h"
 #include "verilated.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <errno.h>
+
+#if VM_TRACE
+#include <verilated_vcd_c.h>  
+VerilatedVcdC* tfp;
+
+void _close_trace() {
+	if (tfp) tfp->close();
+}
+#endif
+
+#if VM_TRACE
+#define TRACE tfp->dump(Sim::main_time)
+#else
+#define TRACE
+#endif
+
+#define TIMEOUT 5000
 
 int main(int argc, char **argv){
 	if(argc < 2){
@@ -26,8 +44,17 @@ int main(int argc, char **argv){
 		printf("Could not mmap file %s: %s\n", argv[1], strerror(errno));
 		return 1;
 	}
-
 	Vmcpu_core *core = new Vmcpu_core;
+
+	#if VM_TRACE
+	Verilated::traceEverOn(true);
+	tfp = new VerilatedVcdC;
+	core->trace(tfp, 99);
+	tfp->open("trace.vcd");
+	atexit(_close_trace);
+	#endif
+
+	
 	core->ic2f_ready = 1;
 	core->clkrst_core_rst_n = 0;
 	core->clkrst_core_clk = 0;
@@ -39,14 +66,18 @@ int main(int argc, char **argv){
 	core->clkrst_core_rst_n = 1;
 	core->eval();
 
+	TRACE;
+
 	int cycles = 0;
-	while(!core->f2ic_valid || ((core->f2ic_paddr + 1) * 4) <= stat.st_size){
+	while((!core->f2ic_valid || ((core->f2ic_paddr + 1) * 4) <= stat.st_size) && (cycles < TIMEOUT)){
 		if(core->f2ic_valid){
 			core->ic2f_packet[0] = code[(core->f2ic_paddr * 4)];
 			core->ic2f_packet[1] = code[(core->f2ic_paddr * 4 + 1)];
 			core->ic2f_packet[2] = code[(core->f2ic_paddr * 4 + 2)];
 			core->ic2f_packet[3] = code[(core->f2ic_paddr * 4 + 3)];
 		}
+
+		core->eval();
 
 		printf("Cycle %d: FT PC is %x, fetch PC is %x\n", 
 			cycles, core->ft2f_out_virtpc * 16, core->ft2f_in_virtpc * 16);
@@ -83,9 +114,12 @@ int main(int argc, char **argv){
 		printf("WB Lane 3: rd_num = %d, %s%s rd_data = %x\n", core->wb2rf_rd_num3,
 			core->wb2rf_rd_we3 ? "reg_we, " : "", core->wb2rf_pred_we3 ? "pred_we, " : "", core->wb2rf_rd_data3);
 
-		core->eval();
+		Sim::tick();
+		TRACE;
 		core->clkrst_core_clk = 1;
 		core->eval();
+		Sim::tick();
+		TRACE;
 		core->clkrst_core_clk = 0;
 		core->eval();
 		cycles++;

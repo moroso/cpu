@@ -40,8 +40,8 @@ module alu(/*AUTOARG*/
       4'b0001: pc2wb_out_result = d2pc_in_rt_data & shifted_op2;
       4'b0010: pc2wb_out_result = ~(d2pc_in_rt_data | shifted_op2);
       4'b0011: pc2wb_out_result = d2pc_in_rt_data | shifted_op2;
-      4'b0100: pc2wb_out_result = d2pc_in_rt_data - shifted_op2;
-      4'b0101: pc2wb_out_result = shifted_op2 - d2pc_in_rt_data;
+      4'b0100: pc2wb_out_result = shifted_op2 - d2pc_in_rt_data;
+      4'b0101: pc2wb_out_result = d2pc_in_rt_data - shifted_op2;
       4'b0110: pc2wb_out_result = d2pc_in_rt_data ^ shifted_op2;
       4'b1000: pc2wb_out_result = shifted_op2;
       4'b1001: pc2wb_out_result = ~shifted_op2;
@@ -88,7 +88,7 @@ module mcpu_shifter(/*AUTOARG*/
         2'b00: shifted_op2 = d2pc_in_sop << d2pc_in_shift_amount[4:0];
         2'b01: shifted_op2 = d2pc_in_sop >> d2pc_in_shift_amount[4:0];
         2'b10: shifted_op2 = $signed(d2pc_in_sop) >>> d2pc_in_shift_amount[4:0];
-        2'b11: shifted_op2 = (d2pc_in_sop >> d2pc_in_shift_amount[4:0]) | (d2pc_in_sop << d2pc_in_shift_amount[4:0]);
+        2'b11: shifted_op2 = (d2pc_in_sop >> d2pc_in_shift_amount[4:0]) | (d2pc_in_sop << (5'd32 - d2pc_in_shift_amount[4:0]));
       endcase
     end
   end

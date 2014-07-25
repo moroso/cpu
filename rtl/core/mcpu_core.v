@@ -264,7 +264,8 @@ module mcpu_core(/*AUTOARG*/
 		.d2pc_out_pred_we0	(d2pc_out_pred_we0),
 		.d2pc_out_pred_we1	(d2pc_out_pred_we1),
 		.d2pc_out_pred_we2	(d2pc_out_pred_we2),
-		.d2pc_out_pred_we3	(d2pc_out_pred_we3));
+		.d2pc_out_pred_we3	(d2pc_out_pred_we3),
+		.d2pc_progress		(d2pc_progress));
 
   /* Pipeline! */
   stage_fetchtlb ft(/*AUTOINST*/
@@ -311,8 +312,6 @@ module mcpu_core(/*AUTOARG*/
 		.pipe_flush		(pipe_flush),
 		.ic2f_packet		(ic2f_packet[127:0]),
 		.ic2f_ready		(ic2f_ready));
-
-  assign f2d_readyin = d2pc_readyin; // decode always takes 1 cycle
 
   register #(.WIDTH(157), .RESET_VAL(157'd0))
            f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid}),
@@ -401,7 +400,7 @@ module mcpu_core(/*AUTOARG*/
 
   decode d2(
       .inst(f2d_in_packet[95:64]),
-      .nextinst(f2d_in_packet[95:64]),
+      .nextinst(f2d_in_packet[127:96]),
       .prev_long_imm(long_imm1),
       /*AUTOINST*/
 	    // Outputs

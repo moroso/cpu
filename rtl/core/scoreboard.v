@@ -9,7 +9,7 @@ module scoreboard(/*AUTOARG*/
    d2pc_out_rd_num2, d2pc_out_rd_num3, d2pc_out_rd_we0,
    d2pc_out_rd_we1, d2pc_out_rd_we2, d2pc_out_rd_we3,
    d2pc_out_pred_we0, d2pc_out_pred_we1, d2pc_out_pred_we2,
-   d2pc_out_pred_we3
+   d2pc_out_pred_we3, d2pc_progress
    );
 
     input clkrst_core_clk, clkrst_core_rst_n;
@@ -25,6 +25,8 @@ module scoreboard(/*AUTOARG*/
     input d2pc_out_rd_we0, d2pc_out_rd_we1, d2pc_out_rd_we2, d2pc_out_rd_we3;
     input d2pc_out_pred_we0, d2pc_out_pred_we1, d2pc_out_pred_we2, d2pc_out_pred_we3;
 
+    input d2pc_progress;
+
     /*AUTOREG*/
     // Beginning of automatic regs (for this module's undeclared outputs)
     reg [2:0]		sb2d_pred_scoreboard;
@@ -39,19 +41,19 @@ module scoreboard(/*AUTOARG*/
         end
         else begin
             sb2d_pred_scoreboard <= (sb2d_pred_scoreboard
-                                    | ({2'd0, d2pc_out_pred_we0} << d2pc_out_rd_num0)
-                                    | ({2'd0, d2pc_out_pred_we1} << d2pc_out_rd_num1)
-                                    | ({2'd0, d2pc_out_pred_we2} << d2pc_out_rd_num2)
-                                    | ({2'd0, d2pc_out_pred_we3} << d2pc_out_rd_num3))
+                                    | ({2'd0, d2pc_out_pred_we0 & d2pc_progress} << d2pc_out_rd_num0)
+                                    | ({2'd0, d2pc_out_pred_we1 & d2pc_progress} << d2pc_out_rd_num1)
+                                    | ({2'd0, d2pc_out_pred_we2 & d2pc_progress} << d2pc_out_rd_num2)
+                                    | ({2'd0, d2pc_out_pred_we3 & d2pc_progress} << d2pc_out_rd_num3))
                                     & ~({2'd0, wb2rf_pred_we0} << wb2rf_rd_num0)
                                     & ~({2'd0, wb2rf_pred_we1} << wb2rf_rd_num1)
                                     & ~({2'd0, wb2rf_pred_we2} << wb2rf_rd_num2)
                                     & ~({2'd0, wb2rf_pred_we3} << wb2rf_rd_num3);
 
-            sb2d_reg_scoreboard <= (sb2d_reg_scoreboard | ({31'd0, d2pc_out_rd_we0} << d2pc_out_rd_num0)
-                                                        | ({31'd0, d2pc_out_rd_we1} << d2pc_out_rd_num1)
-                                                        | ({31'd0, d2pc_out_rd_we2} << d2pc_out_rd_num2)
-                                                        | ({31'd0, d2pc_out_rd_we3} << d2pc_out_rd_num3))
+            sb2d_reg_scoreboard <= (sb2d_reg_scoreboard | ({31'd0, d2pc_out_rd_we0 & d2pc_progress} << d2pc_out_rd_num0)
+                                                        | ({31'd0, d2pc_out_rd_we1 & d2pc_progress} << d2pc_out_rd_num1)
+                                                        | ({31'd0, d2pc_out_rd_we2 & d2pc_progress} << d2pc_out_rd_num2)
+                                                        | ({31'd0, d2pc_out_rd_we3 & d2pc_progress} << d2pc_out_rd_num3))
                                                         & ~({31'd0, wb2rf_rd_we0} << wb2rf_rd_num0)
                                                         & ~({31'd0, wb2rf_rd_we1} << wb2rf_rd_num1)
                                                         & ~({31'd0, wb2rf_rd_we2} << wb2rf_rd_num2)
