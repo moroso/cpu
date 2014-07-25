@@ -1,4 +1,4 @@
-module alu(/*AUTOARG*/
+module MCPU_CORE_alu(/*AUTOARG*/
    // Outputs
    pc2wb_out_result, pc_alu_invalid,
    // Inputs

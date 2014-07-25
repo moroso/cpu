@@ -2,7 +2,7 @@
  * 8-read, 4-write register file for the Moroso Project CPU
  */
 
-module regfile(/*AUTOARG*/
+module MCPU_CORE_regfile(/*AUTOARG*/
    // Outputs
    rf2d_rs_data0, rf2d_rs_data1, rf2d_rs_data2, rf2d_rs_data3,
    rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3, preds,

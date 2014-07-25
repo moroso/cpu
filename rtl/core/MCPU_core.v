@@ -1,5 +1,5 @@
 
-module mcpu_core(/*AUTOARG*/
+module MCPU_core(/*AUTOARG*/
    // Outputs
    int_clear, ft2itlb_valid, ft2itlb_virtpage, f2ic_paddr, f2ic_valid,
    // Inputs
@@ -172,7 +172,7 @@ module mcpu_core(/*AUTOARG*/
   assign pc2ft_newpc = 0;
 
 
-  regfile regs(/*AUTOINST*/
+  MCPU_CORE_regfile regs(/*AUTOINST*/
 	       // Outputs
 	       .rf2d_rs_data0		(rf2d_rs_data0[31:0]),
 	       .rf2d_rs_data1		(rf2d_rs_data1[31:0]),
@@ -211,7 +211,7 @@ module mcpu_core(/*AUTOARG*/
 	       .clkrst_core_clk		(clkrst_core_clk),
 	       .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  scoreboard sb(/*AUTOINST*/
+  MCPU_CORE_scoreboard sb(/*AUTOINST*/
 		// Outputs
 		.sb2d_reg_scoreboard	(sb2d_reg_scoreboard[31:0]),
 		.sb2d_pred_scoreboard	(sb2d_pred_scoreboard[2:0]),
@@ -245,7 +245,7 @@ module mcpu_core(/*AUTOARG*/
 		.d2pc_progress		(d2pc_progress));
 
   /* Pipeline! */
-  stage_fetchtlb ft(/*AUTOINST*/
+  MCPU_CORE_stage_fetchtlb ft(/*AUTOINST*/
 		    // Outputs
 		    .ft2f_done		(ft2f_done),
 		    .ft2f_out_physpage	(ft2f_out_physpage[19:0]),
@@ -272,7 +272,7 @@ module mcpu_core(/*AUTOARG*/
 		    .clkrst_core_clk	(clkrst_core_clk),
 		    .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  stage_fetch f(/*AUTOINST*/
+  MCPU_CORE_stage_fetch f(/*AUTOINST*/
 		// Outputs
 		.f2d_done		(f2d_done),
 		.f2d_out_packet		(f2d_out_packet[127:0]),
@@ -321,7 +321,7 @@ module mcpu_core(/*AUTOARG*/
 
 
   wire long_imm0, long_imm1, long_imm2, long_imm3;
-  decode d0(
+  MCPU_CORE_decode d0(
       .inst(f2d_in_packet[31:0]),
       .nextinst(f2d_in_packet[63:32]),
       .prev_long_imm(1'b0),
@@ -348,7 +348,7 @@ module mcpu_core(/*AUTOARG*/
 	    .rf2d_rs_data		(rf2d_rs_data0[31:0]),	 // Templated
 	    .rf2d_rt_data		(rf2d_rt_data0[31:0]));	 // Templated
 
-  decode d1(
+  MCPU_CORE_decode d1(
       .inst(f2d_in_packet[63:32]),
       .nextinst(f2d_in_packet[95:64]),
       .prev_long_imm(long_imm0),
@@ -375,7 +375,7 @@ module mcpu_core(/*AUTOARG*/
 	    .rf2d_rs_data		(rf2d_rs_data1[31:0]),	 // Templated
 	    .rf2d_rt_data		(rf2d_rt_data1[31:0]));	 // Templated
 
-  decode d2(
+  MCPU_CORE_decode d2(
       .inst(f2d_in_packet[95:64]),
       .nextinst(f2d_in_packet[127:96]),
       .prev_long_imm(long_imm1),
@@ -403,7 +403,7 @@ module mcpu_core(/*AUTOARG*/
 	    .rf2d_rt_data		(rf2d_rt_data2[31:0]));	 // Templated
 
   wire dcd_invalid3;
-  decode d3(
+  MCPU_CORE_decode d3(
       .inst(f2d_in_packet[127:96]),
       .nextinst('bx),
       .prev_long_imm(long_imm2),
@@ -480,7 +480,7 @@ module mcpu_core(/*AUTOARG*/
     .pc_alu_invalid(pc_alu_invalid@[]),
   );*/
 
-  alu alu0(/*AUTOINST*/
+  MCPU_CORE_alu alu0(/*AUTOINST*/
 	   // Outputs
 	   .pc2wb_out_result		(pc2wb_out_result0[31:0]), // Templated
 	   .pc_alu_invalid		(pc_alu_invalid0),	 // Templated
@@ -492,7 +492,7 @@ module mcpu_core(/*AUTOARG*/
 	   .d2pc_in_shift_type		(d2pc_in_shift_type0[1:0]), // Templated
 	   .d2pc_in_shift_amount	(d2pc_in_shift_amount0[5:0])); // Templated
 
-  alu alu1(/*AUTOINST*/
+  MCPU_CORE_alu alu1(/*AUTOINST*/
 	   // Outputs
 	   .pc2wb_out_result		(pc2wb_out_result1[31:0]), // Templated
 	   .pc_alu_invalid		(pc_alu_invalid1),	 // Templated
@@ -504,7 +504,7 @@ module mcpu_core(/*AUTOARG*/
 	   .d2pc_in_shift_type		(d2pc_in_shift_type1[1:0]), // Templated
 	   .d2pc_in_shift_amount	(d2pc_in_shift_amount1[5:0])); // Templated
 
-  alu alu2(/*AUTOINST*/
+  MCPU_CORE_alu alu2(/*AUTOINST*/
 	   // Outputs
 	   .pc2wb_out_result		(pc2wb_out_result2[31:0]), // Templated
 	   .pc_alu_invalid		(pc_alu_invalid2),	 // Templated
@@ -516,7 +516,7 @@ module mcpu_core(/*AUTOARG*/
 	   .d2pc_in_shift_type		(d2pc_in_shift_type2[1:0]), // Templated
 	   .d2pc_in_shift_amount	(d2pc_in_shift_amount2[5:0])); // Templated
 
-  alu alu3(/*AUTOINST*/
+  MCPU_CORE_alu alu3(/*AUTOINST*/
 	   // Outputs
 	   .pc2wb_out_result		(pc2wb_out_result3[31:0]), // Templated
 	   .pc_alu_invalid		(pc_alu_invalid3),	 // Templated
@@ -555,28 +555,4 @@ module mcpu_core(/*AUTOARG*/
   //writeback stage doesn't actually have any logic yet, just scoreboard and regfile connections.
   //There will need to be arbitration for multiple register writes on a lane arriving in the same cycle.
 
-endmodule
-
-
-module register(/*AUTOARG*/
-   // Outputs
-   Q,
-   // Inputs
-   D, en, clkrst_core_clk, clkrst_core_rst_n
-   );
-  parameter WIDTH = 8;
-  parameter RESET_VAL = 8'd0;
-  input [WIDTH-1:0] D;
-  output reg [WIDTH-1:0] Q;
-  input en;
-  input clkrst_core_clk, clkrst_core_rst_n;
-
-  always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
-    if(~clkrst_core_rst_n) begin
-      Q <= RESET_VAL;
-    end
-    else if(en) begin
-      Q <= D;
-    end
-  end
 endmodule

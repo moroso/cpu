@@ -1,4 +1,4 @@
-module scoreboard(/*AUTOARG*/
+module MCPU_CORE_scoreboard(/*AUTOARG*/
    // Outputs
    sb2d_reg_scoreboard, sb2d_pred_scoreboard,
    // Inputs

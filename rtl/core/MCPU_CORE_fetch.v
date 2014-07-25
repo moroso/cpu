@@ -1,5 +1,5 @@
 
-module stage_fetch(/*AUTOARG*/
+module MCPU_CORE_stage_fetch(/*AUTOARG*/
    // Outputs
    ft2f_readyin, f2d_readyout, f2d_out_packet, f2d_out_virtpc,
    // Inputs

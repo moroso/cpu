@@ -1,4 +1,4 @@
-module decode(/*AUTOARG*/
+module MCPU_CORE_decode(/*AUTOARG*/
    // Outputs
    d2pc_out_execute_opcode, d2pc_out_shift_type,
    d2pc_out_shift_amount, d2pc_out_oper_type, d2pc_out_rd_num,

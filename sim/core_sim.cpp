@@ -1,6 +1,6 @@
-#include "Vmcpu_core.h"
-#include "Vmcpu_core_mcpu_core.h"
-#include "Vmcpu_core_regfile.h"
+#include "VMCPU_core.h"
+#include "VMCPU_core_MCPU_core.h"
+#include "VMCPU_core_MCPU_CORE_regfile.h"
 #include "Sim.h"
 #include "verilated.h"
 #include <fcntl.h>
@@ -46,7 +46,7 @@ int main(int argc, char **argv){
 		printf("Could not mmap file %s: %s\n", argv[1], strerror(errno));
 		return 1;
 	}
-	Vmcpu_core *core = new Vmcpu_core;
+	VMCPU_core *core = new VMCPU_core;
 
 	#if VM_TRACE
 	Verilated::traceEverOn(true);

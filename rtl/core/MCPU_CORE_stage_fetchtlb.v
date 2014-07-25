@@ -1,5 +1,5 @@
 
-module stage_fetchtlb(/*AUTOARG*/
+module MCPU_CORE_stage_fetchtlb(/*AUTOARG*/
    // Outputs
    ft2f_done, ft2f_out_physpage, ft2f_out_virtpc, ft2itlb_valid,
    ft2itlb_virtpage,

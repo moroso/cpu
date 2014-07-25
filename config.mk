@@ -7,13 +7,14 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/lib/FIFO.v \
-	rtl/core/mcpu_core.v \
-	rtl/core/stage_fetch.v \
-	rtl/core/stage_fetchtlb.v \
-	rtl/core/decode.v \
-	rtl/core/alu.v \
-	rtl/core/regfile.v \
-	rtl/core/scoreboard.v 
+	rtl/lib/register.v \
+	rtl/core/MCPU_core.v \
+	rtl/core/MCPU_CORE_stage_fetch.v \
+	rtl/core/MCPU_CORE_stage_fetchtlb.v \
+	rtl/core/MCPU_CORE_decode.v \
+	rtl/core/MCPU_CORE_alu.v \
+	rtl/core/MCPU_CORE_regfile.v \
+	rtl/core/MCPU_CORE_scoreboard.v 
 
 
 RTL_FPGA = \
@@ -124,7 +125,7 @@ TEST_pre_basic_env =
 TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic
 
-TB_core_sim_top = mcpu_core
+TB_core_sim_top = MCPU_core
 TB_core_sim_cpps = core_sim.cpp Sim.cpp
 ALL_TBS += core_sim
 
