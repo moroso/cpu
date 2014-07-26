@@ -117,8 +117,8 @@ bool alu_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     if (constant) {
         op2 = constant.get();
     } else if (rs && alu_unary()) {
-        op2 = old_cpu.regs.r[rs.get().reg];
-        op2 = shiftwith(op2, old_cpu.regs.r[rt.get().reg], stype.get());
+        op2 = old_cpu.regs.r[rt.get().reg];
+        op2 = shiftwith(op2, old_cpu.regs.r[rs.get().reg], stype.get());
     } else {
         op2 = old_cpu.regs.r[rt.get().reg];
         op2 = shiftwith(op2, shiftamt.get(), stype.get());
