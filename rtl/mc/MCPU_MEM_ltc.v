@@ -233,6 +233,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg             rd_valid_1a;
 	wire [TAG_UPPER:TAG_LOWER] evicting_tag = set_evicting_tag[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
 	
+	reg [BITS_IN_ATOM-1:0] lines[(SETS * WAYS * ATOMS_PER_LINE)-1:0];
+	reg [BITS_IN_ATOM-1:0] line_rd_data_1a;
+	/* XXX: Probably should have rd and wr split out. */
+	wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr [SETS-1:0];
+	wire [SET_BITS-1 : 0] set_addr = resp_override ? resp_addr[SET_UPPER:SET_LOWER] : arb2ltc_addr_0a[SET_UPPER:SET_LOWER];
+	
 	genvar set;
 	genvar way;
 	genvar ii;
@@ -244,9 +250,6 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			reg [WAYS-1:0] way_valid;
 			reg [WAYS-1:0] way_dirty;
 			reg [WAYS_BITS-1:0] way_evicting;
-			
-			reg [BITS_IN_ATOM-1:0] lines [(WAYS * ATOMS_PER_LINE)-1:0];
-			reg [BITS_IN_ATOM-1:0] line_rd_data_1a;
 			
 			wire set_selected_0a;
 			
@@ -276,34 +279,11 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 						way_0a = i[WAYS_BITS-1:0];
 			end
 			/* XXX needs rd and wr split out */
-			assign set_selected_0a = (resp_override ? resp_addr[SET_UPPER:SET_LOWER] : arb2ltc_addr_0a[SET_UPPER:SET_LOWER]) == set[SET_BITS-1:0];
+			assign set_selected_0a = set_addr == set[SET_BITS-1:0];
 			
-			wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr = 
+			assign line_addr[set] = 
 			  resp_override ? {way_evicting, resp_addr[ATOM_UPPER:ATOM_LOWER]} 
 			                : {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
-			
-			/* Set read logic */
-			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
-				if (~clkrst_mem_rst_n) begin
-					line_rd_data_1a <= 256'b0;
-				end else begin
-					if ((set_selected_0a && set_valid_0a[set] && arb2ltc_is_read_0a) || /* arb2ltc path */
-					    (set_selected_0a && resp_rd) /* mc2ltc flush path */)
-						line_rd_data_1a <= lines[line_addr];
-				end
-			
-			/* Set write logic */
-			/* We have to generate for byte enables. */
-			for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1)
-				always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
-					if (~clkrst_mem_rst_n) begin
-					end else begin
-						if ((set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii]) || /* arb2ltc path */
-						    (set_selected_0a && resp_wr)) /* mc2ltc refill path */
-							lines[line_addr][ii*8+7:ii*8] <=
-							  resp_wr ? resp_data[ii*8+7:ii*8]
-							          : arb2ltc_wdata_0a[ii*8+7:ii*8];
-					end
 			
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
@@ -336,6 +316,31 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					end
 				end
 		end
+	endgenerate
+	
+	/* Set read logic */
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+		if (~clkrst_mem_rst_n) begin
+			line_rd_data_1a <= 256'b0;
+		end else begin
+			if ((set_valid_0a[set_addr] && arb2ltc_is_read_0a) || /* arb2ltc path */
+			    (resp_rd) /* mc2ltc flush path */)
+				line_rd_data_1a <= lines[{set_addr, line_addr[set_addr]}];
+		end
+	
+	/* Set write logic */
+	/* We have to generate for byte enables. */
+	generate
+		for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1)
+			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+				if (~clkrst_mem_rst_n) begin
+				end else begin
+					if ((set_valid_0a[set_addr] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii]) || /* arb2ltc path */
+					    (resp_wr)) /* mc2ltc refill path */
+						lines[{set_addr, line_addr[set_addr]}][ii*8+7:ii*8] <=
+						  resp_wr ? resp_data[ii*8+7:ii*8]
+						          : arb2ltc_wdata_0a[ii*8+7:ii*8];
+				end
 	endgenerate
 	
 	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
