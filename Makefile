@@ -104,7 +104,7 @@ $(RUNDIR)/test/$(1)/log: tb_$$(TEST_$(1)_tb)
 	$(call say,"Running test: $(1)")
 	@mkdir -p $(RUNDIR)/test/$(1)
 	$$(if $$(TEST_$(1)_rom),cp $$(TEST_$(1)_rom) $(RUNDIR)/test/$(1)/bootrom.hex)
-	$$(TEST_$(1)_env) (cd $(RUNDIR)/test/$(1); $$(call TB_binary,$$(TEST_$(1)_tb)) > log)
+	(cd $(RUNDIR)/test/$(1); $$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) > log)
 
 .PHONY: test_$(1)
 test_$(1): $(RUNDIR)/test/$(1)/log
@@ -114,7 +114,7 @@ $(foreach test,$(ALL_TESTS),$(eval $(call TEST_template,$(test))))
 
 # Finally, run the tests as requested.
 TESTS += $(foreach testplan,$(TESTPLANS),$(TESTPLAN_$(testplan)_tests))
-tests: $(foreach test,$(TESTS),$(RUNDIR)/testlog/$(test))
+tests: $(foreach test,$(TESTS),$(RUNDIR)/test/$(test)/log)
 
 sanity:
 	make tests TESTPLANS=L0
