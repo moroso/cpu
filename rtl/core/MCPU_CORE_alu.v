@@ -2,11 +2,11 @@ module MCPU_CORE_alu(/*AUTOARG*/
    // Outputs
    pc2wb_out_result, pc_alu_invalid,
    // Inputs
-   d2pc_in_rt_data, d2pc_in_sop, d2pc_in_execute_opcode, compare_type,
+   d2pc_in_rs_data, d2pc_in_sop, d2pc_in_execute_opcode, compare_type,
    d2pc_in_shift_type, d2pc_in_shift_amount
    );
 
-  input [31:0] d2pc_in_rt_data, d2pc_in_sop;
+  input [31:0] d2pc_in_rs_data, d2pc_in_sop;
   input [3:0] d2pc_in_execute_opcode;
   input [2:0] compare_type;
   input [1:0] d2pc_in_shift_type;
@@ -32,31 +32,31 @@ module MCPU_CORE_alu(/*AUTOARG*/
 		       .d2pc_in_shift_amount(d2pc_in_shift_amount[5:0]));
 
   always @(/*AUTOSENSE*/compare_type or d2pc_in_execute_opcode
-	   or d2pc_in_rt_data or shifted_op2) begin
+	   or d2pc_in_rs_data or shifted_op2) begin
     pc2wb_out_result = 32'dX;
     pc_alu_invalid = 0;
     case(d2pc_in_execute_opcode)
-      4'b0000: pc2wb_out_result = d2pc_in_rt_data + shifted_op2;
-      4'b0001: pc2wb_out_result = d2pc_in_rt_data & shifted_op2;
-      4'b0010: pc2wb_out_result = ~(d2pc_in_rt_data | shifted_op2);
-      4'b0011: pc2wb_out_result = d2pc_in_rt_data | shifted_op2;
-      4'b0100: pc2wb_out_result = shifted_op2 - d2pc_in_rt_data;
-      4'b0101: pc2wb_out_result = d2pc_in_rt_data - shifted_op2;
-      4'b0110: pc2wb_out_result = d2pc_in_rt_data ^ shifted_op2;
+      4'b0000: pc2wb_out_result = d2pc_in_rs_data + shifted_op2;
+      4'b0001: pc2wb_out_result = d2pc_in_rs_data & shifted_op2;
+      4'b0010: pc2wb_out_result = ~(d2pc_in_rs_data | shifted_op2);
+      4'b0011: pc2wb_out_result = d2pc_in_rs_data | shifted_op2;
+      4'b0100: pc2wb_out_result = d2pc_in_rs_data - shifted_op2;
+      4'b0101: pc2wb_out_result = shifted_op2 - d2pc_in_rs_data;
+      4'b0110: pc2wb_out_result = d2pc_in_rs_data ^ shifted_op2;
       4'b1000: pc2wb_out_result = shifted_op2;
       4'b1001: pc2wb_out_result = ~shifted_op2;
       4'b1010: pc2wb_out_result = {{24{shifted_op2[7]}}, shifted_op2[7:0]};
       4'b1011: pc2wb_out_result = {{16{shifted_op2[15]}}, shifted_op2[15:0]};
 
       4'b0111: case(compare_type)
-        3'b000: pc2wb_out_result[0] = d2pc_in_rt_data < shifted_op2;
-        3'b001: pc2wb_out_result[0] = d2pc_in_rt_data <= shifted_op2;
-        3'b010: pc2wb_out_result[0] = d2pc_in_rt_data == shifted_op2;
+        3'b000: pc2wb_out_result[0] = d2pc_in_rs_data < shifted_op2;
+        3'b001: pc2wb_out_result[0] = d2pc_in_rs_data <= shifted_op2;
+        3'b010: pc2wb_out_result[0] = d2pc_in_rs_data == shifted_op2;
         3'b011: pc_alu_invalid = 1;
-        3'b100: pc2wb_out_result[0] = $signed(d2pc_in_rt_data) < $signed(shifted_op2);
-        3'b101: pc2wb_out_result[0] = $signed(d2pc_in_rt_data) <= $signed(shifted_op2);
-        3'b110: pc2wb_out_result[0] = |(d2pc_in_rt_data & shifted_op2);
-        3'b111: pc2wb_out_result[0] = ~|(~d2pc_in_rt_data & shifted_op2);
+        3'b100: pc2wb_out_result[0] = $signed(d2pc_in_rs_data) < $signed(shifted_op2);
+        3'b101: pc2wb_out_result[0] = $signed(d2pc_in_rs_data) <= $signed(shifted_op2);
+        3'b110: pc2wb_out_result[0] = |(d2pc_in_rs_data & shifted_op2);
+        3'b111: pc2wb_out_result[0] = ~|(~d2pc_in_rs_data & shifted_op2);
       endcase
 
       default: pc_alu_invalid = 1;

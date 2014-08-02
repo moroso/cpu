@@ -121,7 +121,7 @@ module MCPU_core(/*AUTOARG*/
   wire [127:0] f2d_in_packet /* verilator public */;
   wire [27:0] f2d_in_virtpc;
   wire [31:0] d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0;
-  wire [31:0] d2pc_in_rt_data3, d2pc_in_rt_data2, d2pc_in_rt_data1, d2pc_in_rt_data0;
+  wire [31:0] d2pc_in_rs_data3, d2pc_in_rs_data2, d2pc_in_rs_data1, d2pc_in_rs_data0;
   wire d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0;
   wire d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0;
   wire [4:0] d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0;
@@ -439,7 +439,7 @@ module MCPU_core(/*AUTOARG*/
   register #(.WIDTH(365), .RESET_VAL(365'd0)) // wheeeeeeeee
     d2pc_reg(
       .D({d2pc_out_sop3, d2pc_out_sop2, d2pc_out_sop1, d2pc_out_sop0,
-          rf2d_rt_data3, rf2d_rt_data2, rf2d_rt_data1, rf2d_rt_data0,
+          rf2d_rs_data3, rf2d_rs_data2, rf2d_rs_data1, rf2d_rs_data0,
           d2pc_out_rd_we3, d2pc_out_rd_we2, d2pc_out_rd_we1, d2pc_out_rd_we0,
           d2pc_out_pred_we3, d2pc_out_pred_we2, d2pc_out_pred_we1, d2pc_out_pred_we0,
           d2pc_out_rd_num3, d2pc_out_rd_num2, d2pc_out_rd_num1, d2pc_out_rd_num0,
@@ -452,7 +452,7 @@ module MCPU_core(/*AUTOARG*/
         }),
       .Q({
           d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0,
-          d2pc_in_rt_data3, d2pc_in_rt_data2, d2pc_in_rt_data1, d2pc_in_rt_data0,
+          d2pc_in_rs_data3, d2pc_in_rs_data2, d2pc_in_rs_data1, d2pc_in_rs_data0,
           d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0,
           d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0,
           d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0,
@@ -470,7 +470,7 @@ module MCPU_core(/*AUTOARG*/
 	     .clkrst_core_rst_n		(clkrst_core_rst_n));
 
   /* MCPU_CORE_alu AUTO_TEMPLATE(
-    .d2pc_in_rt_data(d2pc_in_rt_data@[]),
+    .d2pc_in_rs_data(d2pc_in_rs_data@[]),
     .d2pc_in_sop(d2pc_in_sop@[]),
     .d2pc_in_execute_opcode(d2pc_in_execute_opcode@[]),
     .compare_type(d2pc_in_rd_num@[4:2]),
@@ -485,7 +485,7 @@ module MCPU_core(/*AUTOARG*/
 		     .pc2wb_out_result	(pc2wb_out_result0[31:0]), // Templated
 		     .pc_alu_invalid	(pc_alu_invalid0),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data0[31:0]), // Templated
+		     .d2pc_in_rs_data	(d2pc_in_rs_data0[31:0]), // Templated
 		     .d2pc_in_sop	(d2pc_in_sop0[31:0]),	 // Templated
 		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode0[3:0]), // Templated
 		     .compare_type	(d2pc_in_rd_num0[4:2]),	 // Templated
@@ -497,7 +497,7 @@ module MCPU_core(/*AUTOARG*/
 		     .pc2wb_out_result	(pc2wb_out_result1[31:0]), // Templated
 		     .pc_alu_invalid	(pc_alu_invalid1),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data1[31:0]), // Templated
+		     .d2pc_in_rs_data	(d2pc_in_rs_data1[31:0]), // Templated
 		     .d2pc_in_sop	(d2pc_in_sop1[31:0]),	 // Templated
 		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode1[3:0]), // Templated
 		     .compare_type	(d2pc_in_rd_num1[4:2]),	 // Templated
@@ -509,7 +509,7 @@ module MCPU_core(/*AUTOARG*/
 		     .pc2wb_out_result	(pc2wb_out_result2[31:0]), // Templated
 		     .pc_alu_invalid	(pc_alu_invalid2),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data2[31:0]), // Templated
+		     .d2pc_in_rs_data	(d2pc_in_rs_data2[31:0]), // Templated
 		     .d2pc_in_sop	(d2pc_in_sop2[31:0]),	 // Templated
 		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode2[3:0]), // Templated
 		     .compare_type	(d2pc_in_rd_num2[4:2]),	 // Templated
@@ -521,7 +521,7 @@ module MCPU_core(/*AUTOARG*/
 		     .pc2wb_out_result	(pc2wb_out_result3[31:0]), // Templated
 		     .pc_alu_invalid	(pc_alu_invalid3),	 // Templated
 		     // Inputs
-		     .d2pc_in_rt_data	(d2pc_in_rt_data3[31:0]), // Templated
+		     .d2pc_in_rs_data	(d2pc_in_rs_data3[31:0]), // Templated
 		     .d2pc_in_sop	(d2pc_in_sop3[31:0]),	 // Templated
 		     .d2pc_in_execute_opcode(d2pc_in_execute_opcode3[3:0]), // Templated
 		     .compare_type	(d2pc_in_rd_num3[4:2]),	 // Templated

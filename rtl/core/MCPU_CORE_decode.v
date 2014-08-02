@@ -98,7 +98,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
       end
 
       else if(inst[27:26] == 2'b01) begin //alu reg
-        d2pc_out_sop = rf2d_rs_data;
+        d2pc_out_sop = rf2d_rt_data;
         d2pc_out_rd_we = d2pc_out_execute_opcode[3:0] != 4'b0111;
         d2pc_out_pred_we = ~d2pc_out_rd_we;
         d2pc_out_shift_amount = {1'b0, inst[25:21]};
