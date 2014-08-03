@@ -35,7 +35,7 @@ module mcpu(/*AUTOARG*/
    // Inouts
    pad_mem_dqs_n, pad_mem_dqs, pad_mem_dq,
    // Inputs
-   pad_mem_oct_rzqin, clkrst_mem_clk, pad_clk125
+   pad_mem_oct_rzqin, pad_clk125
    );
 	input pad_clk125;
 	output wire [7:0] pad_led_g;
@@ -49,7 +49,6 @@ module mcpu(/*AUTOARG*/
 
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
-	input		clkrst_mem_clk;		// To u_mc of MCPU_mc.v
 	input		pad_mem_oct_rzqin;	// To u_mc of MCPU_mc.v
 	// End of automatics
 	/*AUTOOUTPUT*/
@@ -96,22 +95,48 @@ module mcpu(/*AUTOARG*/
 		ctr <= ctr + 1;
 	
 	wire mc_ready;
-	assign pad_led_g = {6'b0, mc_ready, ctr[26]};
+//	assign pad_led_g = {6'b0, mc_ready, ctr[26]};
+	
+	wire clkrst_mem_clk = clkrst_avl_clk;
+	reg [3:0] clkrst_mem_rst_ctr = 15;
+	reg clkrst_mem_rst_n = 0;
+	always @(posedge clkrst_mem_clk) begin
+		clkrst_mem_rst_n <= ~|clkrst_mem_rst_ctr;
+		if (clkrst_mem_rst_ctr != 0)
+			clkrst_mem_rst_ctr <= clkrst_mem_rst_ctr - 1;
+	end
 	
 	/* We'll tie all this stuff off for now. */
+	/* MCPU_int AUTO_TEMPLATE(
+		.leds(pad_led_g),
+		); */
+	MCPU_int u_int(/*AUTOINST*/
+		       // Outputs
+		       .ltc2mc_avl_addr_0(ltc2mc_avl_addr_0[24:0]),
+		       .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
+		       .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
+		       .ltc2mc_avl_read_req_0(ltc2mc_avl_read_req_0),
+		       .ltc2mc_avl_size_0(ltc2mc_avl_size_0[4:0]),
+		       .ltc2mc_avl_wdata_0(ltc2mc_avl_wdata_0[127:0]),
+		       .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
+		       .leds		(pad_led_g),		 // Templated
+		       // Inputs
+		       .clkrst_mem_clk	(clkrst_mem_clk),
+		       .clkrst_mem_rst_n(clkrst_mem_rst_n),
+		       .ltc2mc_avl_rdata_0(ltc2mc_avl_rdata_0[127:0]),
+		       .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
+		       .ltc2mc_avl_ready_0(ltc2mc_avl_ready_0));
 
 	/* MCPU_mc AUTO_TEMPLATE(
 		.clkrst_.*_rst_n(1'b1),
-		.ltc2mc_.*_req_.*(1'b0),
-		.ltc2mc_.*(),
 		.mc_ready(mc_ready),
 		); */
 	MCPU_mc u_mc(
 		/*AUTOINST*/
 		     // Outputs
-		     .ltc2mc_avl_rdata_0(),			 // Templated
-		     .ltc2mc_avl_rdata_valid_0(),		 // Templated
-		     .ltc2mc_avl_ready_0(),			 // Templated
+		     .ltc2mc_avl_rdata_0(ltc2mc_avl_rdata_0[127:0]),
+		     .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
+		     .ltc2mc_avl_ready_0(ltc2mc_avl_ready_0),
 		     .pad_mem_ca	(pad_mem_ca[9:0]),
 		     .pad_mem_ck	(pad_mem_ck[0:0]),
 		     .pad_mem_ck_n	(pad_mem_ck_n[0:0]),
@@ -128,13 +153,13 @@ module mcpu(/*AUTOARG*/
 		     .clkrst_mem_clk	(clkrst_mem_clk),
 		     .clkrst_mem_rst_n	(1'b1),			 // Templated
 		     .clkrst_soft_rst_n	(1'b1),			 // Templated
-		     .ltc2mc_avl_addr_0	(),			 // Templated
-		     .ltc2mc_avl_be_0	(),			 // Templated
-		     .ltc2mc_avl_burstbegin_0(),		 // Templated
-		     .ltc2mc_avl_read_req_0(1'b0),		 // Templated
-		     .ltc2mc_avl_size_0	(),			 // Templated
-		     .ltc2mc_avl_wdata_0(),			 // Templated
-		     .ltc2mc_avl_write_req_0(1'b0),		 // Templated
+		     .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
+		     .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
+		     .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
+		     .ltc2mc_avl_read_req_0(ltc2mc_avl_read_req_0),
+		     .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
+		     .ltc2mc_avl_wdata_0(ltc2mc_avl_wdata_0[127:0]),
+		     .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
 		     .pad_clk125	(pad_clk125),
 		     .pad_mem_oct_rzqin	(pad_mem_oct_rzqin));
 endmodule

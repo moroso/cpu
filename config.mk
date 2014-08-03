@@ -3,6 +3,7 @@
 
 RTL_COMMON = \
 	rtl/mcpu.v \
+	rtl/MCPU_int.v \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
@@ -127,6 +128,10 @@ TEST_pre_basic_env =
 TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic
 
+TB_int_top = MCPU_int
+TB_int_cpps =
+ALL_TBS += int
+
 TB_core_sim_top = MCPU_core
 TB_core_sim_cpps = core_sim.cpp Sim.cpp
 ALL_TBS += core_sim
@@ -134,3 +139,4 @@ ALL_TBS += core_sim
 TB_core_sys_top = TB_MCPU_core
 TB_core_sys_cpps = core_sys.cpp Sim.cpp
 ALL_TBS += core_sys
+
