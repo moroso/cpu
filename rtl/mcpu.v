@@ -66,6 +66,19 @@ module mcpu(/*AUTOARG*/
 	inout [3:0]	pad_mem_dqs;		// To/From u_mc of MCPU_mc.v
 	inout [3:0]	pad_mem_dqs_n;		// To/From u_mc of MCPU_mc.v
 	// End of automatics
+	/*AUTOWIRE*/
+	// Beginning of automatic wires (for undeclared instantiated-module outputs)
+	wire [24:0]	ltc2mc_avl_addr_0;	// From u_int of MCPU_int.v
+	wire [15:0]	ltc2mc_avl_be_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_burstbegin_0;// From u_int of MCPU_int.v
+	wire [127:0]	ltc2mc_avl_rdata_0;	// From u_mc of MCPU_mc.v
+	wire		ltc2mc_avl_rdata_valid_0;// From u_mc of MCPU_mc.v
+	wire		ltc2mc_avl_read_req_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_ready_0;	// From u_mc of MCPU_mc.v
+	wire [4:0]	ltc2mc_avl_size_0;	// From u_int of MCPU_int.v
+	wire [127:0]	ltc2mc_avl_wdata_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_write_req_0;	// From u_int of MCPU_int.v
+	// End of automatics
 	
 	wire clk50;
 	wire clkrst_avl_clk;

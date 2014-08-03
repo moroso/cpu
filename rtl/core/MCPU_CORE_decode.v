@@ -18,25 +18,25 @@ module MCPU_CORE_decode(/*AUTOARG*/
   input [31:0] nextinst;
   input prev_long_imm;
 
-  output [8:0] d2pc_out_execute_opcode;
-  output [1:0] d2pc_out_shift_type;
-  output [5:0] d2pc_out_shift_amount;
-  output [1:0] d2pc_out_oper_type;
-  output [4:0] d2pc_out_rd_num;
-  output d2pc_out_rd_we;
-  output d2pc_out_pred_we;
+  output wire [8:0] d2pc_out_execute_opcode;
+  output reg [1:0] d2pc_out_shift_type;
+  output reg [5:0] d2pc_out_shift_amount;
+  output reg [1:0] d2pc_out_oper_type;
+  output reg [4:0] d2pc_out_rd_num;
+  output reg d2pc_out_rd_we;
+  output reg d2pc_out_pred_we;
   output [4:0] d2rf_rs_num, d2rf_rt_num;
-  output [31:0] d2pc_out_sop;
+  output reg [31:0] d2pc_out_sop;
   output [11:0] d2pc_out_lsu_offset;
-  output dep_stall;
-  output long_imm;
-  output d2pc_out_invalid;
+  output wire dep_stall;
+  output reg long_imm;
+  output reg d2pc_out_invalid;
 
   /* AUTOREG */
 
 `include "oper_type.vh"
 
-  wire depend_rt, depend_rs;
+  reg depend_rt, depend_rs;
   wire [3:0] actual_preds, actual_scoreboard;
 
 

@@ -229,7 +229,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	wire [255:0]    set_rd_data_1a [SETS-1:0];
 	wire [TAG_UPPER:TAG_LOWER] set_evicting_tag [SETS-1:0];
 	reg  [255:0]    rd_data_1a;
-	wire            rd_valid_0a;
+	reg             rd_valid_0a;
 	reg             rd_valid_1a;
 	wire [TAG_UPPER:TAG_LOWER] evicting_tag = set_evicting_tag[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
 	
