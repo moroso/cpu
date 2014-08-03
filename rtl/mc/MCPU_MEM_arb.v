@@ -97,12 +97,14 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	 * client, and ready-generation logic for the clients (decrementing
 	 * credits as selected, and inserting a bubble when needed).  */
 	
-	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
-		if (~clkrst_mem_rst_n) begin
-			for (i = 0; i < CLIENTS; i = i + 1) cli_credits[i] <= CREDITS_DEFAULT;
-		end else begin
-			/* XXX CSR interface */
-		end
+	generate for (ii = 0; ii < CLIENTS; ii = ii + 1) begin: resets
+		always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
+			if (~clkrst_mem_rst_n) begin
+				cli_credits[ii] <= CREDITS_DEFAULT;
+			end else begin
+				/* XXX CSR interface */
+			end
+	end endgenerate
 	
 	assign cli_ready_rotated = (cli2arb_valid >> cur_client_num) | (cli2arb_valid << (CLIENTS - cur_client_num));
 	

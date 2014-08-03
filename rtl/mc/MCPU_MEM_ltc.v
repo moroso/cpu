@@ -398,6 +398,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	 * opcodes */
 	always @(*) begin
 		mcsm_next = mcsm;
+		mcsm_ofs_next = mcsm_ofs;
 
 		ltc2mc_avl_burstbegin_0 = 1'b0;
 		ltc2mc_avl_size_0 = {5{1'bx}};
