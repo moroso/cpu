@@ -162,14 +162,16 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	assign rdfifo_pop   = arb2ltc_rvalid;
 	
+`ifndef BROKEN_ASSERTS
 	always @(posedge clkrst_mem_clk)
 		assert (!(rdfifo_pop && rdfifo_empty)) else $error("LTC returned more results than we have entries in FIFO");
+`endif
 	
 	assign rdfifo_wait  = sel_valid && sel_has_rdata && rdfifo_full;
 	
 	/* And route rdata back to clients. */
 	generate
-		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_rvalid[cli] = (rdfifo_rdata == cli[CLIENTS_BITS-1:0]) && arb2ltc_rvalid_1a;
+		for (cli = 0; cli < CLIENTS; cli = cli + 1) begin: rvalids assign cli2arb_rvalid[cli] = (rdfifo_rdata == cli[CLIENTS_BITS-1:0]) && arb2ltc_rvalid_1a; end
 	endgenerate
 	assign cli2arb_rdata = arb2ltc_rdata_1a;
 	
@@ -179,15 +181,15 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	 * in a generate block.  */
 	generate
 		assign sel_valid = cli2arb_valid[cur_client_num];
-		for (ii = 0; ii < 3; ii = ii + 1) assign sel_opcode[ii] = cli2arb_opcode[cur_client_num * 3 + ii];
-		for (ii = 0; ii < 27; ii = ii + 1) assign sel_addr[ii + 5] = cli2arb_addr[cur_client_num * 27 + ii];
-		for (ii = 0; ii < 256; ii = ii + 1) assign sel_wdata[ii] = cli2arb_wdata[cur_client_num * 256 + ii];
-		for (ii = 0; ii < 32; ii = ii + 1) assign sel_wbe[ii] = cli2arb_wbe[cur_client_num * 32 + ii];
+		for (ii = 0; ii < 3; ii = ii + 1) begin: opcodes assign sel_opcode[ii] = cli2arb_opcode[cur_client_num * 3 + ii]; end
+		for (ii = 0; ii < 27; ii = ii + 1) begin: addrs assign sel_addr[ii + 5] = cli2arb_addr[cur_client_num * 27 + ii]; end
+		for (ii = 0; ii < 256; ii = ii + 1) begin: wdatas assign sel_wdata[ii] = cli2arb_wdata[cur_client_num * 256 + ii]; end
+		for (ii = 0; ii < 32; ii = ii + 1) begin: wbes assign sel_wbe[ii] = cli2arb_wbe[cur_client_num * 32 + ii]; end
 	endgenerate
 	
 	/* Now route stalls back to the selected client. */
 	generate
-		for (cli = 0; cli < CLIENTS; cli++) assign cli2arb_stall[cli] = ((cur_client_num != cli[CLIENTS_BITS-1:0]) || arb2ltc_stall || rdfifo_wait) && cli2arb_valid[cli];
+		for (cli = 0; cli < CLIENTS; cli = cli + 1) begin: stalls assign cli2arb_stall[cli] = ((cur_client_num != cli[CLIENTS_BITS-1:0]) || arb2ltc_stall || rdfifo_wait) && cli2arb_valid[cli]; end
 	endgenerate
 	
 	assign arb2ltc_valid = sel_valid && ~rdfifo_wait;

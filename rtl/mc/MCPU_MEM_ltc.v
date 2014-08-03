@@ -331,7 +331,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	/* Set write logic */
 	/* We have to generate for byte enables. */
 	generate
-		for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1)
+		for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1) begin: set_wr
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
 				end else begin
@@ -341,6 +341,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 						  resp_wr ? resp_data[ii*8+7:ii*8]
 						          : arb2ltc_wdata_0a[ii*8+7:ii*8];
 				end
+		end
 	endgenerate
 	
 	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
@@ -482,8 +483,10 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			resp_fill_end   = (resp_ofs == 3'd7);
 			read_filling_clr = (resp_ofs == 3'd7);
 			resp_ofs_next = resp_ofs + 1;
-			
+
+`ifndef BROKEN_ASSERTS
 			assert(!resp_rd) else $error("LTC write request from MC during read cycle");
+`endif
 		end
 		
 		if (resp_rd) begin
@@ -509,7 +512,9 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			if (resp_data_lo_latch)
 				resp_data_lo <= ltc2mc_avl_rdata_0;
 			
+`ifndef BROKEN_ASSERTS
 			assert (!(ltc2mc_avl_rdata_valid_0 && !(read_filling | read_filling_set))) else $error("ltc2mc avl response without filling?");
+`endif
 		end
 
 	/*** ***/
