@@ -233,8 +233,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg             rd_valid_1a;
 	wire [TAG_UPPER:TAG_LOWER] evicting_tag = set_evicting_tag[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
 	
-	reg [BITS_IN_ATOM-1:0] lines[(SETS * WAYS * ATOMS_PER_LINE)-1:0];
-	reg [BITS_IN_ATOM-1:0] line_rd_data_1a;
+	wire [BITS_IN_ATOM-1:0] line_rd_data_1a;
 	/* XXX: Probably should have rd and wr split out. */
 	wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr [SETS-1:0];
 	wire [SET_BITS-1 : 0] set_addr = resp_override ? resp_addr[SET_UPPER:SET_LOWER] : arb2ltc_addr_0a[SET_UPPER:SET_LOWER];
@@ -319,31 +318,24 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	endgenerate
 	
 	/* Set read logic */
-	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
-		if (~clkrst_mem_rst_n) begin
-			line_rd_data_1a <= 256'b0;
-		end else begin
-			if ((set_valid_0a[set_addr] && arb2ltc_is_read_0a) || /* arb2ltc path */
-			    (resp_rd) /* mc2ltc flush path */)
-				line_rd_data_1a <= lines[{set_addr, line_addr[set_addr]}];
-		end
-	
-	/* Set write logic */
-	/* We have to generate for byte enables. */
-	generate
-		for (ii = 0; ii < BYTES_IN_ATOM; ii = ii + 1) begin: set_wr
-			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
-				if (~clkrst_mem_rst_n) begin
-				end else begin
-					if ((set_valid_0a[set_addr] && arb2ltc_is_write_0a && arb2ltc_wbe_0a[ii]) || /* arb2ltc path */
-					    (resp_wr)) /* mc2ltc refill path */
-						lines[{set_addr, line_addr[set_addr]}][ii*8+7:ii*8] <=
-						  resp_wr ? resp_data[ii*8+7:ii*8]
-						          : arb2ltc_wdata_0a[ii*8+7:ii*8];
-				end
-		end
-	endgenerate
-	
+	MCPU_MEM_LTC_bram #(
+		.DEPTH(WAYS * SETS * ATOMS_PER_LINE),
+		.DEPTH_BITS(WAYS_BITS + SET_BITS + ATOM_BITS),
+		.WIDTH_BYTES(BYTES_IN_ATOM))
+		u_bram(
+		.clkrst_mem_clk(clkrst_mem_clk),
+		
+		.raddr({set_addr, line_addr[set_addr]}),
+		.re((set_valid_0a[set_addr] && arb2ltc_is_read_0a) || /* arb2ltc path */
+		    (resp_rd)), /* mc2ltc flush path */
+		.rdata(line_rd_data_1a),
+		
+		.wbe(({BYTES_IN_ATOM{(set_valid_0a[set_addr] && arb2ltc_is_write_0a)}} & arb2ltc_wbe_0a) | /* arb2ltc path */
+		     {BYTES_IN_ATOM{resp_wr}}), /* mc2ltc refill path */
+		.waddr({set_addr, line_addr[set_addr]}),
+		.wdata(resp_wr ? resp_data : arb2ltc_wdata_0a)
+	);
+		
 	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
 	wire   dirty_0a = set_dirty_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
 	

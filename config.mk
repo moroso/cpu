@@ -5,6 +5,7 @@ RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/MCPU_int.v \
 	rtl/mc/MCPU_MEM_ltc.v \
+	rtl/mc/MCPU_MEM_LTC_bram.sv \
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/lib/FIFO.v \
