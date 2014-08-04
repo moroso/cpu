@@ -26,20 +26,20 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	/*** Portlist ***/
 	
 	/* LTC interface */
-	input           clkrst_mem_clk;
-	input           clkrst_mem_rst_n;
+	input               clkrst_mem_clk;
+	input               clkrst_mem_rst_n;
 	
-	input           arb2ltc_stall;
+	input               arb2ltc_stall;
 	
-	output          arb2ltc_valid;
-	output [2:0]    arb2ltc_opcode;
-	output [31:5]   arb2ltc_addr;
+	output reg          arb2ltc_valid;
+	output reg [2:0]    arb2ltc_opcode;
+	output reg [31:5]   arb2ltc_addr;
 	
-	output [255:0]  arb2ltc_wdata;
-	output [31:0]   arb2ltc_wbe;
+	output reg [255:0]  arb2ltc_wdata;
+	output reg [31:0]   arb2ltc_wbe;
 	
-	input  [255:0]  arb2ltc_rdata;
-	input           arb2ltc_rvalid;
+	input  [255:0]      arb2ltc_rdata;
+	input               arb2ltc_rvalid;
 	
 	/* Client interface */
 	output [CLIENTS-1:0]     cli2arb_stall; 
@@ -194,9 +194,21 @@ module MCPU_MEM_arb(/*AUTOARG*/
 		for (cli = 0; cli < CLIENTS; cli = cli + 1) begin: stalls assign cli2arb_stall[cli] = ((cur_client_num != cli[CLIENTS_BITS-1:0]) || arb2ltc_stall || rdfifo_wait) && cli2arb_valid[cli]; end
 	endgenerate
 	
-	assign arb2ltc_valid = sel_valid && ~rdfifo_wait;
-	assign arb2ltc_opcode = sel_opcode;
-	assign arb2ltc_addr = sel_addr;
-	assign arb2ltc_wdata = sel_wdata;
-	assign arb2ltc_wbe = sel_wbe;
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+		if (~clkrst_mem_rst_n) begin
+			arb2ltc_valid <= 0;
+			arb2ltc_opcode <= 3'b0;
+			arb2ltc_addr <= 27'b0;
+			arb2ltc_wdata <= 256'b0;
+			arb2ltc_wbe <= 32'b0;
+		end else begin
+			if (~arb2ltc_stall) begin
+				arb2ltc_valid <= sel_valid && ~rdfifo_wait;
+				arb2ltc_opcode <= sel_opcode;
+				arb2ltc_addr <= sel_addr;
+				arb2ltc_wdata <= sel_wdata;
+				arb2ltc_wbe <= sel_wbe;
+			end
+		end
+	end
 endmodule
