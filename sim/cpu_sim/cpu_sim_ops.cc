@@ -60,6 +60,9 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
         case OTHER_MULT:
             cpu.regs.r[rd.get()] = old_cpu.regs.r[rs.get()] * old_cpu.regs.r[rt.get()];
             break;
+        case OTHER_DIV:
+            cpu.regs.r[rd.get()] = old_cpu.regs.r[rs.get()] / old_cpu.regs.r[rt.get()];
+            break;
     }
 
     return false;
