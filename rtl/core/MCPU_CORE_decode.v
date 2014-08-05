@@ -4,7 +4,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
    d2pc_out_shift_amount, d2pc_out_oper_type, d2pc_out_rd_num,
    d2pc_out_rd_we, d2pc_out_pred_we, d2rf_rs_num, d2rf_rt_num,
    d2pc_out_sop, d2pc_out_lsu_offset, dep_stall, long_imm,
-   d2pc_out_invalid,
+   d2pc_out_invalid, d2pc_out_branchreg,
    // Inputs
    inst, preds, sb2d_reg_scoreboard, sb2d_pred_scoreboard,
    rf2d_rs_data, rf2d_rt_data, nextinst, prev_long_imm
@@ -31,6 +31,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
   output wire dep_stall;
   output reg long_imm;
   output reg d2pc_out_invalid;
+  output reg d2pc_out_branchreg;
 
   /* AUTOREG */
 
@@ -119,12 +120,13 @@ module MCPU_CORE_decode(/*AUTOARG*/
         d2pc_out_oper_type = OPER_TYPE_BRANCH;
         d2pc_out_rd_num = 5'd31;
         d2pc_out_rd_we = inst[25];
+        d2pc_out_branchreg = inst[26];
         if(inst[26]) begin // register
           depend_rs = 1;
-          d2pc_out_sop[23:4] = inst[24:5];
+          d2pc_out_sop[27:0] = {{8{inst[24]}}, inst[24:5]};
         end
         else //immediate
-          d2pc_out_sop[28:4] = inst[24:0];
+          d2pc_out_sop[27:0] = {{3{inst[24]}}, inst[24:0]};
       end
 
       else if(inst[24]) begin // other

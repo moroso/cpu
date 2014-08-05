@@ -39,6 +39,10 @@ module MCPU_core(/*AUTOARG*/
   /*AUTOREG*/
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
+  wire			d2pc_out_branchreg0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_branchreg1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_branchreg2;	// From d2 of MCPU_CORE_decode.v
+  wire			d2pc_out_branchreg3;	// From d3 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode0;// From d0 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode1;// From d1 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode2;// From d2 of MCPU_CORE_decode.v
@@ -120,6 +124,7 @@ module MCPU_core(/*AUTOARG*/
   wire [27:0] ft2f_in_virtpc /* verilator public */;
   wire [127:0] f2d_in_packet /* verilator public */;
   wire [27:0] f2d_in_virtpc;
+  wire d2pc_in_branchreg;
   wire [31:0] d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0;
   wire [31:0] d2pc_in_rs_data3, d2pc_in_rs_data2, d2pc_in_rs_data1, d2pc_in_rs_data0;
   wire d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0;
@@ -130,6 +135,7 @@ module MCPU_core(/*AUTOARG*/
   wire [5:0] d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0;
   wire [8:0] d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
   wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
+  wire [27:0] d2pc_in_virtpc;
   wire d2pc_out_invalid3;
 
   wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0;
@@ -162,14 +168,16 @@ module MCPU_core(/*AUTOARG*/
   assign pc2wb_readyin = 1; // this will also change as we add functional units after commit
   assign pc2wb_progress = pc2wb_readyout & pc2wb_readyin;
 
+  `include "oper_type.vh"
 
   //unimplemented control inputs
   wire pipe_flush, paging_on;
   wire [27:0] pc2ft_newpc;
-  assign pipe_flush = 0;
+  assign pipe_flush = d2pc_in_oper_type0 == OPER_TYPE_BRANCH;
   assign paging_on = 0;
 
-  assign pc2ft_newpc = 0;
+  assign pc2ft_newpc = d2pc_in_sop0[27:0] +
+         (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
 
 
   MCPU_CORE_regfile regs(/*AUTOINST*/
@@ -264,7 +272,7 @@ module MCPU_core(/*AUTOARG*/
 			      .ft2itlb_pagefault(ft2itlb_pagefault));
 
   register #(.WIDTH(49), .RESET_VAL(49'd0))
-           ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress}),
+           ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress & ~pipe_flush}),
                     .Q({ft2f_in_physpage, ft2f_in_virtpc, f_valid}),
                     .en(ft2f_progress),
                     /*AUTOINST*/
@@ -291,7 +299,7 @@ module MCPU_core(/*AUTOARG*/
 			  .ic2f_ready		(ic2f_ready));
 
   register #(.WIDTH(157), .RESET_VAL(157'd0))
-           f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid}),
+           f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush}),
                    .Q({f2d_in_packet, f2d_in_virtpc, dcd_valid}),
                    .en(f2d_progress),
                    /*AUTOINST*/
@@ -317,6 +325,7 @@ module MCPU_core(/*AUTOARG*/
     .dep_stall(dep_stall@[]),
     .long_imm(long_imm@[]),
     .d2pc_out_invalid(d2pc_out_invalid@[]),
+    .d2pc_out_branchreg(d2pc_out_branchreg@[]),
   );*/
 
 
@@ -341,6 +350,7 @@ module MCPU_core(/*AUTOARG*/
 		      .dep_stall	(dep_stall0),		 // Templated
 		      .long_imm		(long_imm0),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid0),	 // Templated
+		      .d2pc_out_branchreg(d2pc_out_branchreg0),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -368,6 +378,7 @@ module MCPU_core(/*AUTOARG*/
 		      .dep_stall	(dep_stall1),		 // Templated
 		      .long_imm		(long_imm1),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid1),	 // Templated
+		      .d2pc_out_branchreg(d2pc_out_branchreg1),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -395,6 +406,7 @@ module MCPU_core(/*AUTOARG*/
 		      .dep_stall	(dep_stall2),		 // Templated
 		      .long_imm		(long_imm2),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid2),	 // Templated
+		      .d2pc_out_branchreg(d2pc_out_branchreg2),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -423,6 +435,7 @@ module MCPU_core(/*AUTOARG*/
 		      .d2pc_out_lsu_offset(d2pc_out_lsu_offset3[11:0]), // Templated
 		      .dep_stall	(dep_stall3),		 // Templated
 		      .long_imm		(long_imm3),		 // Templated
+		      .d2pc_out_branchreg(d2pc_out_branchreg3),	 // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -436,7 +449,7 @@ module MCPU_core(/*AUTOARG*/
 
 
   // this is going to get even bigger when we add bits for non-ALU instruction types.
-  register #(.WIDTH(365), .RESET_VAL(365'd0)) // wheeeeeeeee
+  register #(.WIDTH(394), .RESET_VAL(394'd0)) // wheeeeeeeee
     d2pc_reg(
       .D({d2pc_out_sop3, d2pc_out_sop2, d2pc_out_sop1, d2pc_out_sop0,
           rf2d_rs_data3, rf2d_rs_data2, rf2d_rs_data1, rf2d_rs_data0,
@@ -448,7 +461,9 @@ module MCPU_core(/*AUTOARG*/
           d2pc_out_shift_amount3, d2pc_out_shift_amount2, d2pc_out_shift_amount1, d2pc_out_shift_amount0,
           d2pc_out_execute_opcode3, d2pc_out_execute_opcode2, d2pc_out_execute_opcode1, d2pc_out_execute_opcode0,
           d2pc_out_invalid3, d2pc_out_invalid2, d2pc_out_invalid1, d2pc_out_invalid0,
-          d2pc_progress & dcd_valid
+          d2pc_progress & dcd_valid & ~pipe_flush,
+          d2pc_out_branchreg0,
+          f2d_in_virtpc
         }),
       .Q({
           d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0,
@@ -461,13 +476,16 @@ module MCPU_core(/*AUTOARG*/
           d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0,
           d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0,
           d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0,
-          pc_valid
+          pc_valid,
+          d2pc_in_branchreg,
+          d2pc_in_virtpc
         }),
         .en(d2pc_progress),
         /*AUTOINST*/
 	     // Inputs
 	     .clkrst_core_clk		(clkrst_core_clk),
 	     .clkrst_core_rst_n		(clkrst_core_rst_n));
+
 
   /* MCPU_CORE_alu AUTO_TEMPLATE(
     .d2pc_in_rs_data(d2pc_in_rs_data@[]),

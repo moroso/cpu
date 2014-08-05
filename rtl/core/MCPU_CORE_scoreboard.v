@@ -41,14 +41,14 @@ module MCPU_CORE_scoreboard(/*AUTOARG*/
         end
         else begin
             sb2d_pred_scoreboard <= (sb2d_pred_scoreboard
-                                    | ({2'd0, d2pc_out_pred_we0 & d2pc_progress} << d2pc_out_rd_num0)
-                                    | ({2'd0, d2pc_out_pred_we1 & d2pc_progress} << d2pc_out_rd_num1)
-                                    | ({2'd0, d2pc_out_pred_we2 & d2pc_progress} << d2pc_out_rd_num2)
-                                    | ({2'd0, d2pc_out_pred_we3 & d2pc_progress} << d2pc_out_rd_num3))
-                                    & ~({2'd0, wb2rf_pred_we0} << wb2rf_rd_num0)
-                                    & ~({2'd0, wb2rf_pred_we1} << wb2rf_rd_num1)
-                                    & ~({2'd0, wb2rf_pred_we2} << wb2rf_rd_num2)
-                                    & ~({2'd0, wb2rf_pred_we3} << wb2rf_rd_num3);
+                                    | ({2'd0, d2pc_out_pred_we0 & d2pc_progress} << d2pc_out_rd_num0[1:0])
+                                    | ({2'd0, d2pc_out_pred_we1 & d2pc_progress} << d2pc_out_rd_num1[1:0])
+                                    | ({2'd0, d2pc_out_pred_we2 & d2pc_progress} << d2pc_out_rd_num2[1:0])
+                                    | ({2'd0, d2pc_out_pred_we3 & d2pc_progress} << d2pc_out_rd_num3[1:0]))
+                                    & ~({2'd0, wb2rf_pred_we0} << wb2rf_rd_num0[1:0])
+                                    & ~({2'd0, wb2rf_pred_we1} << wb2rf_rd_num1[1:0])
+                                    & ~({2'd0, wb2rf_pred_we2} << wb2rf_rd_num2[1:0])
+                                    & ~({2'd0, wb2rf_pred_we3} << wb2rf_rd_num3[1:0]);
 
             sb2d_reg_scoreboard <= (sb2d_reg_scoreboard | ({31'd0, d2pc_out_rd_we0 & d2pc_progress} << d2pc_out_rd_num0)
                                                         | ({31'd0, d2pc_out_rd_we1 & d2pc_progress} << d2pc_out_rd_num1)
