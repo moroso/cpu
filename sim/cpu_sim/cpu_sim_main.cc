@@ -2,6 +2,7 @@
 #include "cpu_sim_utils.h"
 
 #include <string.h>
+#include <unistd.h>
 
 cpu_t cpu;
 
@@ -122,41 +123,93 @@ void run_program() {
     }
 }
 
+enum run_mode_t {
+    MODE_DEFAULT = 0,
+    MODE_TEST,
+    MODE_RANDOM,
+    MODE_DIS,
+};
+
+run_mode_t mode;
+
+void usage(char *progname) {
+    fprintf(stderr, "usage: %s [-v] [-h|-t|-r|-d <0xNNNN>]\n", progname);
+}
+
 int main(int argc, char** argv) {
-    cpu.ram = (mem_t *)malloc(SIM_RAM_BYTES);
+    int c = 0;
+    opterr = 0;
+    char *dis_inst;
+    bool verbose = false;
 
-    if (argc > 1) {
-        if (!strcmp(argv[1], "random")) {
-            srand(0);
-            printf("Random instruction mode\n");
-            while(true) {
-                instruction instr = rand32();
-                printf("Disassembling single instruction %x (%u):\n", instr, instr);
-                shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
-                printf("%s\n\n\n", di->to_string().c_str());
-            }
+    while ((c = getopt(argc, argv, "vhtrd:")) != -1) {
+        switch (c) {
+            case 'v':
+                verbose = true;
+                break;
+            case 'h':
+                usage(argv[0]);
+                exit(0);
+            case 't':
+                mode = MODE_TEST;
+                break;
+            case 'r':
+                mode = MODE_RANDOM;
+                break;
+            case 'd':
+                mode = MODE_DIS;
+                dis_inst = optarg;
+                break;
+            case '?':
+                if (optopt == 'd') {
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                } else if (isprint(optopt)) {
+                    fprintf(stderr, "Unknown option '-%c'.\n", optopt);
+                } else {
+                    fprintf(stderr, "Unknown option character '\\x%x'.\n", optopt);
+                }
+                exit(1);
+            default:
+                abort();
         }
+    }
 
-        if (!strcmp(argv[1], "test")) {
-            printf("OSOROM simulator starting in test mode\n");
-
-            for (int i = 0; i < ROMLEN; ++i) {
-                printf("Running test program #%d\n", i);
-                bzero(cpu.ram, SIM_RAM_BYTES);
-                memcpy(cpu.ram, ROM[i], MAX_PROG_LEN);
-                run_program();
-            }
-
-            printf("OROSOM simulator terminating\n");
+    if (mode == MODE_RANDOM) {
+        srand(0);
+        printf("Random instruction mode\n");
+        while(true) {
+            instruction instr = rand32();
+            printf("Disassembling single instruction %x (%u):\n", instr, instr);
+            shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
+            printf("%s\n\n\n", di->to_string().c_str());
         }
+    }
 
-        instruction instr = strtoul(argv[1], 0, 0);
+    if (mode == MODE_DIS) {
+        instruction instr = strtoul(dis_inst, 0, 0);
         printf("Disassembling single instruction %x (%u):\n", instr, instr);
         shared_ptr<decoded_instruction> di = decoded_instruction::decode_instruction(instr);
         printf("%s\n", di->to_string().c_str());
         exit(0);
     }
 
+    cpu.ram = (mem_t *)malloc(SIM_RAM_BYTES);
+
+    if (mode == MODE_TEST) {
+        printf("OSOROM simulator starting in test mode\n");
+
+        for (int i = 0; i < ROMLEN; ++i) {
+            printf("Running test program #%d\n", i);
+            bzero(cpu.ram, SIM_RAM_BYTES);
+            memcpy(cpu.ram, ROM[i], MAX_PROG_LEN);
+            run_program();
+        }
+
+        printf("OROSOM simulator terminating\n");
+        exit(0);
+    }
+
+    // MODE_DEFAULT: Read program from stdin
 
     printf("OSOROM simulator starting\n");
 
