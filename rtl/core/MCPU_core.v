@@ -97,7 +97,6 @@ module MCPU_core(/*AUTOARG*/
   wire [127:0]		f2d_out_packet;		// From f of MCPU_CORE_stage_fetch.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
   wire [19:0]		ft2f_out_physpage;	// From ft of MCPU_CORE_stage_fetchtlb.v
-  wire [31:0]		pc2wb_out_result0;	// From alu0 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result1;	// From alu1 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result2;	// From alu2 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result3;	// From alu3 of MCPU_CORE_alu.v
@@ -498,9 +497,20 @@ module MCPU_core(/*AUTOARG*/
     .pc_alu_invalid(pc_alu_invalid@[]),
   );*/
 
-  MCPU_CORE_alu alu0(/*AUTOINST*/
+  wire [31:0] alu_result0;
+  wire [31:0] pc2wb_out_result0;
+  always @(/*AUTOSENSE*/OPER_TYPE_BRANCH or alu_result0
+	   or d2pc_in_oper_type0 or d2pc_in_virtpc) begin
+    case(d2pc_in_oper_type0)
+      OPER_TYPE_BRANCH: pc2wb_out_result0 = {d2pc_in_virtpc, 4'b0};
+      default: pc2wb_out_result0 = alu_result0;
+    endcase
+  end
+
+  MCPU_CORE_alu alu0(
+         .pc2wb_out_result(alu_result0[31:0]),
+         /*AUTOINST*/
 		     // Outputs
-		     .pc2wb_out_result	(pc2wb_out_result0[31:0]), // Templated
 		     .pc_alu_invalid	(pc_alu_invalid0),	 // Templated
 		     // Inputs
 		     .d2pc_in_rs_data	(d2pc_in_rs_data0[31:0]), // Templated
