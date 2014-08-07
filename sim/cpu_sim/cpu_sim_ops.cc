@@ -58,10 +58,38 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
             }
             break;
         case OTHER_MULT:
-            cpu.regs.r[rd.get()] = old_cpu.regs.r[rs.get()] * old_cpu.regs.r[rt.get()];
+            if (signd) {
+                int64_t rs_val = (int32_t)old_cpu.regs.r[rs.get()];
+                int64_t rt_val = (int32_t)old_cpu.regs.r[rt.get()];
+                uint64_t result = rs_val * rt_val;
+                cpu.regs.r[rd.get()] = result & 0xFFFFFFFF;
+                cpu.regs.ovf = result >> 32;
+            } else {
+                uint64_t rs_val = old_cpu.regs.r[rs.get()];
+                uint64_t rt_val = old_cpu.regs.r[rt.get()];
+                uint64_t result = rs_val * rt_val;
+                cpu.regs.r[rd.get()] = result & 0xFFFFFFFF;
+                cpu.regs.ovf = result >> 32;
+            }
             break;
         case OTHER_DIV:
-            cpu.regs.r[rd.get()] = old_cpu.regs.r[rs.get()] / old_cpu.regs.r[rt.get()];
+            if (signd) {
+                int32_t rs_val = old_cpu.regs.r[rs.get()];
+                int32_t rt_val = old_cpu.regs.r[rt.get()];
+                cpu.regs.r[rd.get()] = rs_val / rt_val;
+                cpu.regs.ovf = rs_val % rt_val;
+            } else {
+                uint32_t rs_val = old_cpu.regs.r[rs.get()];
+                uint32_t rt_val = old_cpu.regs.r[rt.get()];
+                cpu.regs.r[rd.get()] = rs_val / rt_val;
+                cpu.regs.ovf = rs_val % rt_val;
+            }
+            break;
+        case OTHER_MFHI:
+            cpu.regs.r[rd.get()] = old_cpu.regs.ovf;
+            break;
+        case OTHER_MTHI:
+            cpu.regs.ovf = old_cpu.regs.r[rs.get()];
             break;
     }
 
