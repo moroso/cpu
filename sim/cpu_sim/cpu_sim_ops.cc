@@ -149,15 +149,20 @@ bool alu_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t op1, op2;
 
     if (alu_binary()) {
+        // All 2-op forms use rs as the first operand.
         op1 = old_cpu.regs.r[rs.get().reg];
     }
 
+    // For 2-op forms, we are retrieving the second operand here; for 1-op forms, the only operand is called 'op2'.
     if (constant) {
+        // ALU short form
         op2 = constant.get();
     } else if (rs && alu_unary()) {
+        // ALU 1-op "regsh" (register shifted by register) form
         op2 = old_cpu.regs.r[rt.get().reg];
         op2 = shiftwith(op2, old_cpu.regs.r[rs.get().reg], stype.get());
     } else {
+        // ALU register form
         op2 = old_cpu.regs.r[rt.get().reg];
         op2 = shiftwith(op2, shiftamt.get(), stype.get());
     }
