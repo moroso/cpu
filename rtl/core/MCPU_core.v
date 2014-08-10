@@ -170,8 +170,9 @@ module MCPU_core(/*AUTOARG*/
   `include "oper_type.vh"
 
   //unimplemented control inputs
-  wire pipe_flush, paging_on;
+  wire pipe_flush, exception /* verilator public */, paging_on;
   wire [27:0] pc2ft_newpc;
+  assign exception = 0;
   assign pipe_flush = d2pc_in_oper_type0 == OPER_TYPE_BRANCH;
   assign paging_on = 0;
 
