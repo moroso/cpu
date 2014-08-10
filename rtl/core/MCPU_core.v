@@ -134,7 +134,7 @@ module MCPU_core(/*AUTOARG*/
   wire [5:0] d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0;
   wire [8:0] d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
   wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
-  wire [27:0] d2pc_in_virtpc;
+  wire [27:0] d2pc_in_virtpc /* verilator public */;
   wire d2pc_out_invalid3;
 
   wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0 /* verilator public */;
@@ -559,7 +559,10 @@ module MCPU_core(/*AUTOARG*/
   assign pc2wb_readyin = 1;
   assign pc2wb_readyout = pc_valid; // for now, PC always takes one cycle
 
-  wire [27:0] pc2wb_in_virtpc0, pc2wb_in_virtpc1, pc2wb_in_virtpc2, pc2wb_in_virtpc3 /* verilator public */;
+  wire [27:0] pc2wb_in_virtpc0 /* verilator public */;
+  wire [27:0] pc2wb_in_virtpc1 /* verilator public */;
+  wire [27:0] pc2wb_in_virtpc2 /* verilator public */;
+  wire [27:0] pc2wb_in_virtpc3 /* verilator public */;
 
   register #(.WIDTH(269), .RESET_VAL(269'b0)) pc2wb_reg(
     .D({
