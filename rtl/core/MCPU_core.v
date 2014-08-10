@@ -137,10 +137,10 @@ module MCPU_core(/*AUTOARG*/
   wire [27:0] d2pc_in_virtpc;
   wire d2pc_out_invalid3;
 
-  wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0;
-  wire [4:0] wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0;
-  wire wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0;
-  wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0;
+  wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0 /* verilator public */;
+  wire [4:0] wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0 /* verilator public */;
+  wire wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0 /* verilator public */;
+  wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0 /* verilator public */;
 
   //stage status signals
   wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */, wb_valid /* verilator public */;
@@ -559,20 +559,24 @@ module MCPU_core(/*AUTOARG*/
   assign pc2wb_readyin = 1;
   assign pc2wb_readyout = pc_valid; // for now, PC always takes one cycle
 
-  register #(.WIDTH(157), .RESET_VAL(157'b0)) pc2wb_reg(
+  wire [27:0] pc2wb_in_virtpc0, pc2wb_in_virtpc1, pc2wb_in_virtpc2, pc2wb_in_virtpc3 /* verilator public */;
+
+  register #(.WIDTH(269), .RESET_VAL(269'b0)) pc2wb_reg(
     .D({
       pc2wb_out_result3, pc2wb_out_result2, pc2wb_out_result1, pc2wb_out_result0,
       d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0,
       d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0,
       d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0,
-      pc2wb_progress & pc_valid
+      pc2wb_progress & pc_valid,
+      d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc
     }),
     .Q({
       wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0,
       wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0,
       wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0,
       wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0,
-      wb_valid
+      wb_valid,
+      pc2wb_in_virtpc0, pc2wb_in_virtpc1, pc2wb_in_virtpc2, pc2wb_in_virtpc3
     }),
     .en(pc2wb_progress),
     /*AUTOINST*/
