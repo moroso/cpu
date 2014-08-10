@@ -91,22 +91,44 @@ void dump_ram() {
     printf("\n");
 }
 
+void dump_regs(regs_t regs, bool verbose) {
+    if (verbose) {
+        printf("regs.pc = 0x%x\n", regs.pc);
+        printf("regs.r = { ");
+        for (int i = 0; i < 32; ++i) {
+            printf("0x%x, ", regs.r[i]);
+        }
+        printf("}\n");
+        printf("regs.p = { ");
+        for (int i = 0; i < 3; ++i) {
+            printf("%d, ", regs.p[i]);
+        }
+        printf("}\n");
+        printf("regs.ovf = 0x%x\n", regs.ovf);
+    } else {
+        printf("pc 0x%x ", regs.pc);
+        printf("r { ");
+        for (int i = 0; i < 32; ++i) {
+            printf("0x%x ", regs.r[i]);
+        }
+        printf("} ");
+        printf("p { ");
+        for (int i = 0; i < 3; ++i) {
+            printf("%d ", regs.p[i]);
+        }
+        printf("} ");
+        printf("ovf 0x%x", regs.ovf);
+
+        printf("\n");
+    }
+}
+
 void run_program() {
     instruction *mem = cpu.ram->code;
     cpu.regs.pc = 0x0;
 
     while(true) {
-        printf("cpu.regs.pc is now 0x%x\n", cpu.regs.pc);
-        printf("cpu.regs.r = { ");
-        for (int i = 0; i < 32; ++i) {
-            printf("%x, ", cpu.regs.r[i]);
-        }
-        printf("}\n");
-        printf("cpu.regs.p = { ");
-        for (int i = 0; i < 3; ++i) {
-            printf("%d, ", cpu.regs.p[i]);
-        }
-        printf("}\n");
+        dump_regs(cpu.regs, true);
         printf("RAM dump:\n");
         dump_ram();
         size_t instr_num = cpu.regs.pc/4;
@@ -117,6 +139,8 @@ void run_program() {
         printf("Executing packet...\n");
         if(packet.execute(cpu)) {
             printf("... BREAK 0x1FU -> end program\n");
+            printf("FINAL REGS: ");
+            dump_regs(cpu.regs, false);
             break;
         }
         printf("...done.\n");
