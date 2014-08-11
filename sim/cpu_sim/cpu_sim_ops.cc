@@ -91,6 +91,12 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
         case OTHER_MTHI:
             cpu.regs.ovf = old_cpu.regs.r[rs.get()];
             break;
+        case OTHER_MFC:
+            cpu.regs.r[rd.get()] = old_cpu.regs.cpr[rs.get()];
+            break;
+        case OTHER_MTC:
+            cpu.regs.cpu[rd.get()] = old_cpu.regs.r[rs.get()];
+            break;
     }
 
     return false;
