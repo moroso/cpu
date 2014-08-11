@@ -262,6 +262,7 @@ struct regs_t {
     uint32_t pc;
     bool link;
     uint32_t ovf;  // Mult/div overflow register
+    uint32_t cpr[32];
 };
 
 union mem_t {
