@@ -206,7 +206,7 @@ enum otherop_t {
     OTHER_FENCE,
     OTHER_ERET,
     OTHER_CPOP,
-    OTHER_MVC,
+    OTHER_MFC,
     OTHER_MTC,
     OTHER_MULT,
     OTHER_DIV,
@@ -263,6 +263,25 @@ struct regs_t {
     bool link;
     uint32_t ovf;  // Mult/div overflow register
     uint32_t cpr[32];
+    bool sys_kmode;  // 0 - kernel / 1 - user
+    bool int_enable;
+};
+
+enum cp_reg_t {
+    CP_PFLAGS,
+    CP_PTB,
+    CP_EHA,
+    CP_EPC,
+    CP_EC0,
+    CP_EC1,
+    CP_EC2,
+    CP_EC3,
+    CP_EA0,
+    CP_EA1,
+    CP_SP0 = 16,
+    CP_SP1,
+    CP_SP2,
+    CP_SP3
 };
 
 union mem_t {

@@ -95,7 +95,17 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
             cpu.regs.r[rd.get()] = old_cpu.regs.cpr[rs.get()];
             break;
         case OTHER_MTC:
-            cpu.regs.cpu[rd.get()] = old_cpu.regs.r[rs.get()];
+            cpu.regs.cpr[rd.get()] = old_cpu.regs.r[rs.get()];
+            break;
+        case OTHER_ERET:
+            if (!old_cpu.regs.sys_kmode) {
+                printf("XXX: Should be an exception (ERET in user mode)\n");
+                break;
+            }
+            cpu.regs.pc = old_cpu.regs.cpr[CP_EPC] & 0xFFFFFFF0;
+            cpu.regs.sys_kmode = old_cpu.regs.cpr[CP_EPC] & 0x01;
+            cpu.regs.int_enable = (old_cpu.regs.cpr[CP_EPC] & 0x02) >> 1;
+            cpu.regs.link = false;
             break;
     }
 
