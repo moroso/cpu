@@ -217,7 +217,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	wire         resp_override_0a = resp_wr_0a | resp_rd_0a;
 	reg          resp_override_1a;
 	reg          resp_fill_start_0a, resp_fill_end_0a;
-	reg   [31:5] resp_addr_0a;
+	wire  [31:5] resp_addr_0a;
 	wire [255:0] resp_data_0a;
 
 	/* XXX: evades, not solves race condition in write-vs-refill path... */
@@ -235,23 +235,43 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 
 	/*** Cache ways ***/
 	
-	/* Note that the ltc2mc/mc2ltc path always takes precedence.  So if
-	 * there's going to be an arb2ltc operation, you better nerf it if
-	 * we're doing an mc operation on the same cycle!
+	/* Note that the refill path always takes precedence.  So if there's
+	 * going to be an arb2ltc operation, you better nerf it if we're
+	 * doing an mc operation on the same cycle!  The address that we're
+	 * actually accessing on this cycle is given in addr; try to avoid
+	 * using resp_addr and arb2ltc_addr if you don't need them.
 	 */
+	wire [31:5] addr_0a = resp_override_0a ? resp_addr_0a : arb2ltc_addr_0a;
+	
+	/* We would use arb2ltc_addr to decide on the set, rather than addr,
+	 * because in LTCv1 the set that we're accessing is the same if
+	 * we're evicting or if we're not (given that the input is stalled
+	 * while we evict).  But, in LTCv2, arb2ltc_addr_0a may have "moved
+	 * on" as opposed to arb2ltc_addr_1a, which is what controls the
+	 * reload state machine.  So, even though it jacks up the critical
+	 * path in LTCv1, we're still using addr (instead of arb2ltc_addr)
+	 * to decide on the set.
+	 *
+	 * XXX: LTCv1 still uses arb2ltc_addr to avoid circular logic path
+	 */
+	wire [SET_BITS-1 : 0] set_0a = arb2ltc_addr_0a[SET_UPPER:SET_LOWER];
 	
 	wire [SETS-1:0] set_valid_0a;
 	wire [SETS-1:0] set_dirty_0a;
-	wire [TAG_UPPER:TAG_LOWER] set_evicting_tag_0a [SETS-1:0];
 	reg  [255:0]    rd_data_1a;
 	reg             rd_valid_0a;
 	reg             rd_valid_1a;
-	wire [TAG_UPPER:TAG_LOWER] evicting_tag_0a = set_evicting_tag_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]];
+
+	/* Mux out the tag that we're evicting, so that the refill path can
+	 * know about it.
+	 */
+	wire [TAG_UPPER:TAG_LOWER] set_evicting_tag_0a [SETS-1:0];
+	wire [TAG_UPPER:TAG_LOWER] evicting_tag_0a = set_evicting_tag_0a[set_0a];
 	
 	wire [BITS_IN_ATOM-1:0] line_rd_data_1a;
 	/* XXX: Probably should have rd and wr split out. */
-	wire [WAYS_BITS + ATOM_BITS - 1:0] line_addr_0a [SETS-1:0];
-	wire [SET_BITS-1 : 0] set_addr_0a = resp_override_0a ? resp_addr_0a[SET_UPPER:SET_LOWER] : arb2ltc_addr_0a[SET_UPPER:SET_LOWER];
+	wire [WAYS_BITS - 1 : 0] set_way_0a [SETS-1:0];
+	wire [WAYS_BITS - 1 : 0] way_0a = set_way_0a[set_0a];
 	
 	genvar set;
 	genvar way;
@@ -260,12 +280,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	generate
 		for (set = 0; set < SETS; set = set + 1) begin: set_gen
 			wire [WAYS-1:0] ways_match_0a;
-			reg [WAYS_BITS-1:0] way_0a;
+			reg [WAYS_BITS-1:0] way_active_0a;
 			reg [WAYS-1:0] way_valid_0a;
 			reg [WAYS-1:0] way_dirty_0a;
 			reg [WAYS_BITS-1:0] way_evicting_0a;
 			
-			wire set_selected_0a;
+			wire set_selected_0a = set_0a == set[SET_BITS-1:0];
 			
 			reg [TAG_UPPER:TAG_LOWER] way_tag [WAYS-1:0];
 			
@@ -287,17 +307,14 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			/* Way and RAM select logic */
 			assign set_valid_0a[set] = |(ways_match_0a & way_valid_0a);
 			always @(*) begin
-				way_0a = {WAYS_BITS{1'bx}};
+				way_active_0a = {WAYS_BITS{1'bx}};
 				for (i = 0; i < WAYS; i = i + 1)
 					if (ways_match_0a[i] && way_valid_0a[i])
-						way_0a = i[WAYS_BITS-1:0];
+						way_active_0a = i[WAYS_BITS-1:0];
+				if (resp_override_0a)
+					way_active_0a = way_evicting_0a;
 			end
-			/* XXX needs rd and wr split out */
-			assign set_selected_0a = set_addr_0a == set[SET_BITS-1:0];
-			
-			assign line_addr_0a[set] = 
-			  resp_override_0a ? {way_evicting_0a, resp_addr_0a[ATOM_UPPER:ATOM_LOWER]} 
-			                   : {way_0a, arb2ltc_addr_0a[ATOM_UPPER:ATOM_LOWER]};
+			assign set_way_0a[set] = way_active_0a;
 			
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
@@ -310,7 +327,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					end else if (set_selected_0a && resp_fill_end_0a) begin /* mc2ltc completion path */
 						way_valid_0a[way_evicting_0a] <= 1;
 					end else if (set_selected_0a && set_valid_0a[set] && arb2ltc_is_write_0a) /* arb2ltc path */
-						way_dirty_0a[way_0a] <= 1;
+						way_dirty_0a[way_active_0a] <= 1;
 				end
 			assign set_dirty_0a[set] = way_dirty_0a[way_evicting_0a];
 					
@@ -338,14 +355,14 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		u_bram(
 		.clkrst_mem_clk(clkrst_mem_clk),
 		
-		.raddr({set_addr_0a, line_addr_0a[set_addr_0a]}),
-		.re((set_valid_0a[set_addr_0a] && arb2ltc_is_read_0a) || /* arb2ltc path */
+		.raddr({set_0a, way_0a, addr_0a[ATOM_UPPER:ATOM_LOWER]}),
+		.re((set_valid_0a[set_0a] && arb2ltc_is_read_0a) || /* arb2ltc path */
 		    (resp_rd_0a)), /* mc2ltc flush path */
 		.rdata(line_rd_data_1a),
 		
-		.wbe(({BYTES_IN_ATOM{(set_valid_0a[set_addr_0a] && arb2ltc_is_write_0a)}} & arb2ltc_wbe_0a) | /* arb2ltc path */
+		.wbe(({BYTES_IN_ATOM{(set_valid_0a[set_0a] && arb2ltc_is_write_0a)}} & arb2ltc_wbe_0a) | /* arb2ltc path */
 		     {BYTES_IN_ATOM{resp_wr_0a}}), /* mc2ltc refill path */
-		.waddr({set_addr_0a, line_addr_0a[set_addr_0a]}),
+		.waddr({set_0a, way_0a, addr_0a[ATOM_UPPER:ATOM_LOWER]}),
 		.wdata(resp_wr_0a ? resp_data_0a : arb2ltc_wdata_0a)
 	);
 		
@@ -470,10 +487,11 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg            resp_data_lo_latch;
 	assign         resp_data_0a = {ltc2mc_avl_rdata_0, resp_data_lo};
 	
+	assign resp_addr_0a = resp_rd_0a ? {arb2ltc_addr[31:7], mcsm_ofs_next[2:1]}
+	                                 : {arb2ltc_addr[31:7], resp_ofs[2:1]};
 	
 	always @(*) begin
 		resp_wr_0a = 1'b0;
-		resp_addr_0a = {27{1'bx}};
 		resp_data_lo_latch = 0;
 		read_filling_clr = 0;
 		resp_fill_start_0a = 0;
@@ -482,7 +500,6 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		
 		if ((read_filling | read_filling_set) && ltc2mc_avl_rdata_valid_0) begin
 			resp_data_lo_latch = ~resp_ofs[0];
-			resp_addr_0a = {arb2ltc_addr[31:7], resp_ofs[2:1]};
 			resp_wr_0a = resp_ofs[0];
 			
 			resp_fill_start_0a = (resp_ofs == 3'd1);
@@ -493,10 +510,6 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 `ifndef BROKEN_ASSERTS
 			assert(!resp_rd_0a) else $error("LTC write request from MC during read cycle");
 `endif
-		end
-		
-		if (resp_rd_0a) begin
-			resp_addr_0a = {arb2ltc_addr[31:7], mcsm_ofs_next[2:1]};
 		end
 	end
 	
