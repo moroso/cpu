@@ -54,6 +54,10 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
                         // MAGIC_PRINT_R0
                         printf("R0 HAS VALUE %d (%x)\n", cpu.regs.r[0], cpu.regs.r[0]);
                         break;
+                    case 2:
+                        // MAGIC_PUTC_R0
+                        putchar(cpu.regs.r[0]);
+                        break;
                 }
             }
             break;
