@@ -56,7 +56,7 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
                         break;
                     case 2:
                         // MAGIC_PUTC_R0
-                        putchar(cpu.regs.r[0]);
+                        fputc(cpu.regs.r[0], stderr);
                         break;
                 }
             }
