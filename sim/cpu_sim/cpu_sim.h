@@ -11,7 +11,7 @@
 using std::shared_ptr;
 
 
-#define SIM_RAM_BYTES 64 * 1024  // Ought to be enough for anybody
+#define SIM_RAM_BYTES (1024 * 1024)
 
 
 // Set bit a through bit b (inclusive), as long as 0 <= a <= 31 and 0 <= b <= 31.
@@ -58,7 +58,7 @@ struct instruction_continuation {
 typedef boost::optional<instruction_continuation> instruction_result;
 
 struct instruction_commit {
-    // XXX either up to four registers to commit, OR an exception or interrupt. 
+    // XXX either up to four registers to commit, OR an exception or interrupt.
     // XXX don't forget about other things we might need to commit, such as:
     // - link flag
     // - extra-maths register (for div and mul)
