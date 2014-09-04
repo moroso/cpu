@@ -82,7 +82,7 @@ void dump_ram_at(uint32_t addr, uint32_t highlight_addr) {
 }
 
 void dump_ram() {
-    const size_t STACK_BASE = 0x1000;
+    const size_t STACK_BASE = 0x80000;
     printf("First %zu bytes of RAM:\n", PRINT_LEN);
     dump_ram_at(0, 0xffffffff);
     printf("\n");
