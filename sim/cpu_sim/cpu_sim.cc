@@ -221,10 +221,17 @@ bool decoded_instruction::predicate_ok(cpu_t &cpu) {
     }
 }
 
-bool decoded_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+bool decoded_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+    // Unimplemented; override in subclasses
     return false;
 }
 
+bool decoded_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+    if (!predicate_ok(old_cpu)) {
+        return false;
+    }
+    return this->execute_unconditional(cpu, old_cpu);
+}
 
 std::string decoded_packet::to_string() {
     std::ostringstream result;

@@ -38,11 +38,7 @@ std::string other_instruction::to_string() {
     return result;
 }
 
-bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
-    if (!predicate_ok(old_cpu)) {
-        return false;
-    }
-
+bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     switch (otherop) {
         case OTHER_BREAK:
             if (reserved_bits == 0x1FU) {
@@ -116,11 +112,7 @@ bool other_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     return false;
 }
 
-bool branch_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
-    if (!predicate_ok(old_cpu)) {
-        return false;
-    }
-
+bool branch_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t target;
     if (rs) {
         target = old_cpu.regs.r[rs.get().reg];
@@ -161,11 +153,7 @@ std::string alu_instruction::opcode_str() {
     return result;
 }
 
-bool alu_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
-    if (!predicate_ok(old_cpu)) {
-        return false;
-    }
-
+bool alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t op1, op2;
 
     if (alu_binary()) {
@@ -295,11 +283,7 @@ std::string loadstore_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + LSUOP_STR[lsuop];
 }
 
-bool loadstore_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
-    if (!predicate_ok(old_cpu)) {
-        return false;
-    }
-
+bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t addr_mask = ~(width - 1);
     uint32_t mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
 
