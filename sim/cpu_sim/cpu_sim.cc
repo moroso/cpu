@@ -269,6 +269,34 @@ bool decoded_packet::execute(cpu_t &cpu) {
     return false;
 }
 
+typedef uint32_t pd_entry_t;
+typedef uint32_t pt_entry_t;
+
+uint32_t virt_to_phys(uint32_t addr, const cpu_t &cpu) {
+    uint32_t pflags = cpu.regs.cpr[CP_PFLAGS];
+
+    if (!BIT(pflags, 1)) {
+        // Paging disabled.
+        return addr;
+    }
+
+    uint32_t pd_index = BITS(addr, 22, 10);
+    uint32_t pt_index = BITS(addr, 12, 10);
+    uint32_t page_offset = BITS(addr, 0, 12);
+
+    pd_entry_t *ptb = (pd_entry_t *)(cpu.ram + cpu.regs.ptbr);
+    pd_entry_t pd_entry = ptb[pd_index];
+
+    uint32_t pt_addr = BITS(pd_entry, 12, 17) << 12;
+
+    pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
+    pt_entry_t pt_entry = pt[pt_index];
+
+    uint32_t page_addr = BITS(pt_entry, 12, 17) << 12;
+
+    return page_addr + page_offset;
+}
+
 
 // These are for interfacing between the simulator and the 'outside world'. We have three modes:
 //   * In 'cmodel mode', we simulate the CPU, and interface with a mixed Verilog/C++ implementation of the rest of the

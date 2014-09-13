@@ -72,7 +72,7 @@ const size_t PRINT_LEN = 0x100;
 
 void dump_ram_at(uint32_t addr, uint32_t highlight_addr) {
     for (size_t i = addr; i < addr + PRINT_LEN; i += 4) {
-        uint32_t val = *(uint32_t *)(cpu.ram->data + i);
+        uint32_t val = *(uint32_t *)(cpu.ram + i);
         if (i == highlight_addr) {
             printf(">%08x<", val);
         } else {
@@ -124,16 +124,16 @@ void dump_regs(regs_t regs, bool verbose) {
 }
 
 void run_program() {
-    instruction *mem = cpu.ram->code;
     cpu.regs.pc = 0x0;
 
     while(true) {
+        instruction_packet *pkt = (instruction_packet *)(cpu.ram + virt_to_phys(cpu.regs.pc, cpu));
         dump_regs(cpu.regs, true);
         printf("RAM dump:\n");
         dump_ram();
         size_t instr_num = cpu.regs.pc/4;
-        printf("Packet is %x / %x / %x / %x\n", mem[instr_num], mem[instr_num+1], mem[instr_num+2], mem[instr_num+3]);
-        decoded_packet packet(&mem[instr_num]);
+        printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
+        decoded_packet packet(*pkt);
         printf("Packet looks like:\n");
         printf("%s", packet.to_string().c_str());
         printf("Executing packet...\n");
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
-    cpu.ram = (mem_t *)malloc(SIM_RAM_BYTES);
+    cpu.ram = (uint8_t *)malloc(SIM_RAM_BYTES);
 
     if (mode == MODE_TEST) {
         printf("OSOROM simulator starting in test mode\n");
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
     printf("OSOROM simulator starting\n");
 
     size_t i = 0;
-    while(read(STDIN_FILENO, &cpu.ram->data[i], 1) > 0) {
+    while(read(STDIN_FILENO, &cpu.ram[i], 1) > 0) {
         ++i;
         if (i >= SIM_RAM_BYTES) {
             printf("FATAL: Program larger than RAM\n");

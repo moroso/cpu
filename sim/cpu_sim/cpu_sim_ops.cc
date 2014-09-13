@@ -107,6 +107,8 @@ bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
             cpu.regs.int_enable = (old_cpu.regs.cpr[CP_EPC] & 0x02) >> 1;
             cpu.regs.link = false;
             break;
+        default:  // Silence warning
+            break;
     }
 
     return false;
@@ -286,6 +288,8 @@ std::string loadstore_instruction::opcode_str() {
 bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t addr_mask = ~(width - 1);
     uint32_t mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
+    // We know the operation won't cross a page boundary, because of alignment requirements.
+    mem_addr = virt_to_phys(mem_addr, old_cpu);
 
     if (store) {
         if (linked) {
@@ -302,7 +306,7 @@ bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
                 printf("FATAL: Load/store outside RAM\n");
                 abort();
             }
-            cpu.ram->data[mem_addr + i] = val & 0xFF;
+            cpu.ram[mem_addr + i] = val & 0xFF;
             val >>= 8;
         }
     } else {
@@ -316,7 +320,7 @@ bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
                 abort();
             }
             val <<= 8;
-            val += cpu.ram->data[mem_addr];
+            val += cpu.ram[mem_addr];
             mem_addr--;
         }
 

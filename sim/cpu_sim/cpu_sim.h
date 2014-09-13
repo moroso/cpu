@@ -265,6 +265,7 @@ struct regs_t {
     uint32_t cpr[32];
     bool sys_kmode;  // 0 - kernel / 1 - user
     bool int_enable;
+    uint32_t ptbr;  // Page table base register
 };
 
 enum cp_reg_t {
@@ -284,14 +285,9 @@ enum cp_reg_t {
     CP_SP3
 };
 
-union mem_t {
-    instruction code[];
-    uint8_t data[];
-};
-
 struct cpu_t {
     regs_t regs;
-    mem_t *ram;
+    uint8_t *ram;
 };
 
 struct decoded_instruction {
@@ -334,3 +330,5 @@ struct decoded_packet {
 
     bool execute(cpu_t &cpu);
 };
+
+uint32_t virt_to_phys(uint32_t addr, const cpu_t &cpu);
