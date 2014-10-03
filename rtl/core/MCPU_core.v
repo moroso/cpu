@@ -499,7 +499,7 @@ module MCPU_core(/*AUTOARG*/
   );*/
 
   wire [31:0] alu_result0;
-  wire [31:0] pc2wb_out_result0;
+  reg [31:0] pc2wb_out_result0;
   always @(/*AUTOSENSE*/OPER_TYPE_BRANCH or alu_result0
 	   or d2pc_in_oper_type0 or d2pc_in_virtpc) begin
     case(d2pc_in_oper_type0)
