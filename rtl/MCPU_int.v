@@ -150,16 +150,24 @@ module MCPU_int(/*AUTOARG*/
 			       .pre2arb_stall	(pre2arb_stall),
 			       .pre2arb_rvalid	(pre2arb_rvalid));
 
-	/* MCPU_MEM_arb AUTO_TEMPLATE(
-		.cli2arb_stall({pre2arb_stall, rdled_stall}),
-		.cli2arb_rvalid({pre2arb_rvalid, rdled_rvalid}),
-		
-		.cli2arb_valid({pre2arb_valid, rdled_valid}),
-		.cli2arb_opcode({pre2arb_opcode[2:0], rdled_opcode[2:0]}),
-		.cli2arb_addr({pre2arb_addr[31:5], rdled_addr[31:5]}),
-		.cli2arb_wdata({pre2arb_wdata[255:0], rdled_wdata[255:0]}),
-		.cli2arb_wbe({pre2arb_wbe[31:0], rdled_wbe[31:0]}),
-		); */
+    /* AUTO_LISP(defun client-signal (s)
+                    (let* ((signal (lambda (c) (concat c s))))
+                        (format "{ %s }" (mapconcat signal clients ", ")))) */
+
+    /* AUTO_LISP(setq clients (mapcar 'symbol-name '(
+                    pre2arb
+                    rdled))) */
+
+    /* MCPU_MEM_arb AUTO_TEMPLATE(
+		.cli2arb_stall  (@"(client-signal \"_stall\")"),
+		.cli2arb_rvalid (@"(client-signal \"_rvalid\")"),
+
+		.cli2arb_valid  (@"(client-signal \"_valid\")"),
+		.cli2arb_opcode (@"(client-signal \"_opcode[2:0]\")"),
+		.cli2arb_addr   (@"(client-signal \"_addr[31:5]\")"),
+		.cli2arb_wdata  (@"(client-signal \"_wdata[255:0]\")"),
+		.cli2arb_wbe    (@"(client-signal \"_wbe[31:0]\")"),
+        ); */
 	MCPU_MEM_arb #(.CLIENTS(2), .CLIENTS_BITS(1))
 		u_arb(/*AUTOINST*/
 		      // Outputs
@@ -168,20 +176,20 @@ module MCPU_int(/*AUTOARG*/
 		      .arb2ltc_addr	(arb2ltc_addr[31:5]),
 		      .arb2ltc_wdata	(arb2ltc_wdata[255:0]),
 		      .arb2ltc_wbe	(arb2ltc_wbe[31:0]),
-		      .cli2arb_stall	({pre2arb_stall, rdled_stall}), // Templated
+		      .cli2arb_stall	({ pre2arb_stall, rdled_stall }), // Templated
 		      .cli2arb_rdata	(cli2arb_rdata[255:0]),
-		      .cli2arb_rvalid	({pre2arb_rvalid, rdled_rvalid}), // Templated
+		      .cli2arb_rvalid	({ pre2arb_rvalid, rdled_rvalid }), // Templated
 		      // Inputs
 		      .clkrst_mem_clk	(clkrst_mem_clk),
 		      .clkrst_mem_rst_n	(clkrst_mem_rst_n),
 		      .arb2ltc_stall	(arb2ltc_stall),
 		      .arb2ltc_rdata	(arb2ltc_rdata[255:0]),
 		      .arb2ltc_rvalid	(arb2ltc_rvalid),
-		      .cli2arb_valid	({pre2arb_valid, rdled_valid}), // Templated
-		      .cli2arb_opcode	({pre2arb_opcode[2:0], rdled_opcode[2:0]}), // Templated
-		      .cli2arb_addr	({pre2arb_addr[31:5], rdled_addr[31:5]}), // Templated
-		      .cli2arb_wdata	({pre2arb_wdata[255:0], rdled_wdata[255:0]}), // Templated
-		      .cli2arb_wbe	({pre2arb_wbe[31:0], rdled_wbe[31:0]})); // Templated
+		      .cli2arb_valid	({ pre2arb_valid, rdled_valid }), // Templated
+		      .cli2arb_opcode	({ pre2arb_opcode[2:0], rdled_opcode[2:0] }), // Templated
+		      .cli2arb_addr	({ pre2arb_addr[31:5], rdled_addr[31:5] }), // Templated
+		      .cli2arb_wdata	({ pre2arb_wdata[255:0], rdled_wdata[255:0] }), // Templated
+		      .cli2arb_wbe	({ pre2arb_wbe[31:0], rdled_wbe[31:0] })); // Templated
 
 	MCPU_MEM_ltc u_ltc(/*AUTOINST*/
 			   // Outputs
