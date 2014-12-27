@@ -39,6 +39,14 @@ module MCPU_core(/*AUTOARG*/
   /*AUTOREG*/
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
+  wire [4:0]		combined_ec0;		// From exn_encode of MCPU_CORE_exn_encode.v
+  wire [4:0]		combined_ec1;		// From exn_encode of MCPU_CORE_exn_encode.v
+  wire [4:0]		combined_ec2;		// From exn_encode of MCPU_CORE_exn_encode.v
+  wire [4:0]		combined_ec3;		// From exn_encode of MCPU_CORE_exn_encode.v
+  wire			coproc_branch;		// From coproc of MCPU_CORE_coproc.v
+  wire [27:0]		coproc_branchaddr;	// From coproc of MCPU_CORE_coproc.v
+  wire			coproc_rd_we;		// From coproc of MCPU_CORE_coproc.v
+  wire [31:0]		coproc_reg_result;	// From coproc of MCPU_CORE_coproc.v
   wire			d2pc_out_branchreg0;	// From d0 of MCPU_CORE_decode.v
   wire			d2pc_out_branchreg1;	// From d1 of MCPU_CORE_decode.v
   wire			d2pc_out_branchreg2;	// From d2 of MCPU_CORE_decode.v
@@ -96,7 +104,9 @@ module MCPU_core(/*AUTOARG*/
   wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
   wire [127:0]		f2d_out_packet;		// From f of MCPU_CORE_stage_fetch.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
+  wire			ft2f_out_inst_pf;	// From ft of MCPU_CORE_stage_fetchtlb.v
   wire [19:0]		ft2f_out_physpage;	// From ft of MCPU_CORE_stage_fetchtlb.v
+  wire			interrupts_enabled;	// From coproc of MCPU_CORE_coproc.v
   wire [31:0]		pc2wb_out_result1;	// From alu1 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result2;	// From alu2 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result3;	// From alu3 of MCPU_CORE_alu.v
@@ -115,14 +125,17 @@ module MCPU_core(/*AUTOARG*/
   wire [31:0]		rf2d_rt_data3;		// From regs of MCPU_CORE_regfile.v
   wire [2:0]		sb2d_pred_scoreboard;	// From sb of MCPU_CORE_scoreboard.v
   wire [31:0]		sb2d_reg_scoreboard;	// From sb of MCPU_CORE_scoreboard.v
+  wire			user_mode;		// From coproc of MCPU_CORE_coproc.v
   // End of automatics
 
   // wires that get missed because they're not module outputs :/
   wire [27:0] ft2f_out_virtpc /* verilator public */;  // From ft of stage_fetchtlb.v
   wire [19:0] ft2f_in_physpage /* verilator public */;
   wire [27:0] ft2f_in_virtpc /* verilator public */;
+  wire ft2f_in_inst_pf;
   wire [127:0] f2d_in_packet /* verilator public */;
   wire [27:0] f2d_in_virtpc;
+  wire f2d_in_inst_pf;
   wire d2pc_in_branchreg;
   wire [31:0] d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0;
   wire [31:0] d2pc_in_rs_data3, d2pc_in_rs_data2, d2pc_in_rs_data1, d2pc_in_rs_data0;
@@ -135,6 +148,8 @@ module MCPU_core(/*AUTOARG*/
   wire [8:0] d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
   wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
   wire [27:0] d2pc_in_virtpc /* verilator public */;
+  wire d2pc_in_inst_pf;
+  wire [4:0] d2pc_in_rs_num0;
   wire d2pc_out_invalid3;
 
   wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0 /* verilator public */;
@@ -173,11 +188,12 @@ module MCPU_core(/*AUTOARG*/
   wire pipe_flush, exception /* verilator public */, paging_on;
   wire [27:0] pc2ft_newpc;
   assign exception = 0;
-  assign pipe_flush = d2pc_in_oper_type0 == OPER_TYPE_BRANCH;
+  assign pipe_flush = d2pc_in_oper_type0 == OPER_TYPE_BRANCH | coproc_branch;
   assign paging_on = 0;
 
-  assign pc2ft_newpc = d2pc_in_sop0[27:0] +
-         (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
+  wire [27:0] branch_newpc = d2pc_in_sop0[27:0] +
+              (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
+  assign pc2ft_newpc = coproc_branch ? coproc_branchaddr : branch_newpc;
 
 
   MCPU_CORE_regfile regs(/*AUTOINST*/
@@ -250,7 +266,9 @@ module MCPU_core(/*AUTOARG*/
 			  .d2pc_out_pred_we1	(d2pc_out_pred_we1),
 			  .d2pc_out_pred_we2	(d2pc_out_pred_we2),
 			  .d2pc_out_pred_we3	(d2pc_out_pred_we3),
-			  .d2pc_progress	(d2pc_progress));
+			  .d2pc_progress	(d2pc_progress),
+			  .exception		(exception),
+			  .pipe_flush		(pipe_flush));
 
   /* Pipeline! */
   MCPU_CORE_stage_fetchtlb ft(/*AUTOINST*/
@@ -258,6 +276,7 @@ module MCPU_core(/*AUTOARG*/
 			      .ft2f_done	(ft2f_done),
 			      .ft2f_out_physpage(ft2f_out_physpage[19:0]),
 			      .ft2f_out_virtpc	(ft2f_out_virtpc[27:0]),
+			      .ft2f_out_inst_pf	(ft2f_out_inst_pf),
 			      .ft2itlb_valid	(ft2itlb_valid),
 			      .ft2itlb_virtpage	(ft2itlb_virtpage[19:0]),
 			      // Inputs
@@ -271,9 +290,9 @@ module MCPU_core(/*AUTOARG*/
 			      .ft2itlb_physpage	(ft2itlb_physpage[19:0]),
 			      .ft2itlb_pagefault(ft2itlb_pagefault));
 
-  register #(.WIDTH(49), .RESET_VAL(49'd0))
-           ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress & ~pipe_flush}),
-                    .Q({ft2f_in_physpage, ft2f_in_virtpc, f_valid}),
+  register #(.WIDTH(50), .RESET_VAL(50'd0))
+           ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress & ~pipe_flush, ft2f_out_inst_pf}),
+                    .Q({ft2f_in_physpage, ft2f_in_virtpc, f_valid, ft2f_in_inst_pf}),
                     .en(ft2f_progress),
                     /*AUTOINST*/
 		    // Inputs
@@ -298,9 +317,9 @@ module MCPU_core(/*AUTOARG*/
 			  .ic2f_packet		(ic2f_packet[127:0]),
 			  .ic2f_ready		(ic2f_ready));
 
-  register #(.WIDTH(157), .RESET_VAL(157'd0))
-           f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush}),
-                   .Q({f2d_in_packet, f2d_in_virtpc, dcd_valid}),
+  register #(.WIDTH(158), .RESET_VAL(158'd0))
+           f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush, ft2f_in_inst_pf}),
+                   .Q({f2d_in_packet, f2d_in_virtpc, dcd_valid, f2d_in_inst_pf}),
                    .en(f2d_progress),
                    /*AUTOINST*/
 		   // Inputs
@@ -449,7 +468,7 @@ module MCPU_core(/*AUTOARG*/
 
 
   // this is going to get even bigger when we add bits for non-ALU instruction types.
-  register #(.WIDTH(394), .RESET_VAL(394'd0)) // wheeeeeeeee
+  register #(.WIDTH(400), .RESET_VAL(400'd0)) // wheeeeeeeee
     d2pc_reg(
       .D({d2pc_out_sop3, d2pc_out_sop2, d2pc_out_sop1, d2pc_out_sop0,
           rf2d_rs_data3, rf2d_rs_data2, rf2d_rs_data1, rf2d_rs_data0,
@@ -463,7 +482,9 @@ module MCPU_core(/*AUTOARG*/
           d2pc_out_invalid3, d2pc_out_invalid2, d2pc_out_invalid1, d2pc_out_invalid0,
           d2pc_progress & dcd_valid & ~pipe_flush,
           d2pc_out_branchreg0,
-          f2d_in_virtpc
+          f2d_in_virtpc,
+          f2d_in_inst_pf,
+          d2rf_rs_num0
         }),
       .Q({
           d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0,
@@ -478,7 +499,9 @@ module MCPU_core(/*AUTOARG*/
           d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0,
           pc_valid,
           d2pc_in_branchreg,
-          d2pc_in_virtpc
+          d2pc_in_virtpc,
+          d2pc_in_inst_pf,
+          d2pc_in_rs_num0
         }),
         .en(d2pc_progress),
         /*AUTOINST*/
@@ -499,13 +522,20 @@ module MCPU_core(/*AUTOARG*/
   );*/
 
   wire [31:0] alu_result0;
-  reg [31:0] pc2wb_out_result0;
-
+  wire [31:0] pc2wb_out_result0;
   /* AUTO_CONSTANT ( OPER_TYPE_BRANCH ) */
-  always @(/*AUTOSENSE*/alu_result0 or d2pc_in_oper_type0
-	   or d2pc_in_virtpc) begin
+  /* AUTO_CONSTANT ( OPER_TYPE_OTHER ) */
+  wire pc2wb_out_rd_we0;
+  always @(/*AUTOSENSE*/OPER_TYPE_BRANCH or OPER_TYPE_OTHER
+	   or alu_result0 or coproc_rd_we or coproc_reg_result
+	   or d2pc_in_oper_type0 or d2pc_in_rd_we0 or d2pc_in_virtpc) begin
+    pc2wb_out_rd_we0 = d2pc_in_rd_we0;
     case(d2pc_in_oper_type0)
       OPER_TYPE_BRANCH: pc2wb_out_result0 = {d2pc_in_virtpc, 4'b0};
+      OPER_TYPE_OTHER: begin
+        pc2wb_out_result0 = coproc_reg_result;
+        pc2wb_out_rd_we0 = coproc_rd_we;
+      end
       default: pc2wb_out_result0 = alu_result0;
     endcase
   end
@@ -559,6 +589,80 @@ module MCPU_core(/*AUTOARG*/
 		     .d2pc_in_shift_type(d2pc_in_shift_type3[1:0]), // Templated
 		     .d2pc_in_shift_amount(d2pc_in_shift_amount3[5:0])); // Templated
 
+  wire pc_dup_rd = (d2pc_in_rd_we0 & d2pc_in_rd_we1 & (d2pc_in_rd_num0 == d2pc_in_rd_num1)) |
+                   (d2pc_in_rd_we0 & d2pc_in_rd_we2 & (d2pc_in_rd_num0 == d2pc_in_rd_num2)) |
+                   (d2pc_in_rd_we0 & d2pc_in_rd_we3 & (d2pc_in_rd_num0 == d2pc_in_rd_num3)) |
+                   (d2pc_in_rd_we1 & d2pc_in_rd_we2 & (d2pc_in_rd_num1 == d2pc_in_rd_num2)) |
+                   (d2pc_in_rd_we1 & d2pc_in_rd_we3 & (d2pc_in_rd_num3 == d2pc_in_rd_num3)) |
+                   (d2pc_in_rd_we2 & d2pc_in_rd_we3 & (d2pc_in_rd_num2 == d2pc_in_rd_num3));
+
+  wire pc_dup_pred = (d2pc_in_pred_we0 & d2pc_in_pred_we1 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num1[1:0])) |
+                   (d2pc_in_pred_we0 & d2pc_in_pred_we2 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num2[1:0])) |
+                   (d2pc_in_pred_we0 & d2pc_in_pred_we3 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num3[1:0])) |
+                   (d2pc_in_pred_we1 & d2pc_in_pred_we2 & (d2pc_in_rd_num1[1:0] == d2pc_in_rd_num2[1:0])) |
+                   (d2pc_in_pred_we1 & d2pc_in_pred_we3 & (d2pc_in_rd_num3[1:0] == d2pc_in_rd_num3[1:0])) |
+                   (d2pc_in_pred_we2 & d2pc_in_pred_we3 & (d2pc_in_rd_num2[1:0] == d2pc_in_rd_num3[1:0]));
+
+  wire pc_dup_dest = pc_dup_rd | pc_dup_pred;
+  wire pc_data_pf0 = 0;
+  wire pc_data_pf1 = 0;
+  wire pc_div_zero = 0;
+
+  wire pc_syscall = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0010);
+  wire pc_break = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0001);
+
+  MCPU_CORE_exn_encode exn_encode(/*AUTOINST*/
+				  // Outputs
+				  .combined_ec0		(combined_ec0[4:0]),
+				  .combined_ec1		(combined_ec1[4:0]),
+				  .combined_ec2		(combined_ec2[4:0]),
+				  .combined_ec3		(combined_ec3[4:0]),
+				  .exception		(exception),
+				  // Inputs
+				  .d2pc_in_inst_pf	(d2pc_in_inst_pf),
+				  .d2pc_in_invalid0	(d2pc_in_invalid0),
+				  .d2pc_in_invalid1	(d2pc_in_invalid1),
+				  .d2pc_in_invalid2	(d2pc_in_invalid2),
+				  .d2pc_in_invalid3	(d2pc_in_invalid3),
+				  .pc_dup_dest		(pc_dup_dest),
+				  .pc_data_pf0		(pc_data_pf0),
+				  .pc_data_pf1		(pc_data_pf1),
+				  .pc_div_zero		(pc_div_zero),
+				  .int_pending		(int_pending),
+				  .pc_syscall		(pc_syscall),
+				  .pc_break		(pc_break),
+				  .interrupts_enabled	(interrupts_enabled));
+
+  MCPU_CORE_coproc coproc(
+			  .coproc_instruction	(d2pc_in_oper_type0 == OPER_TYPE_OTHER),
+			  .mem_vaddr0		(0),
+			  .mem_vaddr1		(0), //TODO connect these
+        /*AUTOINST*/
+			  // Outputs
+			  .coproc_reg_result	(coproc_reg_result[31:0]),
+			  .coproc_rd_we		(coproc_rd_we),
+			  .user_mode		(user_mode),
+			  .paging_on		(paging_on),
+			  .interrupts_enabled	(interrupts_enabled),
+			  .coproc_branchaddr	(coproc_branchaddr[27:0]),
+			  .coproc_branch	(coproc_branch),
+			  // Inputs
+			  .clkrst_core_clk	(clkrst_core_clk),
+			  .clkrst_core_rst_n	(clkrst_core_rst_n),
+			  .d2pc_in_rs_data0	(d2pc_in_rs_data0[31:0]),
+			  .d2pc_in_sop0		(d2pc_in_sop0[31:0]),
+			  .d2pc_in_rs_num0	(d2pc_in_rs_num0[4:0]),
+			  .d2pc_in_rd_num0	(d2pc_in_rd_num0[4:0]),
+			  .d2pc_in_execute_opcode0(d2pc_in_execute_opcode0[8:0]),
+			  .combined_ec0		(combined_ec0[4:0]),
+			  .combined_ec1		(combined_ec1[4:0]),
+			  .combined_ec2		(combined_ec2[4:0]),
+			  .combined_ec3		(combined_ec3[4:0]),
+			  .int_type		(int_type[3:0]),
+			  .exception		(exception),
+			  .d2pc_in_virtpc	(d2pc_in_virtpc[27:0]));
+
+
   assign pc2wb_readyin = 1;
   assign pc2wb_readyout = pc_valid; // for now, PC always takes one cycle
 
@@ -571,7 +675,7 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2wb_out_result3, pc2wb_out_result2, pc2wb_out_result1, pc2wb_out_result0,
       d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0,
-      d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, d2pc_in_rd_we0,
+      d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, pc2wb_out_rd_we0,
       d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0,
       pc2wb_progress & pc_valid,
       d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc

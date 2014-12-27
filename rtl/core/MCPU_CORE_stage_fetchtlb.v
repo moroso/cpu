@@ -1,8 +1,8 @@
 
 module MCPU_CORE_stage_fetchtlb(/*AUTOARG*/
    // Outputs
-   ft2f_done, ft2f_out_physpage, ft2f_out_virtpc, ft2itlb_valid,
-   ft2itlb_virtpage,
+   ft2f_done, ft2f_out_physpage, ft2f_out_virtpc, ft2f_out_inst_pf,
+   ft2itlb_valid, ft2itlb_virtpage,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, ft2f_progress, pipe_flush,
    pc2ft_newpc, paging_on, ft2itlb_ready, ft2itlb_physpage,
@@ -17,6 +17,7 @@ module MCPU_CORE_stage_fetchtlb(/*AUTOARG*/
   input ft2f_progress; // need this to update PC
   output [19:0] ft2f_out_physpage;
   output [27:0] ft2f_out_virtpc;
+  output ft2f_out_inst_pf;
 
   /* Pipeline flush and redirect addr */
   input pipe_flush;
@@ -41,6 +42,8 @@ module MCPU_CORE_stage_fetchtlb(/*AUTOARG*/
   assign ft2itlb_valid = paging_on;
   assign ft2f_out_physpage = paging_on ? ft2itlb_physpage : ft2f_out_virtpc[27:8];
   assign ft2f_done = ~ft2itlb_valid | (ft2itlb_ready & ~pipe_flush);
+  assign ft2f_out_inst_pf = ft2itlb_pagefault;
+
 
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
     if(~clkrst_core_rst_n) begin

@@ -17,15 +17,15 @@ module TB_MCPU_core(/*AUTOARG*/
 
 	/*AUTOWIRE*/
 	// Beginning of automatic wires (for undeclared instantiated-module outputs)
-	wire [27:0]	f2ic_paddr /* verilator public */;		// From core of MCPU_core.v
-	wire		f2ic_valid /* verilator public */;		// From core of MCPU_core.v
+	wire [27:0]	f2ic_paddr;		// From core of MCPU_core.v
+	wire		f2ic_valid;		// From core of MCPU_core.v
 	wire		ft2itlb_pagefault;	// From tlb of MCPU_CACHE_tlb_dummy.v
 	wire [19:0]	ft2itlb_physpage;	// From tlb of MCPU_CACHE_tlb_dummy.v
 	wire		ft2itlb_ready;		// From tlb of MCPU_CACHE_tlb_dummy.v
 	wire		ft2itlb_valid;		// From core of MCPU_core.v
 	wire [19:0]	ft2itlb_virtpage;	// From core of MCPU_core.v
-	wire [127:0]	ic2f_packet /* verilator public */;		// From ic of MCPU_CACHE_ic_dummy.v
-	wire		ic2f_ready /* verilator public */;		// From ic of MCPU_CACHE_ic_dummy.v
+	wire [127:0]	ic2f_packet;		// From ic of MCPU_CACHE_ic_dummy.v
+	wire		ic2f_ready;		// From ic of MCPU_CACHE_ic_dummy.v
 	// End of automatics
 
 	wire int_pending = 0;

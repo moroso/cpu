@@ -18,7 +18,9 @@ RTL_COMMON = \
 	rtl/core/MCPU_CORE_regfile.v \
 	rtl/core/MCPU_CORE_scoreboard.v \
 	rtl/core/cache/MCPU_CACHE_ic_dummy.v \
-	rtl/core/cache/MCPU_CACHE_tlb_dummy.v
+	rtl/core/cache/MCPU_CACHE_tlb_dummy.v \
+	rtl/core/MCPU_CORE_coproc.v \
+	rtl/core/MCPU_CORE_exn_encode.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
@@ -35,7 +37,9 @@ RTL_INC = \
 	$(wildcard rtl/mc/lpddr2_phy/*.hex) \
 	rtl/mc/MCPU_MEM_ltc.vh \
 	rtl/lib/clog2.vh \
-	rtl/core/oper_type.vh
+	rtl/core/oper_type.vh \
+	rtl/core/exn_codes.vh
+
 
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu
