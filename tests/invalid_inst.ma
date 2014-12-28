@@ -9,11 +9,11 @@ handler:
 {r3 <- ec3; nop; nop; nop}
 {r5 <- epc; nop; nop; nop}
 {r8 <- r5 + 16; nop; nop; nop}
-{epc <- r8; nop; nop; nop}
 {r9 <- long; long 0xdeadbeef }
+{epc <- r8; nop; nop; nop}
 {eret; nop; nop; nop}
 
 after:
 {r6 <- 0xaf7; nop; nop; nop}
-{syscall}
+{long 0xd1000000}
 {r7 <- 0xead}
