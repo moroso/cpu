@@ -187,13 +187,13 @@ module MCPU_core(/*AUTOARG*/
   //unimplemented control inputs
   wire pipe_flush, exception /* verilator public */, paging_on;
   wire [27:0] pc2ft_newpc;
-  assign exception = 0;
-  assign pipe_flush = d2pc_in_oper_type0 == OPER_TYPE_BRANCH | coproc_branch;
+  assign pipe_flush = pc_valid & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
   assign paging_on = 0;
 
   wire [27:0] branch_newpc = d2pc_in_sop0[27:0] +
               (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
   assign pc2ft_newpc = coproc_branch ? coproc_branchaddr : branch_newpc;
+
 
 
   MCPU_CORE_regfile regs(/*AUTOINST*/
@@ -526,9 +526,9 @@ module MCPU_core(/*AUTOARG*/
   /* AUTO_CONSTANT ( OPER_TYPE_BRANCH ) */
   /* AUTO_CONSTANT ( OPER_TYPE_OTHER ) */
   wire pc2wb_out_rd_we0;
-  always @(/*AUTOSENSE*/OPER_TYPE_BRANCH or OPER_TYPE_OTHER
-	   or alu_result0 or coproc_rd_we or coproc_reg_result
-	   or d2pc_in_oper_type0 or d2pc_in_rd_we0 or d2pc_in_virtpc) begin
+  always @(/*AUTOSENSE*/alu_result0 or coproc_rd_we
+	   or coproc_reg_result or d2pc_in_oper_type0
+	   or d2pc_in_rd_we0 or d2pc_in_virtpc) begin
     pc2wb_out_rd_we0 = d2pc_in_rd_we0;
     case(d2pc_in_oper_type0)
       OPER_TYPE_BRANCH: pc2wb_out_result0 = {d2pc_in_virtpc, 4'b0};
@@ -593,14 +593,14 @@ module MCPU_core(/*AUTOARG*/
                    (d2pc_in_rd_we0 & d2pc_in_rd_we2 & (d2pc_in_rd_num0 == d2pc_in_rd_num2)) |
                    (d2pc_in_rd_we0 & d2pc_in_rd_we3 & (d2pc_in_rd_num0 == d2pc_in_rd_num3)) |
                    (d2pc_in_rd_we1 & d2pc_in_rd_we2 & (d2pc_in_rd_num1 == d2pc_in_rd_num2)) |
-                   (d2pc_in_rd_we1 & d2pc_in_rd_we3 & (d2pc_in_rd_num3 == d2pc_in_rd_num3)) |
+                   (d2pc_in_rd_we1 & d2pc_in_rd_we3 & (d2pc_in_rd_num1 == d2pc_in_rd_num3)) |
                    (d2pc_in_rd_we2 & d2pc_in_rd_we3 & (d2pc_in_rd_num2 == d2pc_in_rd_num3));
 
   wire pc_dup_pred = (d2pc_in_pred_we0 & d2pc_in_pred_we1 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num1[1:0])) |
                    (d2pc_in_pred_we0 & d2pc_in_pred_we2 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num2[1:0])) |
                    (d2pc_in_pred_we0 & d2pc_in_pred_we3 & (d2pc_in_rd_num0[1:0] == d2pc_in_rd_num3[1:0])) |
                    (d2pc_in_pred_we1 & d2pc_in_pred_we2 & (d2pc_in_rd_num1[1:0] == d2pc_in_rd_num2[1:0])) |
-                   (d2pc_in_pred_we1 & d2pc_in_pred_we3 & (d2pc_in_rd_num3[1:0] == d2pc_in_rd_num3[1:0])) |
+                   (d2pc_in_pred_we1 & d2pc_in_pred_we3 & (d2pc_in_rd_num1[1:0] == d2pc_in_rd_num3[1:0])) |
                    (d2pc_in_pred_we2 & d2pc_in_pred_we3 & (d2pc_in_rd_num2[1:0] == d2pc_in_rd_num3[1:0]));
 
   wire pc_dup_dest = pc_dup_rd | pc_dup_pred;
@@ -631,10 +631,11 @@ module MCPU_core(/*AUTOARG*/
 				  .int_pending		(int_pending),
 				  .pc_syscall		(pc_syscall),
 				  .pc_break		(pc_break),
-				  .interrupts_enabled	(interrupts_enabled));
+				  .interrupts_enabled	(interrupts_enabled),
+				  .pc_valid		(pc_valid));
 
   MCPU_CORE_coproc coproc(
-			  .coproc_instruction	(d2pc_in_oper_type0 == OPER_TYPE_OTHER),
+			  .coproc_instruction	(pc_valid & (d2pc_in_oper_type0 == OPER_TYPE_OTHER)),
 			  .mem_vaddr0		(0),
 			  .mem_vaddr1		(0), //TODO connect these
         /*AUTOINST*/

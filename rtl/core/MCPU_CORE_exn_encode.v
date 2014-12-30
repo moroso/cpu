@@ -5,7 +5,7 @@ module MCPU_CORE_exn_encode(/*AUTOARG*/
    d2pc_in_inst_pf, d2pc_in_invalid0, d2pc_in_invalid1,
    d2pc_in_invalid2, d2pc_in_invalid3, pc_dup_dest, pc_data_pf0,
    pc_data_pf1, pc_div_zero, int_pending, pc_syscall, pc_break,
-   interrupts_enabled
+   interrupts_enabled, pc_valid
    );
     
     input d2pc_in_inst_pf;
@@ -17,6 +17,7 @@ module MCPU_CORE_exn_encode(/*AUTOARG*/
     input pc_syscall;
     input pc_break;
     input interrupts_enabled;
+    input pc_valid;
 
     output [4:0] combined_ec0, combined_ec1, combined_ec2, combined_ec3;
     output exception;
@@ -27,7 +28,7 @@ module MCPU_CORE_exn_encode(/*AUTOARG*/
     wire exn1 = combined_ec1 != EXN_CODE_NOERR;
     wire exn2 = combined_ec2 != EXN_CODE_NOERR;
     wire exn3 = combined_ec3 != EXN_CODE_NOERR;
-    assign exception = exn0 | exn1 | exn2 | exn3;
+    assign exception = (exn0 | exn1 | exn2 | exn3) & pc_valid;
 
     always @(/*AUTOSENSE*/EXN_CODE_BREAK or EXN_CODE_DATA_PF
 	     or EXN_CODE_DIVZERO or EXN_CODE_DUP_DEST or EXN_CODE_ILL

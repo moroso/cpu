@@ -15,5 +15,5 @@ handler:
 
 after:
 {r6 <- 0xaf7; nop; nop; nop}
-{syscall}
+{syscall; r10 <- 1001}
 {r7 <- 0xead}
