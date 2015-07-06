@@ -125,6 +125,7 @@ void dump_regs(regs_t regs, bool verbose) {
 
 void run_program() {
     cpu.regs.pc = 0x0;
+    cpu.regs.sys_kmode = 1;
 
     while(true) {
         boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);

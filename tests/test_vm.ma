@@ -47,6 +47,6 @@ memcpy_loop:
 // 0x2000 -> 0x2fff: page table (flat mapped)
 // 0x3000 -> 0x3fff: maps to 0x0000
 
-pagedir:   { long 0x0000200d; }
-pagetab:   { long 0x0000000d; long 0x0000100d; long 0x0000200d; long 0x0000000d; }
+pagedir:   { long 0x00002003; }
+pagetab:   { long 0x00000003; long 0x00001003; long 0x00002003; long 0x00000003; }
 fourtytwo: { long 0x42424242; }

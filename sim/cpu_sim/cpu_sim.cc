@@ -296,16 +296,21 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
       return boost::none;
     uint32_t pt_addr = BITS(pd_entry, 12, 17) << 12;
     bool pd_write = BIT(pd_entry, 1);
+    bool pd_kmode = BIT(pd_entry, 2);
 
     pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
     pt_entry_t pt_entry = pt[pt_index];
 
     bool pt_present = BIT(pt_entry, 0);
-    printf("present2: %d\n", pt_present);
     if (!pt_present)
       return boost::none;
     uint32_t page_addr = BITS(pt_entry, 12, 17) << 12;
     bool pt_write = BIT(pt_entry, 1);
+    bool pt_kmode = BIT(pt_entry, 2);
+
+    if (!cpu.regs.sys_kmode && (pt_kmode || pd_kmode))
+      // Attempting to access kernel mode memory while in user mode.
+      return boost::none;
 
     if (store && !(pt_write && pd_write))
       // Attempting to write to a non-writable page.
