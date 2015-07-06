@@ -265,7 +265,6 @@ struct regs_t {
     uint32_t cpr[32];
     bool sys_kmode;  // 0 - kernel / 1 - user
     bool int_enable;
-    uint32_t ptbr;  // Page table base register
 };
 
 enum cp_reg_t {
@@ -331,4 +330,4 @@ struct decoded_packet {
     bool execute(cpu_t &cpu);
 };
 
-uint32_t virt_to_phys(uint32_t addr, const cpu_t &cpu);
+boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bool store);

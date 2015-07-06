@@ -272,8 +272,12 @@ bool decoded_packet::execute(cpu_t &cpu) {
 typedef uint32_t pd_entry_t;
 typedef uint32_t pt_entry_t;
 
-uint32_t virt_to_phys(uint32_t addr, const cpu_t &cpu) {
+boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bool store) {
+    /* Returns a boost::optional containing the physical address corresponding to the given
+     * virtual address, or none if this would cause a fault.
+     */
     uint32_t pflags = cpu.regs.cpr[CP_PFLAGS];
+    uint32_t ptbr = cpu.regs.cpr[CP_PTB];
 
     if (!BIT(pflags, 1)) {
         // Paging disabled.
@@ -284,15 +288,28 @@ uint32_t virt_to_phys(uint32_t addr, const cpu_t &cpu) {
     uint32_t pt_index = BITS(addr, 12, 10);
     uint32_t page_offset = BITS(addr, 0, 12);
 
-    pd_entry_t *ptb = (pd_entry_t *)(cpu.ram + cpu.regs.ptbr);
+    pd_entry_t *ptb = (pd_entry_t *)(cpu.ram + ptbr);
     pd_entry_t pd_entry = ptb[pd_index];
 
+    bool pd_present = BIT(pd_entry, 0);
+    if (!pd_present)
+      return boost::none;
     uint32_t pt_addr = BITS(pd_entry, 12, 17) << 12;
+    bool pd_write = BIT(pd_entry, 1);
 
     pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
     pt_entry_t pt_entry = pt[pt_index];
 
+    bool pt_present = BIT(pt_entry, 0);
+    printf("present2: %d\n", pt_present);
+    if (!pt_present)
+      return boost::none;
     uint32_t page_addr = BITS(pt_entry, 12, 17) << 12;
+    bool pt_write = BIT(pt_entry, 1);
+
+    if (store && !(pt_write && pd_write))
+      // Attempting to write to a non-writable page.
+      return boost::none;
 
     return page_addr + page_offset;
 }

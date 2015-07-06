@@ -127,7 +127,9 @@ void run_program() {
     cpu.regs.pc = 0x0;
 
     while(true) {
-        instruction_packet *pkt = (instruction_packet *)(cpu.ram + virt_to_phys(cpu.regs.pc, cpu));
+        boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
+        // TODO: fault here if necessary.
+        instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
         dump_regs(cpu.regs, true);
         printf("RAM dump:\n");
         dump_ram();

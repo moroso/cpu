@@ -289,7 +289,8 @@ bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t addr_mask = ~(width - 1);
     uint32_t mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
     // We know the operation won't cross a page boundary, because of alignment requirements.
-    mem_addr = virt_to_phys(mem_addr, old_cpu);
+    // TODO: check for a fault here.
+    mem_addr = *virt_to_phys(mem_addr, old_cpu, store);
 
     if (store) {
         if (linked) {
