@@ -263,7 +263,7 @@ struct regs_t {
     bool link;
     uint32_t ovf;  // Mult/div overflow register
     uint32_t cpr[32];
-    bool sys_kmode;  // 0 - kernel / 1 - user
+    bool sys_kmode;  // 1 - kernel / 0 - user
     bool int_enable;
 };
 
@@ -287,6 +287,49 @@ enum cp_reg_t {
 struct cpu_t {
     regs_t regs;
     uint8_t *ram;
+    bool halted;
+
+    // Clear all exception flags.
+    void clear_exceptions();
+};
+
+// order must match
+enum exception_t {
+    EXC_NO_ERROR,
+    EXC_PAGEFAULT_ON_FETCH,
+    EXC_ILLEGAL_INSTRUCTION,
+    EXC_INSUFFICIENT_PERMISSIONS,
+    EXC_DUPLICATE_DESTINATION,
+    EXC_PAGEFAULT_ON_DATA_ACCESS,
+    EXC_INVALID_PHYSICAL_ADDRESS,
+    EXC_DIVIDE_BY_ZERO,
+    EXC_INTERRUPT,
+    EXC_SYSCALL,
+    EXC_BREAK,
+
+    EXC_HALT, // Not something that happens on the real CPU; just to flag that we want to end the simulation.
+};
+
+struct mem_write_t {
+    uint32_t addr; // Note: physical address!
+    uint8_t width;
+    uint32_t val;
+};
+
+// Everything we need to know as a result of executing a single instruction.
+struct exec_result {
+    exception_t exception;
+    boost::optional<uint32_t> fault_address;
+    boost::optional<mem_write_t> mem_write;
+
+    exec_result() : exec_result(EXC_NO_ERROR) {}
+    exec_result(exception_t exception) : exception(exception), fault_address(boost::none), mem_write(boost::none) {}
+    exec_result(exception_t exception,
+                uint32_t addr,
+                uint8_t width,
+                uint32_t val) : exception(exception), fault_address(boost::none), mem_write({addr, width, val}) {}
+    exec_result(exception_t exception,
+                uint32_t fault_address) : exception(exception), fault_address(fault_address), mem_write(boost::none) {}
 };
 
 struct decoded_instruction {
@@ -313,11 +356,12 @@ struct decoded_instruction {
     virtual std::string opcode_str();
     virtual std::string to_string();
 
-    virtual bool execute(cpu_t &cpu, cpu_t &old_cpu);
+    virtual exec_result execute(cpu_t &cpu, cpu_t &old_cpu);
 
 protected:
     virtual bool predicate_ok(cpu_t &cpu);
-    virtual bool execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);  // Internal use (ignores predicate flags)
+    // Internal use (ignores predicate flags):
+    virtual exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct decoded_packet {

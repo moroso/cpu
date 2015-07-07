@@ -8,7 +8,7 @@ handler:
 {r2 <- ec2; nop; nop; nop}
 {r3 <- ec3; nop; nop; nop}
 {r5 <- epc; nop; nop; nop}
-{r8 <- r5 + 16; nop; nop; nop}
+{r8 <- r5 + 0x10; nop; nop; nop}
 {epc <- r8; nop; nop; nop}
 {r9 <- long; long 0xdeadbeef }
 {eret; nop; nop; nop}

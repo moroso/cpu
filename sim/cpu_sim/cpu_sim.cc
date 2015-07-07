@@ -221,14 +221,15 @@ bool decoded_instruction::predicate_ok(cpu_t &cpu) {
     }
 }
 
-bool decoded_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
-    // Unimplemented; override in subclasses
-    return false;
+exec_result decoded_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+    // Override in subclasses. If we hit this default implementation, it means we failed
+    // to decode the instruction.
+    return exec_result(EXC_ILLEGAL_INSTRUCTION);
 }
 
-bool decoded_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
+exec_result decoded_instruction::execute(cpu_t &cpu, cpu_t &old_cpu) {
     if (!predicate_ok(old_cpu)) {
-        return false;
+        return exec_result(EXC_NO_ERROR);
     }
     return this->execute_unconditional(cpu, old_cpu);
 }
@@ -244,9 +245,13 @@ std::string decoded_packet::to_string() {
 decoded_packet::decoded_packet(instruction_packet packet) {
     for (int i = 0; i < 4; ++i) {
         this->instr[i] = decoded_instruction::decode_instruction(packet[i]);
+        // TODO: enforce slots for other kinds of instructions.
         if (this->instr[i]->long_imm) {
             if (i == 3) {
-                printf("ERROR: Invalid long imm in slot 3! XXX (this should cause an exception)\n");
+                // There's a long in slot 3. Replace it with an invalid instruction to ensure that
+                // we cause an exception.
+                this->instr[i] = shared_ptr<decoded_instruction>(new decoded_instruction());
+                this->instr[i]->optype = INVALID_OP;
             } else {
                 this->instr[i]->constant = packet[i + 1];
                 ++i;
@@ -256,17 +261,70 @@ decoded_packet::decoded_packet(instruction_packet packet) {
     }
 }
 
+void cpu_t::clear_exceptions() {
+    for (int i = 0; i < 4; ++i)
+        regs.cpr[CP_EC0 + i] = 0;
+    for (int i = 0; i < 2; ++i)
+        regs.cpr[CP_EA0 + i] = 0;
+}
+
 bool decoded_packet::execute(cpu_t &cpu) {
     cpu_t old_cpu = cpu;
     cpu.regs.pc += 0x10;
+    boost::optional<mem_write_t> writes[2];
+    exec_result results[4];
+
+    bool exception = false;
 
     for (int i = 0; i < 4; ++i) {
-        if(this->instr[i]->execute(cpu, old_cpu)) {
-            return true;
+        results[i] = this->instr[i]->execute(cpu, old_cpu);
+        if (results[i].exception != EXC_NO_ERROR) {
+            // There was an exception. Clear error state in each lane.
+            // We'll write the exceptions into the appropriate registers later.
+            exception = true;
+            old_cpu.clear_exceptions();
+            break;
         }
     }
 
-    return false;
+    for (int i = 0; i < 4; ++i) {
+        if (results[i].exception == EXC_HALT) {
+            cpu.halted = true;
+            return false;
+        }
+        assert(i < 2 || !results[i].mem_write);
+        assert(results[i].exception == EXC_NO_ERROR || !results[i].mem_write);
+        if (results[i].exception == EXC_NO_ERROR && i < 2) {
+            writes[i] = results[i].mem_write;
+        }
+        if (results[i].exception != EXC_NO_ERROR) {
+            printf("Exception %d in slot %d\n", results[i].exception, i);
+            old_cpu.regs.cpr[CP_EC0 + i] = results[i].exception;
+            if (results[i].fault_address) {
+                assert(i < 2);
+                old_cpu.regs.cpr[CP_EA0 + i] = *results[i].fault_address;
+            }
+        }
+    }
+
+    if (exception) {
+        // Roll back the state. Note that error flags were all set in old_cpu,
+        // so we don't lose them.
+        cpu = old_cpu;
+    } else {
+        // Resolve all writes.
+        for (int i = 0; i < 2; ++i) {
+            if (writes[i]) {
+                mem_write_t mem_write = *writes[i];
+                // Note: error checking was already done.
+                for (int j = 0; j < mem_write.width; ++j) {
+                    cpu.ram[mem_write.addr + j] = mem_write.val & 0xFF;
+                    mem_write.val >>= 8;
+                }
+            }
+        }
+    }
+    return exception;
 }
 
 typedef uint32_t pd_entry_t;
@@ -292,8 +350,9 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
     pd_entry_t pd_entry = ptb[pd_index];
 
     bool pd_present = BIT(pd_entry, 0);
-    if (!pd_present)
-      return boost::none;
+    if (!pd_present) {
+        return boost::none;
+    }
     uint32_t pt_addr = BITS(pd_entry, 12, 17) << 12;
     bool pd_write = BIT(pd_entry, 1);
     bool pd_kmode = BIT(pd_entry, 2);
@@ -302,19 +361,22 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
     pt_entry_t pt_entry = pt[pt_index];
 
     bool pt_present = BIT(pt_entry, 0);
-    if (!pt_present)
-      return boost::none;
+    if (!pt_present) {
+        return boost::none;
+    }
     uint32_t page_addr = BITS(pt_entry, 12, 17) << 12;
     bool pt_write = BIT(pt_entry, 1);
     bool pt_kmode = BIT(pt_entry, 2);
 
-    if (!cpu.regs.sys_kmode && (pt_kmode || pd_kmode))
-      // Attempting to access kernel mode memory while in user mode.
-      return boost::none;
+    if (!cpu.regs.sys_kmode && (pt_kmode || pd_kmode)) {
+        // Attempting to access kernel mode memory while in user mode.
+        return boost::none;
+    }
 
-    if (store && !(pt_write && pd_write))
-      // Attempting to write to a non-writable page.
-      return boost::none;
+    if (store && !(pt_write && pd_write)) {
+        // Attempting to write to a non-writable page.
+        return boost::none;
+    }
 
     return page_addr + page_offset;
 }
@@ -337,3 +399,4 @@ std::queue<mem_read_event> instruction_fetch_queue;
 std::queue<mem_event> mem_request_queue[2];
 std::queue<mem_read_result> mem_result_queue[2];
 std::queue<instruction_commit> instruction_commit_queue;
+

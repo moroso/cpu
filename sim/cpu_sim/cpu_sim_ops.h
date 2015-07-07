@@ -7,6 +7,7 @@ struct no_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
+    exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct other_instruction : public decoded_instruction {
@@ -16,7 +17,7 @@ struct other_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
-    bool execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
+    exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct alu_instruction : public decoded_instruction {
@@ -30,7 +31,7 @@ struct alu_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
-    bool execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
+    exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct branch_instruction : public decoded_instruction {
@@ -38,7 +39,7 @@ struct branch_instruction : public decoded_instruction {
 
     std::string branchop_str();
     std::string opcode_str();
-    bool execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
+    exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
 struct loadstore_instruction : public decoded_instruction {
@@ -48,5 +49,5 @@ struct loadstore_instruction : public decoded_instruction {
     size_t width;
 
     std::string opcode_str();
-    bool execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
+    exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };

@@ -129,22 +129,41 @@ void run_program() {
 
     while(true) {
         boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
-        // TODO: fault here if necessary.
-        instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
-        dump_regs(cpu.regs, true);
-        printf("RAM dump:\n");
-        dump_ram();
-        size_t instr_num = cpu.regs.pc/4;
-        printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
-        decoded_packet packet(*pkt);
-        printf("Packet looks like:\n");
-        printf("%s", packet.to_string().c_str());
-        printf("Executing packet...\n");
-        if(packet.execute(cpu)) {
-            printf("... BREAK 0x1FU -> end program\n");
-            printf("FINAL REGS: ");
-            dump_regs(cpu.regs, false);
-            break;
+        // Note: no need for multiple checks, because packets can't cross page boundaries.
+
+        bool exc = false;
+        if (pc_phys) {
+            instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+            dump_regs(cpu.regs, true);
+            printf("RAM dump:\n");
+            dump_ram();
+            size_t instr_num = cpu.regs.pc/4;
+            printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
+            decoded_packet packet(*pkt);
+            printf("Packet looks like:\n");
+            printf("%s", packet.to_string().c_str());
+            printf("Executing packet...\n");
+            exc = packet.execute(cpu);
+            if (cpu.halted) {
+                printf("... BREAK 0x1FU -> end program\n");
+                printf("FINAL REGS: ");
+                dump_regs(cpu.regs, false);
+                break;
+            }
+        } else {
+            printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
+            cpu.clear_exceptions();
+            cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
+            exc = true;
+        }
+
+        if (exc) {
+            printf("EXCEPTION!!!!\n");
+            cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode | (cpu.regs.int_enable << 1);
+            // All other flags, if applicable, were set during the execution of the packet.
+            cpu.regs.pc = cpu.regs.cpr[CP_EHA];
+            cpu.regs.cpr[CP_PFLAGS] &= ~1; // Disable interrupts.
+            cpu.regs.sys_kmode = true;
         }
         printf("...done.\n");
     }

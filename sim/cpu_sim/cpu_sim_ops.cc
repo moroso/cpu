@@ -25,6 +25,10 @@ std::string no_instruction::to_string() {
     return string_format("- No instruction (long immediate: %x)\n", raw_instr);
 }
 
+exec_result no_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+    return exec_result(EXC_NO_ERROR);
+}
+
 std::string other_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + OTHEROP_STR[otherop];
 }
@@ -38,14 +42,16 @@ std::string other_instruction::to_string() {
     return result;
 }
 
-bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     switch (otherop) {
+        case OTHER_SYSCALL:
+            return exec_result(EXC_SYSCALL);
         case OTHER_BREAK:
             if (reserved_bits == 0x1FU) {
                 switch (cpu.regs.r[30]) {
                     case 0:
                         // MAGIC_HALT
-                        return true;
+                        return exec_result(EXC_HALT);
                     case 1:
                         // MAGIC_PRINT_R0
                         printf("R0 HAS VALUE %d (%x)\n", cpu.regs.r[0], cpu.regs.r[0]);
@@ -55,6 +61,8 @@ bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
                         fputc(cpu.regs.r[0], stderr);
                         break;
                 }
+            } else {
+                return exec_result(EXC_BREAK);
             }
             break;
         case OTHER_MULT:
@@ -76,6 +84,8 @@ bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
             if (signd) {
                 int32_t rs_val = old_cpu.regs.r[rs.get()];
                 int32_t rt_val = old_cpu.regs.r[rt.get()];
+                if (rt_val == 0)
+                    return exec_result(EXC_DIVIDE_BY_ZERO);
                 cpu.regs.r[rd.get()] = rs_val / rt_val;
                 cpu.regs.ovf = rs_val % rt_val;
             } else {
@@ -92,29 +102,32 @@ bool other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
             cpu.regs.ovf = old_cpu.regs.r[rs.get()];
             break;
         case OTHER_MFC:
+            if (!old_cpu.regs.sys_kmode)
+                return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
             cpu.regs.r[rd.get()] = old_cpu.regs.cpr[rs.get()];
             break;
         case OTHER_MTC:
+            if (!old_cpu.regs.sys_kmode)
+                return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
             cpu.regs.cpr[rd.get()] = old_cpu.regs.r[rs.get()];
             break;
         case OTHER_ERET:
-            if (!old_cpu.regs.sys_kmode) {
-                printf("XXX: Should be an exception (ERET in user mode)\n");
-                break;
-            }
+            if (!old_cpu.regs.sys_kmode)
+                return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
             cpu.regs.pc = old_cpu.regs.cpr[CP_EPC] & 0xFFFFFFF0;
             cpu.regs.sys_kmode = old_cpu.regs.cpr[CP_EPC] & 0x01;
             cpu.regs.int_enable = (old_cpu.regs.cpr[CP_EPC] & 0x02) >> 1;
             cpu.regs.link = false;
             break;
-        default:  // Silence warning
+        default:
+            return exec_result(EXC_ILLEGAL_INSTRUCTION);
             break;
     }
 
-    return false;
+    return exec_result(EXC_NO_ERROR);
 }
 
-bool branch_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+exec_result branch_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t target;
     if (rs) {
         target = old_cpu.regs.r[rs.get().reg];
@@ -129,7 +142,7 @@ bool branch_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
         cpu.regs.r[31] = old_cpu.regs.pc;
     }
 
-    return false;
+    return exec_result(EXC_NO_ERROR);
 }
 
 std::string branch_instruction::branchop_str() {
@@ -155,7 +168,7 @@ std::string alu_instruction::opcode_str() {
     return result;
 }
 
-bool alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+exec_result alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t op1, op2;
 
     if (alu_binary()) {
@@ -214,16 +227,14 @@ bool alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
                 result = (uint32_t)SIGN_EXTEND_32(op2, 16);
                 break;
             default:
-                result = 0;
-                printf("ERROR: Reserved instruction executed. XXX This should be an exception!\n");
-                break;
+                return exec_result(EXC_ILLEGAL_INSTRUCTION);
         }
 
         cpu.regs.r[rd.get().reg] = result;
     } else {
         if (pd.get().reg == 3) {
             printf("WARNING: Writes into P3 from compare instructions are ignored.\n");
-            return false;
+            return exec_result(EXC_NO_ERROR);
         }
         bool result;
         switch(cmpop.get()) {
@@ -249,15 +260,14 @@ bool alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
                 result = ~op1 & op2;
                 break;
             case CMP_RESV:
-                result = 0;
-                printf("ERROR: Reserved instruction executed. XXX This should be an exception!\n");
+                return exec_result(EXC_ILLEGAL_INSTRUCTION);
                 break;
         }
 
         cpu.regs.p[pd.get().reg] = result;
     }
 
-    return false;
+    return exec_result(EXC_NO_ERROR);
 }
 
 std::string alu_instruction::to_string() {
@@ -285,31 +295,43 @@ std::string loadstore_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + LSUOP_STR[lsuop];
 }
 
-bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
+exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     uint32_t addr_mask = ~(width - 1);
-    uint32_t mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
+    uint32_t virt_mem_addr = addr_mask & (old_cpu.regs.r[rs.get()] + offset.get());
     // We know the operation won't cross a page boundary, because of alignment requirements.
     // TODO: check for a fault here.
-    mem_addr = *virt_to_phys(mem_addr, old_cpu, store);
+    boost::optional<uint32_t> mem_addr_opt = virt_to_phys(virt_mem_addr, old_cpu, store);
+    if (!mem_addr_opt)
+        return exec_result(EXC_PAGEFAULT_ON_DATA_ACCESS, virt_mem_addr);
+
+    for (int i = 1; i < width; ++i) {
+        // Verify that all remaining bytes in this access are valid.
+        if (!virt_to_phys(virt_mem_addr + i, old_cpu, store))
+            return exec_result(EXC_PAGEFAULT_ON_DATA_ACCESS, virt_mem_addr);
+    }
+
+    uint32_t mem_addr = *mem_addr_opt;
 
     if (store) {
         if (linked) {
+            cpu.regs.p[0] = !cpu.regs.link;
+
             if (!cpu.regs.link) {
-                printf("ERROR: XXX should throw exception here\n");
-                return false;
+                return exec_result(EXC_NO_ERROR);
             }
+
+            cpu.regs.link = false;
         }
 
         uint32_t val = old_cpu.regs.r[rt.get()];
 
         for (int i = 0; i < width; ++i) {
-            if (mem_addr >= SIM_RAM_BYTES) {
-                printf("FATAL: Load/store outside RAM\n");
-                abort();
+            if (mem_addr + i >= SIM_RAM_BYTES) {
+                return exec_result(EXC_INVALID_PHYSICAL_ADDRESS, virt_mem_addr);
             }
-            cpu.ram[mem_addr + i] = val & 0xFF;
-            val >>= 8;
         }
+
+        return exec_result(EXC_NO_ERROR, mem_addr, width, val);
     } else {
         uint32_t val = 0;
         // Little-endian: copy starting at the msb
@@ -330,7 +352,7 @@ bool loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
         if (linked) {
             cpu.regs.link = true;
         }
-    }
 
-    return false;
+        return exec_result(EXC_NO_ERROR);
+    }
 }
