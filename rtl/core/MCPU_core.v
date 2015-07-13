@@ -170,15 +170,15 @@ module MCPU_core(/*AUTOARG*/
   assign ft2f_readyout = ft2f_done;
   assign ft2f_progress = ft2f_readyin & ft2f_readyout;
 
-  assign f2d_readyin = ~dcd_valid | d2pc_progress;
-  assign f2d_readyout = f_valid & f2d_done;
+  assign f2d_readyin = ~dcd_valid | (d2pc_progress & ~dcd_depstall);
+  assign f2d_readyout = ~f_valid | f2d_done;
   assign f2d_progress = f2d_readyout & f2d_readyin;
 
   assign d2pc_readyin = ~pc_valid | pc2wb_progress;
-  assign d2pc_readyout = dcd_valid & ~dcd_depstall;
+  assign d2pc_readyout = 1;
   assign d2pc_progress = d2pc_readyin & d2pc_readyout;
 
-  assign pc2wb_readyout = pc_valid; // this will get more complicated later
+  assign pc2wb_readyout = 1; // this will get more complicated later
   assign pc2wb_readyin = 1; // this will also change as we add functional units after commit
   assign pc2wb_progress = pc2wb_readyout & pc2wb_readyin;
 
@@ -235,7 +235,9 @@ module MCPU_core(/*AUTOARG*/
 			 .clkrst_core_clk	(clkrst_core_clk),
 			 .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  MCPU_CORE_scoreboard sb(/*AUTOINST*/
+  MCPU_CORE_scoreboard sb(
+        .d2pc_progress(d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall),
+        /*AUTOINST*/
 			  // Outputs
 			  .sb2d_reg_scoreboard	(sb2d_reg_scoreboard[31:0]),
 			  .sb2d_pred_scoreboard	(sb2d_pred_scoreboard[2:0]),
@@ -266,7 +268,6 @@ module MCPU_core(/*AUTOARG*/
 			  .d2pc_out_pred_we1	(d2pc_out_pred_we1),
 			  .d2pc_out_pred_we2	(d2pc_out_pred_we2),
 			  .d2pc_out_pred_we3	(d2pc_out_pred_we3),
-			  .d2pc_progress	(d2pc_progress),
 			  .exception		(exception),
 			  .pipe_flush		(pipe_flush));
 
@@ -480,7 +481,7 @@ module MCPU_core(/*AUTOARG*/
           d2pc_out_shift_amount3, d2pc_out_shift_amount2, d2pc_out_shift_amount1, d2pc_out_shift_amount0,
           d2pc_out_execute_opcode3, d2pc_out_execute_opcode2, d2pc_out_execute_opcode1, d2pc_out_execute_opcode0,
           d2pc_out_invalid3, d2pc_out_invalid2, d2pc_out_invalid1, d2pc_out_invalid0,
-          d2pc_progress & dcd_valid & ~pipe_flush,
+          d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall,
           d2pc_out_branchreg0,
           f2d_in_virtpc,
           f2d_in_inst_pf,
@@ -665,12 +666,15 @@ module MCPU_core(/*AUTOARG*/
 
 
   assign pc2wb_readyin = 1;
-  assign pc2wb_readyout = pc_valid; // for now, PC always takes one cycle
+  assign pc2wb_readyout = pc_valid & ~exception; // for now, PC always takes one cycle
 
   wire [27:0] pc2wb_in_virtpc0 /* verilator public */;
   wire [27:0] pc2wb_in_virtpc1 /* verilator public */;
   wire [27:0] pc2wb_in_virtpc2 /* verilator public */;
   wire [27:0] pc2wb_in_virtpc3 /* verilator public */;
+  wire pc2wb_in_rd_we0, pc2wb_in_rd_we1, pc2wb_in_rd_we2, pc2wb_in_rd_we3;
+  wire pc2wb_in_pred_we0, pc2wb_in_pred_we1, pc2wb_in_pred_we2, pc2wb_in_pred_we3;
+
 
   register #(.WIDTH(269), .RESET_VAL(269'b0)) pc2wb_reg(
     .D({
@@ -684,8 +688,8 @@ module MCPU_core(/*AUTOARG*/
     .Q({
       wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0,
       wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0,
-      wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0,
-      wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0,
+      pc2wb_in_rd_we3, pc2wb_in_rd_we2, pc2wb_in_rd_we1, pc2wb_in_rd_we0, 
+      pc2wb_in_pred_we3, pc2wb_in_pred_we2, pc2wb_in_pred_we1, pc2wb_in_pred_we0, 
       wb_valid,
       pc2wb_in_virtpc0, pc2wb_in_virtpc1, pc2wb_in_virtpc2, pc2wb_in_virtpc3
     }),
@@ -694,7 +698,16 @@ module MCPU_core(/*AUTOARG*/
 							// Inputs
 							.clkrst_core_clk(clkrst_core_clk),
 							.clkrst_core_rst_n(clkrst_core_rst_n));
+      
+  assign wb2rf_rd_we0 = pc2wb_in_rd_we0 & wb_valid;
+  assign wb2rf_rd_we1 = pc2wb_in_rd_we1 & wb_valid;
+  assign wb2rf_rd_we2 = pc2wb_in_rd_we2 & wb_valid;
+  assign wb2rf_rd_we3 = pc2wb_in_rd_we3 & wb_valid;
 
+  assign wb2rf_pred_we0 = pc2wb_in_pred_we0 & wb_valid;
+  assign wb2rf_pred_we1 = pc2wb_in_pred_we1 & wb_valid;
+  assign wb2rf_pred_we2 = pc2wb_in_pred_we2 & wb_valid;
+  assign wb2rf_pred_we3 = pc2wb_in_pred_we3 & wb_valid;
   //writeback stage doesn't actually have any logic yet, just scoreboard and regfile connections.
   //There will need to be arbitration for multiple register writes on a lane arriving in the same cycle.
 

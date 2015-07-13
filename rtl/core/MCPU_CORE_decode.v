@@ -173,7 +173,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
         d2pc_out_invalid = 1;
       end
 
-      else if(inst[23]) begin //shift
+      else if(inst[21]) begin //shift
         d2pc_out_oper_type = OPER_TYPE_ALU;
         depend_rs = 1;
         depend_rt = 1;
