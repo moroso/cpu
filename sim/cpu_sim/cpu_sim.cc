@@ -268,6 +268,34 @@ void cpu_t::clear_exceptions() {
         regs.cpr[CP_EA0 + i] = 0;
 }
 
+bool cpu_t::process_peripherals() {
+    bool interrupt_fired = false;
+    for (int i = 0; i < peripherals.size(); i++) {
+        if (peripherals[i]->process(*this)) {
+            interrupt_fired = true;
+        }
+    }
+
+    return interrupt_fired;
+}
+
+bool cpu_t::validate_write(uint32_t addr, uint32_t val, uint8_t width) {
+    for (int i = 0; i < peripherals.size(); i++)
+    {
+        if (peripherals[i]->check_write(*this, addr, val, width)) {
+            return true;
+        }
+    }
+
+    for (int i = 0; i < width; ++i) {
+        if (addr + i >= SIM_RAM_BYTES) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool decoded_packet::execute(cpu_t &cpu) {
     cpu_t old_cpu = cpu;
     cpu.regs.pc += 0x10;
@@ -316,10 +344,23 @@ bool decoded_packet::execute(cpu_t &cpu) {
         for (int i = 0; i < 2; ++i) {
             if (writes[i]) {
                 mem_write_t mem_write = *writes[i];
-                // Note: error checking was already done.
-                for (int j = 0; j < mem_write.width; ++j) {
-                    cpu.ram[mem_write.addr + j] = mem_write.val & 0xFF;
-                    mem_write.val >>= 8;
+                bool handled = false;
+                for (int i = 0; i < cpu.peripherals.size(); i++) {
+                    handled = cpu.peripherals[i]->write(cpu,
+                                                        mem_write.addr,
+                                                        mem_write.val,
+                                                        mem_write.width);
+                    if (handled) {
+                        printf("Write handled by %s\n", cpu.peripherals[i]->name().c_str());
+                        break;
+                    }
+                }
+                if (!handled) {
+                    // Note: error checking was already done.
+                    for (int j = 0; j < mem_write.width; ++j) {
+                        cpu.ram[mem_write.addr + j] = mem_write.val & 0xFF;
+                        mem_write.val >>= 8;
+                    }
                 }
             }
         }
@@ -337,7 +378,7 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
     uint32_t pflags = cpu.regs.cpr[CP_PFLAGS];
     uint32_t ptbr = cpu.regs.cpr[CP_PTB];
 
-    if (!BIT(pflags, 1)) {
+    if (!BIT(pflags, PFLAGS_PAGING_ENABLE)) {
         // Paging disabled.
         return addr;
     }

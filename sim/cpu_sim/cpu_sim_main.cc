@@ -1,5 +1,6 @@
 #include "cpu_sim.h"
 #include "cpu_sim_utils.h"
+#include "cpu_sim_peripherals.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -128,41 +129,48 @@ void run_program() {
     cpu.regs.sys_kmode = 1;
 
     while(true) {
-        boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
-        // Note: no need for multiple checks, because packets can't cross page boundaries.
-
+        bool interrupt = cpu.process_peripherals();
         bool exc = false;
-        if (pc_phys) {
-            instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
-            dump_regs(cpu.regs, true);
-            printf("RAM dump:\n");
-            dump_ram();
-            size_t instr_num = cpu.regs.pc/4;
-            printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
-            decoded_packet packet(*pkt);
-            printf("Packet looks like:\n");
-            printf("%s", packet.to_string().c_str());
-            printf("Executing packet...\n");
-            exc = packet.execute(cpu);
-            if (cpu.halted) {
-                printf("... BREAK 0x1FU -> end program\n");
-                printf("FINAL REGS: ");
-                dump_regs(cpu.regs, false);
-                break;
+        if (!interrupt) {
+            boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
+            // Note: no need for multiple checks, because packets can't cross page boundaries.
+
+            if (pc_phys) {
+                instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+                dump_regs(cpu.regs, true);
+                printf("RAM dump:\n");
+                dump_ram();
+                size_t instr_num = cpu.regs.pc/4;
+                printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
+                decoded_packet packet(*pkt);
+                printf("Packet looks like:\n");
+                printf("%s", packet.to_string().c_str());
+                printf("Executing packet...\n");
+                exc = packet.execute(cpu);
+                if (cpu.halted) {
+                    printf("... BREAK 0x1FU -> end program\n");
+                    printf("FINAL REGS: ");
+                    dump_regs(cpu.regs, false);
+                    break;
+                }
+            } else {
+                printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
+                cpu.clear_exceptions();
+                cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
+                exc = true;
             }
-        } else {
-            printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
-            cpu.clear_exceptions();
-            cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
-            exc = true;
         }
 
-        if (exc) {
-            printf("EXCEPTION!!!!\n");
-            cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode | (cpu.regs.int_enable << 1);
+        if (exc || interrupt) {
+            if (exc)
+                printf("EXCEPTION!!!!\n");
+            else
+                printf("INTERRUPT!!!!\n");
+            cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode
+                                               | (BIT(cpu.regs.cpr[CP_PFLAGS], PFLAGS_INT_ENABLE) << 1);
             // All other flags, if applicable, were set during the execution of the packet.
             cpu.regs.pc = cpu.regs.cpr[CP_EHA];
-            cpu.regs.cpr[CP_PFLAGS] &= ~1; // Disable interrupts.
+            cpu.regs.cpr[CP_PFLAGS] &= ~(1 << PFLAGS_INT_ENABLE);
             cpu.regs.sys_kmode = true;
         }
         printf("...done.\n");
@@ -240,6 +248,7 @@ int main(int argc, char** argv) {
     }
 
     cpu.ram = (uint8_t *)malloc(SIM_RAM_BYTES);
+    cpu.peripherals.push_back(new cycle_timer());
 
     if (mode == MODE_TEST) {
         printf("OSOROM simulator starting in test mode\n");

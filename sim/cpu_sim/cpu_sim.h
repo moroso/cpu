@@ -7,6 +7,7 @@
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
 
+#include "cpu_sim_peripherals.h"
 
 using std::shared_ptr;
 
@@ -264,7 +265,6 @@ struct regs_t {
     uint32_t ovf;  // Mult/div overflow register
     uint32_t cpr[32];
     bool sys_kmode;  // 1 - kernel / 0 - user
-    bool int_enable;
 };
 
 enum cp_reg_t {
@@ -284,13 +284,23 @@ enum cp_reg_t {
     CP_SP3
 };
 
+#define PFLAGS_INT_ENABLE 0
+#define PFLAGS_PAGING_ENABLE 1
+
 struct cpu_t {
     regs_t regs;
     uint8_t *ram;
     bool halted;
+    std::vector<peripheral*> peripherals;
 
     // Clear all exception flags.
     void clear_exceptions();
+
+    // Update all peripheral status, returning true if one fired.
+    bool process_peripherals();
+
+    // Tells us whether we consider the given physical address to be present for a write.
+    bool validate_write(uint32_t addr, uint32_t val, uint8_t width);
 };
 
 // order must match
@@ -308,6 +318,14 @@ enum exception_t {
     EXC_BREAK,
 
     EXC_HALT, // Not something that happens on the real CPU; just to flag that we want to end the simulation.
+};
+
+// order must match
+enum interrupt_t {
+    INT_TIMER,
+    INT_USB,
+    INT_FRAMEBUFFER,
+    INT_SD,
 };
 
 struct mem_write_t {

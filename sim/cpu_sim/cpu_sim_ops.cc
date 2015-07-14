@@ -116,7 +116,10 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
                 return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
             cpu.regs.pc = old_cpu.regs.cpr[CP_EPC] & 0xFFFFFFF0;
             cpu.regs.sys_kmode = old_cpu.regs.cpr[CP_EPC] & 0x01;
-            cpu.regs.int_enable = (old_cpu.regs.cpr[CP_EPC] & 0x02) >> 1;
+            if (BIT(old_cpu.regs.cpr[CP_EPC], 1))
+                cpu.regs.cpr[CP_PFLAGS] |= (1 << PFLAGS_INT_ENABLE);
+            else
+                cpu.regs.cpr[CP_PFLAGS] &= ~(1 << PFLAGS_INT_ENABLE);
             cpu.regs.link = false;
             break;
         default:
@@ -325,29 +328,47 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
 
         uint32_t val = old_cpu.regs.r[rt.get()];
 
-        for (int i = 0; i < width; ++i) {
-            if (mem_addr + i >= SIM_RAM_BYTES) {
-                return exec_result(EXC_INVALID_PHYSICAL_ADDRESS, virt_mem_addr);
-            }
-        }
+        if (!cpu.validate_write(mem_addr, val, width))
+            return exec_result(EXC_INVALID_PHYSICAL_ADDRESS, virt_mem_addr);
 
         return exec_result(EXC_NO_ERROR, mem_addr, width, val);
     } else {
-        uint32_t val = 0;
+        boost::optional<uint32_t> val = boost::none;
         // Little-endian: copy starting at the msb
         mem_addr += width - 1;
 
-        for (int i = 0; i < width; ++i) {
-            if (mem_addr >= SIM_RAM_BYTES) {
-                printf("FATAL: Load/store outside RAM\n");
-                abort();
+        for (int i = 0; i < cpu.peripherals.size(); i++) {
+            boost::optional<uint32_t> periph_val = cpu.peripherals[i]->read(cpu, mem_addr, width);
+            if (periph_val) {
+                printf("Read handled by %s\n", cpu.peripherals[i]->name().c_str());
+                cpu.regs.r[rd.get()] = *periph_val;
+                return exec_result(EXC_NO_ERROR);
             }
-            val <<= 8;
-            val += cpu.ram[mem_addr];
-            mem_addr--;
         }
 
-        cpu.regs.r[rd.get()] = val;
+        for (int i = 0; i < cpu.peripherals.size(); i++) {
+            boost::optional<uint32_t> result = cpu.peripherals[i]->read(cpu, mem_addr, width);
+            if (result) {
+                val = result;
+                break;
+            }
+        }
+
+        if (!val) {
+            uint32_t read_val = 0;
+            for (int i = 0; i < width; ++i) {
+                if (mem_addr >= SIM_RAM_BYTES) {
+                    printf("FATAL: Load/store outside RAM\n");
+                    abort();
+                }
+                read_val <<= 8;
+                read_val += cpu.ram[mem_addr];
+                mem_addr--;
+            }
+            val = read_val;
+        }
+
+        cpu.regs.r[rd.get()] = *val;
 
         if (linked) {
             cpu.regs.link = true;
