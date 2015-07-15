@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/optional/optional.hpp>
+#include <SDL/SDL.h>
 #include "cpu_sim.h"
 
 struct cpu_t;
@@ -44,3 +45,27 @@ private:
     bool int_flag;
     bool enable;
 };
+
+#define VIDEO_BASE 0x80002000
+#define VIDEO_RAM_PTR 0
+
+#ifdef USE_SDL
+
+class video : public peripheral {
+public:
+    video();
+    bool process(cpu_t &cpu);
+    bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width);
+    std::string name() { return std::string("Video controller"); }
+private:
+    SDL_Surface *screen;
+    uint32_t video_offset;
+    uint32_t count;
+    uint32_t screen_size();
+};
+
+#else
+class video : public peripheral {};
+#endif

@@ -12,7 +12,7 @@
 using std::shared_ptr;
 
 
-#define SIM_RAM_BYTES (1024 * 1024)
+#define SIM_RAM_BYTES (1024 * 1024 * 512)
 
 
 // Set bit a through bit b (inclusive), as long as 0 <= a <= 31 and 0 <= b <= 31.
