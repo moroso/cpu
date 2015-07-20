@@ -334,8 +334,6 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
         return exec_result(EXC_NO_ERROR, mem_addr, width, val);
     } else {
         boost::optional<uint32_t> val = boost::none;
-        // Little-endian: copy starting at the msb
-        mem_addr += width - 1;
 
         for (int i = 0; i < cpu.peripherals.size(); i++) {
             boost::optional<uint32_t> periph_val = cpu.peripherals[i]->read(cpu, mem_addr, width);
@@ -346,19 +344,14 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
             }
         }
 
-        for (int i = 0; i < cpu.peripherals.size(); i++) {
-            boost::optional<uint32_t> result = cpu.peripherals[i]->read(cpu, mem_addr, width);
-            if (result) {
-                val = result;
-                break;
-            }
-        }
+        // Little-endian: copy starting at the msb
+        mem_addr += width - 1;
 
         if (!val) {
             uint32_t read_val = 0;
             for (int i = 0; i < width; ++i) {
                 if (mem_addr >= SIM_RAM_BYTES) {
-                    printf("FATAL: Load/store outside RAM\n");
+                    printf("FATAL: Load/store outside RAM: %x\n", mem_addr);
                     abort();
                 }
                 read_val <<= 8;

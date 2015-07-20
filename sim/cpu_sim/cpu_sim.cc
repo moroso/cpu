@@ -405,7 +405,7 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
     if (!pt_present) {
         return boost::none;
     }
-    uint32_t page_addr = BITS(pt_entry, 12, 17) << 12;
+    uint32_t page_addr = pt_entry & BITS(pt_entry, 12, 20) << 12;
     bool pt_write = BIT(pt_entry, 1);
     bool pt_kmode = BIT(pt_entry, 2);
 

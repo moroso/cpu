@@ -6,7 +6,7 @@
 #include "cpu_sim_peripherals.h"
 
 bool peripheral::fire_interrupt(cpu_t &cpu, uint8_t interrupt) {
-    if (!cpu.regs.cpr[CP_PFLAGS] & (1 << PFLAGS_INT_ENABLE))
+    if (!(cpu.regs.cpr[CP_PFLAGS] & (1 << PFLAGS_INT_ENABLE)))
         return false;
 
     cpu.clear_exceptions();
