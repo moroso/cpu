@@ -106,6 +106,8 @@ void dump_regs(regs_t regs, bool verbose) {
         }
         printf("}\n");
         printf("regs.ovf = 0x%x\n", regs.ovf);
+        printf("regs.PFLAGS = 0x%x\n", regs.cpr[CP_PFLAGS]);
+        printf("kmode = %d\n", cpu.regs.sys_kmode);
     } else {
         printf("pc 0x%x ", regs.pc);
         printf("r { ");
