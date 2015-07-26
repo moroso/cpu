@@ -7,6 +7,8 @@
 #include <getopt.h>
 
 cpu_t cpu;
+FILE *trace_file;
+FILE *mem_trace_file;
 bool verbose;
 
 /*
@@ -128,23 +130,60 @@ void dump_regs(regs_t regs, bool verbose) {
     }
 }
 
+void write_reg_trace(uint32_t pc, instruction_packet *pkt) {
+    if (!trace_file)
+        return;
+
+    //TODO: error checking?
+    fwrite(&pc, 4, 1, trace_file);
+    if (pkt)
+        fwrite(pkt, sizeof(instruction_packet), 1, trace_file);
+    else {
+        uint32_t zero = 0;
+        for (int i = 0; i < 4; i++) {
+            fwrite(&zero, 4, 1, trace_file);
+        }
+    }
+    fwrite(&cpu.reg_read_mask, 6, 1, trace_file);
+    fwrite(&cpu.reg_write_mask, 6, 1, trace_file);
+
+    int count = 0;
+    for (int i = 0; i < 64; i++) {
+        uint64_t mask = ((uint64_t)1) << i;
+        if (mask & cpu.reg_write_mask)
+            count++;
+    }
+    fwrite(&count, 1, 1, trace_file);
+
+    for (int i = 0; i < 64; i++) {
+        uint64_t mask = ((uint64_t)1) << i;
+        if (mask & cpu.reg_write_mask) {
+            uint32_t val = cpu.reg_value(i);
+            fwrite(&val, 4, 1, trace_file);
+        }
+    }
+}
+
 bool step_program() {
     // Run a single cycle.
 
+    cpu.reg_write_mask = 0;
+    cpu.reg_read_mask = 0;
+    uint32_t original_pc = cpu.read_pc(cpu);
     bool interrupt = cpu.process_peripherals();
     bool exc = false;
+    instruction_packet *pkt = NULL;
     if (!interrupt) {
-        boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
+        boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.read_pc(cpu), cpu, false);
         // Note: no need for multiple checks, because packets can't cross page boundaries.
 
         if (pc_phys) {
-            instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+            pkt = (instruction_packet *)(cpu.ram + *pc_phys);
             if (verbose) {
                 dump_regs(cpu.regs, true);
                 printf("RAM dump:\n");
                 dump_ram();
             }
-            size_t instr_num = cpu.regs.pc/4;
             if (verbose)
                 printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
             decoded_packet packet(*pkt);
@@ -166,7 +205,7 @@ bool step_program() {
             if (verbose)
                 printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
             cpu.clear_exceptions();
-            cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
+            cpu.write_coreg(CP_EC0, EXC_PAGEFAULT_ON_FETCH);
             exc = true;
         }
     }
@@ -178,13 +217,14 @@ bool step_program() {
             else
                 printf("INTERRUPT!!!!\n");
         }
-        cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode
-            | (BIT(cpu.regs.cpr[CP_PFLAGS], PFLAGS_INT_ENABLE) << 1);
+        cpu.write_coreg(CP_EPC, cpu.read_pc(cpu) | cpu.read_sys_kmode(cpu)
+                        | (BIT(cpu.read_coreg(CP_PFLAGS, cpu), PFLAGS_INT_ENABLE) << 1));
         // All other flags, if applicable, were set during the execution of the packet.
-        cpu.regs.pc = cpu.regs.cpr[CP_EHA];
-        cpu.regs.cpr[CP_PFLAGS] &= ~(1 << PFLAGS_INT_ENABLE);
-        cpu.regs.sys_kmode = true;
+        cpu.write_pc(cpu.read_coreg(CP_EHA, cpu));
+        cpu.write_coreg(CP_PFLAGS, cpu.read_coreg(CP_PFLAGS, cpu) & ~(1 << PFLAGS_INT_ENABLE));
+        cpu.write_sys_kmode(true);
     }
+    write_reg_trace(original_pc, pkt);
     if (verbose)
         printf("...done.\n");
 
@@ -219,16 +259,30 @@ int main(int argc, char** argv) {
     int c = 0;
     opterr = 0;
     char *dis_inst;
+    char *trace_filename = NULL;
+    char *mem_trace_filename = NULL;
     verbose = false;
 
 
     static struct option long_options[] = {
+        {"trace",     required_argument, 0, 0},
+        {"mem_trace", required_argument, 0, 0},
         {0,           0,                 0, 0},
     };
     int option_index;
 
     while ((c = getopt_long(argc, argv, "vhtrd:o:", long_options, &option_index)) != -1) {
         switch (c) {
+            case 0:
+                switch (option_index) {
+                    case 0:
+                        trace_filename = optarg;
+                        break;
+                    case 1:
+                        mem_trace_filename = optarg;
+                        break;
+                }
+                break;
             case 'v':
                 verbose = true;
                 break;
@@ -309,6 +363,12 @@ int main(int argc, char** argv) {
         }
     }
 
+    printf("Trace to %s\n", trace_filename);
+    trace_file = fopen(trace_filename, "w");
+
     run_program();
     printf("OROSOM simulator terminating\n");
+
+    if (trace_file)
+        fclose(trace_file);
 }

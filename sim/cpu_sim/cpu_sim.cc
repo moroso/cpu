@@ -16,6 +16,103 @@
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
 
+// Returns the value of a register, including coprocessor registers and
+// anything else, indexed by their number in the trace file.
+uint32_t cpu_t::reg_value(uint32_t reg) {
+    if (reg < 32)
+        return regs.r[reg];
+    else if (reg < 32 + 16)
+        return regs.cpr[reg - 32];
+    else if (reg < 32 + 20)
+        return regs.cpr[reg - 32 + (16 - 9)];
+    else if (reg == 32 + 20)
+        return regs.ovf;
+    else
+        return regs.p[reg - 32 - 20];
+}
+
+uint64_t reg_mask(uint8_t reg) {
+    return (((uint64_t)1) << reg);
+}
+
+uint64_t coreg_mask(uint8_t coreg) {
+    if (coreg >= 16)
+        return (((uint64_t)1) << (coreg + 32 - (16 - 9)));
+    else
+        return (((uint64_t)1) << (coreg + 32));
+}
+
+uint64_t ovf_mask() {
+    return (((uint64_t)1) << (32 + 20));
+}
+
+uint64_t pred_mask(uint8_t pred) {
+    return (((uint64_t)1) << (32 + 20 + 1 + pred));
+}
+
+void cpu_t::write_reg(uint8_t reg, uint32_t val) {
+    reg_write_mask |= reg_mask(reg);
+    regs.r[reg] = val;
+}
+
+uint32_t cpu_t::read_reg(uint8_t reg, cpu_t &new_cpu) {
+    new_cpu.reg_read_mask |= reg_mask(reg);
+    return regs.r[reg];
+}
+
+void cpu_t::write_coreg(uint8_t reg, uint32_t val) {
+    reg_write_mask |= coreg_mask(reg);
+    regs.cpr[reg] = val;
+}
+
+uint32_t cpu_t::read_coreg(uint8_t reg, cpu_t &new_cpu) {
+    new_cpu.reg_read_mask |= coreg_mask(reg);
+    return regs.cpr[reg];
+}
+
+void cpu_t::write_pred(uint8_t reg, bool val) {
+    reg_write_mask |= pred_mask(reg);
+    regs.p[reg] = val;
+}
+
+bool cpu_t::read_pred(uint8_t reg, cpu_t &new_cpu) {
+    new_cpu.reg_read_mask |= pred_mask(reg);
+    return regs.p[reg];
+}
+
+void cpu_t::write_ovf(uint32_t val) {
+    reg_write_mask |= ovf_mask();
+    regs.ovf = val;
+}
+
+uint32_t cpu_t::read_ovf(cpu_t &new_cpu) {
+    new_cpu.reg_read_mask |= ovf_mask();
+    return regs.ovf;
+}
+
+void cpu_t::write_pc(uint32_t val) {
+    regs.pc = val;
+}
+
+uint32_t cpu_t::read_pc(cpu_t &new_cpu) {
+    return regs.pc;
+}
+
+void cpu_t::write_link(bool val) {
+    regs.link = val;
+}
+
+bool cpu_t::read_link(cpu_t &new_cpu) {
+    return regs.link;
+}
+
+void cpu_t::write_sys_kmode(bool val) {
+    regs.sys_kmode = val;
+}
+
+bool cpu_t::read_sys_kmode(cpu_t &new_cpu) {
+    return regs.sys_kmode;
+}
 
 std::string decoded_instruction::opcode_str() {
     return std::string(OPTYPE_STR[optype]);
@@ -217,8 +314,30 @@ bool decoded_instruction::predicate_ok(cpu_t &cpu) {
     if (pred_reg.reg == 3) {
         return !pred_comp;
     } else {
-        return pred_comp ^ cpu.regs.p[pred_reg.reg];
+        return pred_comp ^ cpu.read_pred(pred_reg.reg, cpu);
     }
+}
+
+uint64_t decoded_instruction::reg_read_mask() {
+    uint64_t result = 0;
+
+    if (rs) {
+        result |= (1 << (*rs).reg);
+    }
+    if (rt) {
+        result |= (1 << (*rt).reg);
+    }
+
+    return result;
+}
+
+uint64_t decoded_instruction::reg_write_mask() {
+    uint64_t result = 0;
+    if (rd) {
+        result |= (1<< (*rd).reg);
+    }
+
+    return result;
 }
 
 exec_result decoded_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
@@ -263,9 +382,9 @@ decoded_packet::decoded_packet(instruction_packet packet) {
 
 void cpu_t::clear_exceptions() {
     for (int i = 0; i < 4; ++i)
-        regs.cpr[CP_EC0 + i] = 0;
+        write_coreg(CP_EC0 + i, 0);
     for (int i = 0; i < 2; ++i)
-        regs.cpr[CP_EA0 + i] = 0;
+        write_coreg(CP_EA0 + i, 0);
 }
 
 bool cpu_t::process_peripherals() {
@@ -298,7 +417,7 @@ bool cpu_t::validate_write(uint32_t addr, uint32_t val, uint8_t width) {
 
 bool decoded_packet::execute(cpu_t &cpu) {
     cpu_t old_cpu = cpu;
-    cpu.regs.pc += 0x10;
+    cpu.write_pc(cpu.read_pc(cpu) + 0x10);
     boost::optional<mem_write_t> writes[2];
     exec_result results[4];
 
@@ -327,10 +446,10 @@ bool decoded_packet::execute(cpu_t &cpu) {
         }
         if (results[i].exception != EXC_NO_ERROR) {
             printf("Exception %d in slot %d\n", results[i].exception, i);
-            old_cpu.regs.cpr[CP_EC0 + i] = results[i].exception;
+            old_cpu.write_coreg(CP_EC0 + i, results[i].exception);
             if (results[i].fault_address) {
                 assert(i < 2);
-                old_cpu.regs.cpr[CP_EA0 + i] = *results[i].fault_address;
+                old_cpu.write_coreg(CP_EA0 + i, *results[i].fault_address);
             }
         }
     }
@@ -368,15 +487,33 @@ bool decoded_packet::execute(cpu_t &cpu) {
     return exception;
 }
 
+uint64_t decoded_packet::reg_read_mask() {
+    uint64_t result = 0;
+    for (int i = 0; i < 4; i++) {
+        result |= instr[i]->reg_read_mask();
+    }
+
+    return result;
+}
+
+uint64_t decoded_packet::reg_write_mask() {
+    uint64_t result = 0;
+    for (int i = 0; i < 4; i++) {
+        result |= instr[i]->reg_write_mask();
+    }
+
+    return result;
+}
+
 typedef uint32_t pd_entry_t;
 typedef uint32_t pt_entry_t;
 
-boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bool store) {
+boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool store) {
     /* Returns a boost::optional containing the physical address corresponding to the given
      * virtual address, or none if this would cause a fault.
      */
-    uint32_t pflags = cpu.regs.cpr[CP_PFLAGS];
-    uint32_t ptbr = cpu.regs.cpr[CP_PTB];
+    uint32_t pflags = cpu.read_coreg(CP_PFLAGS, cpu);
+    uint32_t ptbr = cpu.read_coreg(CP_PTB, cpu);
 
     if (!BIT(pflags, PFLAGS_PAGING_ENABLE)) {
         // Paging disabled.
@@ -409,7 +546,7 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bo
     bool pt_write = BIT(pt_entry, 1);
     bool pt_kmode = BIT(pt_entry, 2);
 
-    if (!cpu.regs.sys_kmode && (pt_kmode || pd_kmode)) {
+    if (!cpu.read_sys_kmode(cpu) && (pt_kmode || pd_kmode)) {
         // Attempting to access kernel mode memory while in user mode.
         return boost::none;
     }

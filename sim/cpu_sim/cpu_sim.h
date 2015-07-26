@@ -300,6 +300,27 @@ struct cpu_t {
 
     // Tells us whether we consider the given physical address to be present for a write.
     bool validate_write(uint32_t addr, uint32_t val, uint8_t width);
+
+    uint32_t reg_value(uint32_t reg);
+
+    void write_reg(uint8_t reg, uint32_t val);
+    uint32_t read_reg(uint8_t reg, cpu_t &new_cpu);
+    void write_coreg(uint8_t reg, uint32_t val);
+    uint32_t read_coreg(uint8_t reg, cpu_t &new_cpu);
+    void write_pred(uint8_t reg, bool val);
+    bool read_pred(uint8_t reg, cpu_t &new_cpu);
+    void write_ovf(uint32_t val);
+    uint32_t read_ovf(cpu_t &new_cpu);
+    void write_pc(uint32_t val);
+    uint32_t read_pc(cpu_t &new_cpu);
+    void write_link(bool val);
+    bool read_link(cpu_t &new_cpu);
+    void write_sys_kmode(bool val);
+    bool read_sys_kmode(cpu_t &new_cpu);
+
+    // Used for generating the trace file.
+    uint64_t reg_write_mask;
+    uint64_t reg_read_mask;
 };
 
 // order must match
@@ -375,6 +396,9 @@ struct decoded_instruction {
 
     virtual exec_result execute(cpu_t &cpu, cpu_t &old_cpu);
 
+    virtual uint64_t reg_read_mask();
+    virtual uint64_t reg_write_mask();
+
 protected:
     virtual bool predicate_ok(cpu_t &cpu);
     // Internal use (ignores predicate flags):
@@ -389,6 +413,9 @@ struct decoded_packet {
     std::string to_string();
 
     bool execute(cpu_t &cpu);
+
+    uint64_t reg_read_mask();
+    uint64_t reg_write_mask();
 };
 
-boost::optional<uint32_t> virt_to_phys(uint32_t addr, const cpu_t &cpu, const bool store);
+boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool store);
