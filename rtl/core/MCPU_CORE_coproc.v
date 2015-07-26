@@ -67,7 +67,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
             user_mode <= 0;
             coproc_regs[3][31:4] <= d2pc_in_virtpc[27:0]; //EPC
             coproc_regs[3][1] <= interrupts_enabled;
-            coproc_regs[3][0] <= user_mode;
+            coproc_regs[3][0] <= ~user_mode;
             coproc_regs[4] <= {23'd0, int_type, combined_ec0};
             coproc_regs[5] <= {27'd0, combined_ec1};
             coproc_regs[6] <= {27'd0, combined_ec2};
@@ -76,7 +76,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
             coproc_regs[9] <= mem_vaddr1;
         end
         else if(eret_inst) begin
-            user_mode <= coproc_regs[3][0];
+            user_mode <= ~coproc_regs[3][0];
             coproc_regs[0][0] <= coproc_regs[3][1];
         end
         else if(mtc_inst) begin

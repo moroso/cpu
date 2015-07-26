@@ -71,8 +71,8 @@ int main(int argc, char **argv){
 	TRACE;
 
 	int cycles = 0;
-	while((!core->f2ic_valid || ((core->f2ic_paddr + 1) * 4) <= stat.st_size) && (cycles < TIMEOUT)){
-		if(core->f2ic_valid){
+	while((!core->f2ic_valid || ((core->f2ic_paddr) * 16) <= stat.st_size + 48) && (cycles < TIMEOUT)){
+		if(core->f2ic_valid && (((core->f2ic_paddr + 1) * 16) <= stat.st_size)){
 			core->ic2f_packet[0] = code[(core->f2ic_paddr * 4)];
 			core->ic2f_packet[1] = code[(core->f2ic_paddr * 4 + 1)];
 			core->ic2f_packet[2] = code[(core->f2ic_paddr * 4 + 2)];

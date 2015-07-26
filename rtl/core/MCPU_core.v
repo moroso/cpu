@@ -294,7 +294,7 @@ module MCPU_core(/*AUTOARG*/
   register #(.WIDTH(50), .RESET_VAL(50'd0))
            ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress & ~pipe_flush, ft2f_out_inst_pf}),
                     .Q({ft2f_in_physpage, ft2f_in_virtpc, f_valid, ft2f_in_inst_pf}),
-                    .en(ft2f_progress),
+                    .en(ft2f_progress | pipe_flush),
                     /*AUTOINST*/
 		    // Inputs
 		    .clkrst_core_clk	(clkrst_core_clk),
@@ -321,7 +321,7 @@ module MCPU_core(/*AUTOARG*/
   register #(.WIDTH(158), .RESET_VAL(158'd0))
            f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush, ft2f_in_inst_pf}),
                    .Q({f2d_in_packet, f2d_in_virtpc, dcd_valid, f2d_in_inst_pf}),
-                   .en(f2d_progress),
+                   .en(f2d_progress | pipe_flush),
                    /*AUTOINST*/
 		   // Inputs
 		   .clkrst_core_clk	(clkrst_core_clk),
@@ -504,7 +504,7 @@ module MCPU_core(/*AUTOARG*/
           d2pc_in_inst_pf,
           d2pc_in_rs_num0
         }),
-        .en(d2pc_progress),
+        .en(d2pc_progress | pipe_flush),
         /*AUTOINST*/
 	     // Inputs
 	     .clkrst_core_clk		(clkrst_core_clk),
@@ -682,7 +682,7 @@ module MCPU_core(/*AUTOARG*/
       d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0,
       d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, pc2wb_out_rd_we0,
       d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0,
-      pc2wb_progress & pc_valid,
+      pc2wb_progress & pc_valid & ~pipe_flush,
       d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc
     }),
     .Q({

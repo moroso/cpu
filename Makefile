@@ -2,6 +2,7 @@ RUNTIME := $(shell date +R%Y%m%d-%H%M%S)
 RUN ?= $(RUNTIME)
 RUNDIR ?= runs/$(RUN)
 TESTPLANS ?= L0 L1
+VER_CFLAGS=-g
 
 include config.mk
 -include $(HOME)/.quartus_config.mk
@@ -87,7 +88,7 @@ $(RUNDIR)/stamps/sim-genrtl: sim-symlinks
 define TB_template
 $(RUNDIR)/sim/$(1)/V$$($(1)_top): $(RUNDIR)/stamps/sim-genrtl
 	$(call say,"Verilating testbench: $(1)")
-	cd $(RUNDIR)/sim; verilator -Irtl --Mdir $(1) --cc $$(TB_$(1)_top) $$(TB_$(1)_cpps) --exe --assert $(if $(TRACE),--trace)
+	cd $(RUNDIR)/sim; verilator -CFLAGS $(VER_CFLAGS) -Irtl --Mdir $(1) --cc $$(TB_$(1)_top) $$(TB_$(1)_cpps) --exe --assert $(if $(TRACE),--trace)
 	$(call say,"Compiling testbench: $(1)")
 	make -C $(RUNDIR)/sim/$(1) -f V$$(TB_$(1)_top).mk
 
