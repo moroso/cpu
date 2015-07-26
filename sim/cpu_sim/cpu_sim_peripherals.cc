@@ -5,6 +5,8 @@
 #include "cpu_sim.h"
 #include "cpu_sim_peripherals.h"
 
+extern bool verbose;
+
 bool peripheral::fire_interrupt(cpu_t &cpu, uint8_t interrupt) {
     if (!(cpu.regs.cpr[CP_PFLAGS] & (1 << PFLAGS_INT_ENABLE)))
         return false;
@@ -22,7 +24,8 @@ bool cycle_timer::check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t w
 bool cycle_timer::process(cpu_t &cpu) {
     if (enable) {
         count++;
-        printf("count: %d top: %d\n", count, top);
+        if (verbose)
+            printf("count: %d top: %d\n", count, top);
     }
     if (count == top) {
         count = 0;

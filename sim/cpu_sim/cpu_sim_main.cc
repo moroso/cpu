@@ -4,8 +4,10 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 
 cpu_t cpu;
+bool verbose;
 
 /*
 
@@ -126,56 +128,77 @@ void dump_regs(regs_t regs, bool verbose) {
     }
 }
 
-void run_program() {
-    cpu.regs.pc = 0x0;
-    cpu.regs.sys_kmode = 1;
+bool step_program() {
+    // Run a single cycle.
 
-    while(true) {
-        bool interrupt = cpu.process_peripherals();
-        bool exc = false;
-        if (!interrupt) {
-            boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
-            // Note: no need for multiple checks, because packets can't cross page boundaries.
+    bool interrupt = cpu.process_peripherals();
+    bool exc = false;
+    if (!interrupt) {
+        boost::optional<uint32_t> pc_phys = virt_to_phys(cpu.regs.pc, cpu, false);
+        // Note: no need for multiple checks, because packets can't cross page boundaries.
 
-            if (pc_phys) {
-                instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+        if (pc_phys) {
+            instruction_packet *pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+            if (verbose) {
                 dump_regs(cpu.regs, true);
                 printf("RAM dump:\n");
                 dump_ram();
-                size_t instr_num = cpu.regs.pc/4;
+            }
+            size_t instr_num = cpu.regs.pc/4;
+            if (verbose)
                 printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
-                decoded_packet packet(*pkt);
+            decoded_packet packet(*pkt);
+            if (verbose) {
                 printf("Packet looks like:\n");
                 printf("%s", packet.to_string().c_str());
                 printf("Executing packet...\n");
-                exc = packet.execute(cpu);
-                if (cpu.halted) {
+            }
+            exc = packet.execute(cpu);
+            if (cpu.halted) {
+                if (verbose) {
                     printf("... BREAK 0x1FU -> end program\n");
                     printf("FINAL REGS: ");
-                    dump_regs(cpu.regs, false);
-                    break;
                 }
-            } else {
-                printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
-                cpu.clear_exceptions();
-                cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
-                exc = true;
+                dump_regs(cpu.regs, false);
+                return true;
             }
+        } else {
+            if (verbose)
+                printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
+            cpu.clear_exceptions();
+            cpu.regs.cpr[CP_EC0] = EXC_PAGEFAULT_ON_FETCH;
+            exc = true;
         }
+    }
 
-        if (exc || interrupt) {
+    if (exc || interrupt) {
+        if (verbose) {
             if (exc)
                 printf("EXCEPTION!!!!\n");
             else
                 printf("INTERRUPT!!!!\n");
-            cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode
-                                               | (BIT(cpu.regs.cpr[CP_PFLAGS], PFLAGS_INT_ENABLE) << 1);
-            // All other flags, if applicable, were set during the execution of the packet.
-            cpu.regs.pc = cpu.regs.cpr[CP_EHA];
-            cpu.regs.cpr[CP_PFLAGS] &= ~(1 << PFLAGS_INT_ENABLE);
-            cpu.regs.sys_kmode = true;
         }
+        cpu.regs.cpr[CP_EPC] = cpu.regs.pc | cpu.regs.sys_kmode
+            | (BIT(cpu.regs.cpr[CP_PFLAGS], PFLAGS_INT_ENABLE) << 1);
+        // All other flags, if applicable, were set during the execution of the packet.
+        cpu.regs.pc = cpu.regs.cpr[CP_EHA];
+        cpu.regs.cpr[CP_PFLAGS] &= ~(1 << PFLAGS_INT_ENABLE);
+        cpu.regs.sys_kmode = true;
+    }
+    if (verbose)
         printf("...done.\n");
+
+    return false;
+}
+
+void run_program() {
+    cpu.regs.pc = 0x0;
+    cpu.regs.sys_kmode = 1;
+
+    bool done = false;
+
+    while(!done) {
+        done = step_program();
     }
 }
 
@@ -196,9 +219,15 @@ int main(int argc, char** argv) {
     int c = 0;
     opterr = 0;
     char *dis_inst;
-    bool verbose = false;
+    verbose = false;
 
-    while ((c = getopt(argc, argv, "vhtrd:")) != -1) {
+
+    static struct option long_options[] = {
+        {0,           0,                 0, 0},
+    };
+    int option_index;
+
+    while ((c = getopt_long(argc, argv, "vhtrd:o:", long_options, &option_index)) != -1) {
         switch (c) {
             case 'v':
                 verbose = true;
