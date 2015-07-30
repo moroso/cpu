@@ -13,6 +13,8 @@
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
 
+extern bool verbose;
+
 no_instruction::no_instruction(uint32_t raw) {
     raw_instr = raw;
 }
@@ -377,7 +379,8 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
         for (int i = 0; i < cpu.peripherals.size(); i++) {
             boost::optional<uint32_t> periph_val = cpu.peripherals[i]->read(cpu, mem_addr, width);
             if (periph_val) {
-                printf("Read handled by %s\n", cpu.peripherals[i]->name().c_str());
+                if (verbose)
+                    printf("Read handled by %s\n", cpu.peripherals[i]->name().c_str());
                 cpu.write_reg(rd.get(), *periph_val);
                 return exec_result(EXC_NO_ERROR);
             }

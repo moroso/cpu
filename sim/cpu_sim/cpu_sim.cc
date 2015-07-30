@@ -16,6 +16,8 @@
 #include <boost/optional/optional.hpp>
 #include <boost/format.hpp>
 
+extern bool verbose;
+
 // Returns the value of a register, including coprocessor registers and
 // anything else, indexed by their number in the trace file.
 uint32_t cpu_t::reg_value(uint32_t reg) {
@@ -469,7 +471,7 @@ bool decoded_packet::execute(cpu_t &cpu) {
                                                         mem_write.addr,
                                                         mem_write.val,
                                                         mem_write.width);
-                    if (handled) {
+                    if (handled && verbose) {
                         printf("Write handled by %s\n", cpu.peripherals[i]->name().c_str());
                         break;
                     }

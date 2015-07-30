@@ -335,6 +335,7 @@ int main(int argc, char** argv) {
     cpu.ram = (uint8_t *)malloc(SIM_RAM_BYTES);
     cpu.peripherals.push_back(new cycle_timer());
     cpu.peripherals.push_back(new video());
+    cpu.peripherals.push_back(new serial_port());
 
     if (mode == MODE_TEST) {
         printf("OSOROM simulator starting in test mode\n");

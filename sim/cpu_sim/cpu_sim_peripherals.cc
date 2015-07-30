@@ -127,4 +127,76 @@ boost::optional<uint32_t> video::read(cpu_t &cpu, uint32_t addr, uint8_t width) 
     }
 }
 
+
+
+
 #endif
+
+
+bool serial_port::check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) {
+    // TODO: improve this.
+    return addr >= SERIAL_BASE && addr <= SERIAL_BASE + SERIAL_CONTROL;
+}
+
+bool serial_port::process(cpu_t &cpu) {
+    if (state == SERIAL_TRANSMITTING) {
+        counter++;
+        if (counter == baud) {
+            printf("%c", tx_shift);
+            counter = 0;
+            // Is there another character waiting in the buffer?
+            if (!(control & (1 << SERIAL_CONTROL_TXE))) {
+                tx_shift = tx_buf;
+            } else {
+                state = SERIAL_IDLE;
+            }
+            control |= (1 << SERIAL_CONTROL_TXC) | (1 << SERIAL_CONTROL_TXE);
+        }
+    }
+
+    if (((control & (1 << SERIAL_CONTROL_TXC)) && (control & (1 << SERIAL_CONTROL_TXCI)))
+        || ((control & (1 << SERIAL_CONTROL_TXE)) && (control & (1 << SERIAL_CONTROL_TXEI)))) {
+        return fire_interrupt(cpu, INT_SERIAL);
+    }
+
+    return false;
+}
+
+bool serial_port::write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) {
+    // TODO: support unaligned writes? Will we even allow those?
+    if (width != 4 || (addr & 0x3) != 0)
+        return false;
+
+    if (addr == SERIAL_BASE + SERIAL_DATA) {
+        tx_buf = val;
+        if (state == SERIAL_IDLE) {
+            state = SERIAL_TRANSMITTING;
+            counter = 0;
+            tx_shift = tx_buf;
+            control |= (1 << SERIAL_CONTROL_TXE);
+        } else {
+            control &= ~(1 << SERIAL_CONTROL_TXE);
+        }
+        return true;
+    } else if (addr == SERIAL_BASE + SERIAL_BAUD) {
+        baud = val;
+        return true;
+    } else if (addr == SERIAL_BASE + SERIAL_CONTROL) {
+        control = val;
+        return true;
+    }
+
+    return false;
+}
+
+boost::optional<uint32_t> serial_port::read(cpu_t &cpu, uint32_t addr, uint8_t width) {
+    if (width != 4 || (addr & 0x3) != 0)
+        return boost::none;
+    if (addr == SERIAL_BASE + SERIAL_BAUD) {
+        return baud;
+    } else if (addr == SERIAL_BASE + SERIAL_CONTROL) {
+        return control;
+    }
+
+    return boost::none;
+}

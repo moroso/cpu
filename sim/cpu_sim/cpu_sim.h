@@ -346,6 +346,7 @@ enum interrupt_t {
     INT_USB,
     INT_FRAMEBUFFER,
     INT_SD,
+    INT_SERIAL,
 };
 
 struct mem_write_t {
