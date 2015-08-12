@@ -283,6 +283,29 @@ enum cp_reg_t {
     CP_SP3
 };
 
+const size_t CP_REG_COUNT = CP_SP3 + 1;
+static_assert(CP_REG_COUNT == 20, "Bad coreg list");
+
+const char CP_REG_STR[][MAX_OPCODE_LEN] = {
+    "pflags",
+    "ptb",
+    "eha",
+    "epc",
+    "ec0",
+    "ec1",
+    "ec2",
+    "ec3",
+    "ea0",
+    "ea1",
+    "", "", "", "", "", "",
+    "sp0",
+    "sp1",
+    "sp2",
+    "sp3",
+};
+static_assert(array_size(CP_REG_STR) == CP_REG_COUNT, "Coreg count mismatch");
+
+
 #define PFLAGS_INT_ENABLE 0
 #define PFLAGS_PAGING_ENABLE 1
 
@@ -394,11 +417,15 @@ struct decoded_instruction {
 
     virtual std::string opcode_str();
     virtual std::string to_string();
+    std::string disassemble();
+    virtual std::string disassemble_inner();
 
     virtual exec_result execute(cpu_t &cpu, cpu_t &old_cpu);
 
     virtual uint64_t reg_read_mask();
     virtual uint64_t reg_write_mask();
+
+    bool is_nop();
 
 protected:
     virtual bool predicate_ok(cpu_t &cpu);
@@ -412,6 +439,7 @@ struct decoded_packet {
     decoded_packet(instruction_packet);
 
     std::string to_string();
+    std::string disassemble();
 
     bool execute(cpu_t &cpu);
 

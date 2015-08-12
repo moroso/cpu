@@ -7,6 +7,7 @@ struct no_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
+    std::string disassemble_inner();
     exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
@@ -17,6 +18,7 @@ struct other_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
+    std::string disassemble_inner();
     exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
     uint64_t read_reg_mask();
     uint64_t write_reg_mask();
@@ -33,6 +35,7 @@ struct alu_instruction : public decoded_instruction {
 
     std::string opcode_str();
     std::string to_string();
+    std::string disassemble_inner();
     exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
@@ -41,6 +44,7 @@ struct branch_instruction : public decoded_instruction {
 
     std::string branchop_str();
     std::string opcode_str();
+    std::string disassemble_inner();
     exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };
 
@@ -51,5 +55,6 @@ struct loadstore_instruction : public decoded_instruction {
     size_t width;
 
     std::string opcode_str();
+    std::string disassemble_inner();
     exec_result execute_unconditional(cpu_t &cpu, cpu_t &old_cpu);
 };

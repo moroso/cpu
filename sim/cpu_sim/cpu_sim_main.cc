@@ -1,10 +1,15 @@
 #include "cpu_sim.h"
+#include "cpu_sim_debugger.h"
+#include "cpu_sim_main.h"
 #include "cpu_sim_utils.h"
 #include "cpu_sim_peripherals.h"
 
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 cpu_t cpu;
 FILE *trace_file;
@@ -252,7 +257,7 @@ enum run_mode_t {
 run_mode_t mode;
 
 void usage(char *progname) {
-    fprintf(stderr, "usage: %s [-v] [-h|-t|-r|-d <0xNNNN>]\n", progname);
+    fprintf(stderr, "usage: %s [-v] [-g] [-h|-t|-r|-d <0xNNNN>]\n", progname);
 }
 
 int main(int argc, char** argv) {
@@ -262,16 +267,19 @@ int main(int argc, char** argv) {
     char *trace_filename = NULL;
     char *mem_trace_filename = NULL;
     verbose = false;
+    bool debugger = false;
+    char *input_filename = NULL;
 
 
     static struct option long_options[] = {
         {"trace",     required_argument, 0, 0},
         {"mem_trace", required_argument, 0, 0},
+        {"input",     required_argument, 0, 0},
         {0,           0,                 0, 0},
     };
     int option_index;
 
-    while ((c = getopt_long(argc, argv, "vhtrd:o:", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "gvhtrd:o:", long_options, &option_index)) != -1) {
         switch (c) {
             case 0:
                 switch (option_index) {
@@ -281,6 +289,8 @@ int main(int argc, char** argv) {
                     case 1:
                         mem_trace_filename = optarg;
                         break;
+                    case 2:
+                        input_filename = optarg;
                 }
                 break;
             case 'v':
@@ -298,6 +308,9 @@ int main(int argc, char** argv) {
             case 'd':
                 mode = MODE_DIS;
                 dis_inst = optarg;
+                break;
+            case 'g':
+                debugger = true;
                 break;
             case '?':
                 if (optopt == 'd') {
@@ -356,18 +369,30 @@ int main(int argc, char** argv) {
     printf("OSOROM simulator starting\n");
 
     size_t i = 0;
-    while(read(STDIN_FILENO, &cpu.ram[i], 1) > 0) {
+    int fd;
+    if (input_filename) {
+        printf("Reading from %s\n", input_filename);
+        fd = open(input_filename, O_RDONLY);
+    } else {
+        fd = STDIN_FILENO;
+    }
+    while(read(fd, &cpu.ram[i], 1) > 0) {
         ++i;
         if (i >= SIM_RAM_BYTES) {
             printf("FATAL: Program larger than RAM\n");
             abort();
         }
     }
+    if (input_filename)
+        close(fd);
 
     printf("Trace to %s\n", trace_filename);
     trace_file = fopen(trace_filename, "w");
 
-    run_program();
+    if (debugger)
+        debug();
+    else
+        run_program();
     printf("OROSOM simulator terminating\n");
 
     if (trace_file)

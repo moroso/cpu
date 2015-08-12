@@ -153,6 +153,25 @@ std::string decoded_instruction::to_string() {
     return result.str();
 }
 
+std::string decoded_instruction::disassemble() {
+    if (is_nop()) {
+        return std::string("nop");
+    } else {
+        std::ostringstream result;
+
+        if (optype != INVALID_OP && (pred_reg.reg != 3 || pred_comp)) {
+            result << string_format("%sp%d? ", (pred_comp ? "~" : ""), pred_reg.reg);
+        }
+
+        result << disassemble_inner();
+        return result.str();
+    }
+}
+
+std::string decoded_instruction::disassemble_inner() {
+    return std::string("<UNKNOWN?>");
+}
+
 shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruction instr) {
     shared_ptr<decoded_instruction> result(new decoded_instruction());
 
@@ -320,6 +339,10 @@ bool decoded_instruction::predicate_ok(cpu_t &cpu) {
     }
 }
 
+bool decoded_instruction::is_nop() {
+    return raw_instr == 0xe0000000;
+}
+
 uint64_t decoded_instruction::reg_read_mask() {
     uint64_t result = 0;
 
@@ -360,6 +383,26 @@ std::string decoded_packet::to_string() {
     for (int i = 0; i < 4; ++i) {
         result << string_format("%s", instr[i]->to_string().c_str());
     }
+    return result.str();
+}
+
+std::string decoded_packet::disassemble() {
+    int i;
+    // Note: we want to include at least one instruction, even if the entire packet
+    // is nops.
+    for (i = 3; i > 0; --i) {
+        if (!instr[i]->is_nop())
+            break;
+    }
+
+    std::ostringstream result;
+    result << "{ ";
+
+    for (int j = 0; j <= i; ++j) {
+        result << instr[j]->disassemble() << "; ";
+    }
+
+    result << "}";
     return result.str();
 }
 

@@ -15,6 +15,13 @@
 
 extern bool verbose;
 
+std::string format_signed_hex(int32_t num) {
+    if (num >= 0)
+        return string_format("0x%x", num);
+    else
+        return string_format("-0x%x", -num);
+}
+
 no_instruction::no_instruction(uint32_t raw) {
     raw_instr = raw;
 }
@@ -25,6 +32,10 @@ std::string no_instruction::opcode_str() {
 
 std::string no_instruction::to_string() {
     return string_format("- No instruction (long immediate: %x)\n", raw_instr);
+}
+
+std::string no_instruction::disassemble_inner() {
+    return string_format("long 0x%x", raw_instr);
 }
 
 exec_result no_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
@@ -42,6 +53,48 @@ std::string other_instruction::to_string() {
         result += string_format("  * WARNING: reserved bits nonzero (%x)\n", reserved_bits);
 
     return result;
+}
+
+std::string other_instruction::disassemble_inner() {
+    std::ostringstream result;
+
+    switch (otherop) {
+        case OTHER_SYSCALL:
+        case OTHER_BREAK:
+            result << OTHEROP_STR[otherop];
+            if (reserved_bits)
+                result << string_format(" 0x%x", reserved_bits);
+            break;
+        case OTHER_FENCE:
+        case OTHER_ERET:
+            result << OTHEROP_STR[otherop];
+            break;
+        case OTHER_MFC:
+            result << string_format("r%d <- ", rd.get()) << CP_REG_STR[rs.get()];
+            break;
+        case OTHER_MTC:
+            result << CP_REG_STR[rd.get()] << string_format(" <- r%d", rs.get());
+            break;
+        case OTHER_MULT:
+        case OTHER_DIV:
+            result << string_format("r%d <- r%d %c%s r%d",
+                                    rd.get(), rs.get(),
+                                    (otherop == OTHER_MULT ? '*' : '/'),
+                                    (signd ? "s" : ""),
+                                    rt.get());
+            break;
+        case OTHER_MTHI:
+            result << string_format("ovf <- r%d", rs.get());
+            break;
+        case OTHER_MFHI:
+            result << string_format("r%d <- ovf", rd.get());
+            break;
+        default:
+            result << "UNKNOWN";
+            break;
+    }
+
+    return result.str();
 }
 
 exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
@@ -201,6 +254,15 @@ std::string branch_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + branchop_str();
 }
 
+std::string branch_instruction::disassemble_inner() {
+    if (rs) {
+        return branchop_str() + " r" + std::to_string(rs.get().reg) + " + " +
+            format_signed_hex(this->offset.get());
+    } else {
+        return branchop_str() + " " + format_signed_hex(this->offset.get());
+    }
+}
+
 std::string alu_instruction::opcode_str() {
     std::string result = decoded_instruction::opcode_str() + " - " + ALUOP_STR[aluop];
 
@@ -210,6 +272,50 @@ std::string alu_instruction::opcode_str() {
     }
 
     return result;
+}
+
+std::string alu_instruction::disassemble_inner() {
+    std::ostringstream result;
+    const std::string op_strs[] = {
+        "+", "&", "~|", "|", "-", "-:", "^",
+        "", "", "~", "sxb", "sxh",
+    };
+    const std::string shift_strs[] = {
+        "<<", ">>l", ">>a", ">>c",
+    };
+    const std::string cmpop_strs[] = {
+        "<", "<=", "==", "[RESERVERD]", "<s", "<=s", "&", "BC"
+    };
+
+    std::string op2;
+
+    if (long_imm) {
+        op2 = "long";
+    } else if (constant) {
+        op2 = string_format("0x%x", constant.get());
+    } else if (rs && alu_unary()) {
+        op2 = string_format("r%d %s r%d", rt.get().reg, shift_strs[stype.get()].c_str(), rs.get().reg);
+    } else {
+        op2 = string_format("r%d %s %s",
+                            rt.get().reg,
+                            shift_strs[stype.get()].c_str(),
+                            format_signed_hex(shiftamt.get()).c_str());
+    }
+
+    if (aluop == ALU_COMPARE)
+        result << string_format("p%d <- ", pd.get().reg);
+    else
+        result << string_format("r%d <- ", rd.get().reg);
+    if (alu_binary()) {
+        if (aluop != ALU_COMPARE) {
+            result << string_format("r%d ", rs.get().reg) << op_strs[aluop] + " " + op2;
+        } else {
+            result << string_format("r%d ", rs.get().reg) << cmpop_strs[cmpop.get()] + " " + op2;
+        }
+    } else {
+        result << op_strs[aluop] << op2;
+    }
+    return result.str();
 }
 
 exec_result alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
@@ -337,6 +443,20 @@ bool alu_instruction::alu_compare() {
 
 std::string loadstore_instruction::opcode_str() {
     return decoded_instruction::opcode_str() + " - " + LSUOP_STR[lsuop];
+}
+
+std::string loadstore_instruction::disassemble_inner() {
+    const std::string lsu_strings[] = {
+        "b", "h", "l", "ll",
+        "b", "h", "l", "sc",
+    };
+    if (store) {
+        return "*" + lsu_strings[lsuop] + "(" + string_format("r%d", rs.get()) + " + " +
+            format_signed_hex(offset.get()) + ") <- " + string_format("r%d", rt.get());
+    } else {
+        return string_format("r%d <- ", rd.get()) + "*" + lsu_strings[lsuop] + "(" +
+            string_format("r%d", rs.get()) + " + " + format_signed_hex(offset.get()) + ")";
+    }
 }
 
 exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
