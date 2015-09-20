@@ -89,6 +89,8 @@ std::string other_instruction::disassemble_inner() {
         case OTHER_MFHI:
             result << string_format("r%d <- ovf", rd.get());
             break;
+        case OTHER_FLUSH:
+          result << string_format("flush.X r%d", rs.get());
         default:
             result << "UNKNOWN";
             break;
@@ -176,6 +178,8 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
             else
                 cpu.write_coreg(CP_PFLAGS, cpu.read_coreg(CP_PFLAGS, cpu) & ~(1 << PFLAGS_INT_ENABLE));
             cpu.write_link(false);
+            break;
+        case OTHER_FLUSH:
             break;
         default:
             return exec_result(EXC_ILLEGAL_INSTRUCTION);
