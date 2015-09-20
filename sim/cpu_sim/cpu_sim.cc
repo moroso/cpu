@@ -313,8 +313,13 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
 
         result->optype = ALU_OP;
         alu->aluop = aluop;
+        if (aluop == ALU_COMPARE) {
+            alu->cmpop = cmpop;
+            alu->pd = pd_num;
+        } else {
+            result->rd = rd_num;
+        }
         result->rs = rs_num;
-        result->rd = rd_num;
         result->long_imm = true;
         // Long immediate is in the following instruction slot; it will be extracted separately.
     } else {
