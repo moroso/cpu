@@ -495,7 +495,8 @@ bool decoded_packet::execute(cpu_t &cpu) {
             writes[i] = results[i].mem_write;
         }
         if (results[i].exception != EXC_NO_ERROR) {
-            printf("Exception %d in slot %d\n", results[i].exception, i);
+          printf("Exception %d in slot %d at addr 0x%x\n",
+                 results[i].exception, i, cpu.regs.pc);
             old_cpu.write_coreg(CP_EC0 + i, results[i].exception);
             if (results[i].fault_address) {
                 assert(i < 2);
