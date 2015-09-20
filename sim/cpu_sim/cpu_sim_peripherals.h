@@ -1,7 +1,9 @@
 #pragma once
 
 #include <boost/optional/optional.hpp>
+#ifdef USE_SDL
 #include <SDL/SDL.h>
+#endif
 #include "cpu_sim.h"
 
 struct cpu_t;
