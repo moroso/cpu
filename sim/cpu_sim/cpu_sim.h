@@ -316,6 +316,8 @@ struct mem_write_t {
 #define PFLAGS_INT_ENABLE 0
 #define PFLAGS_PAGING_ENABLE 1
 
+struct decoded_packet;
+
 struct cpu_t {
     regs_t regs;
     uint8_t *ram;
@@ -354,6 +356,10 @@ struct cpu_t {
 
     // For memory write breakpoints.
     boost::optional<mem_write_t> last_writes[2];
+
+    // Cache of decoded packets.
+    std::vector<boost::optional<decoded_packet>> *packet_cache;
+    int packet_cache_len;
 };
 
 // order must match

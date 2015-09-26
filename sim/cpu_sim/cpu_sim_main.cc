@@ -9,12 +9,14 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 
 cpu_t cpu;
 FILE *trace_file;
 FILE *mem_trace_file;
 bool verbose;
+bool benchmark;
 
 /*
 
@@ -183,21 +185,28 @@ bool step_program() {
         // Note: no need for multiple checks, because packets can't cross page boundaries.
 
         if (pc_phys) {
-            pkt = (instruction_packet *)(cpu.ram + *pc_phys);
-            if (verbose) {
-                dump_regs(cpu.regs, true);
-                printf("RAM dump:\n");
-                dump_ram();
+            int idx = (*pc_phys) >> 4;
+            if (idx >= cpu.packet_cache->size()) {
+                cpu.packet_cache->resize(idx * 2 + 1);
             }
-            if (verbose)
-                printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
-            decoded_packet packet(*pkt);
+            //TODO: cache invalidation on write
+            if (!(*cpu.packet_cache)[idx]) {
+                pkt = (instruction_packet *)(cpu.ram + *pc_phys);
+                if (verbose) {
+                    dump_regs(cpu.regs, true);
+                    printf("RAM dump:\n");
+                    dump_ram();
+                }
+                if (verbose)
+                    printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
+                (*cpu.packet_cache)[idx] = decoded_packet(*pkt);
+            }
             if (verbose) {
                 printf("Packet looks like:\n");
-                printf("%s", packet.to_string().c_str());
+                printf("%s", (*(*cpu.packet_cache)[idx]).to_string().c_str());
                 printf("Executing packet...\n");
             }
-            exc = packet.execute(cpu);
+            exc = (*(*cpu.packet_cache)[idx]).execute(cpu);
             if (cpu.halted) {
                 if (verbose) {
                     printf("... BREAK 0x1FU -> end program\n");
@@ -242,8 +251,24 @@ void run_program() {
 
     bool done = false;
 
+    int cycle = 0;
+    int last_time = 0;
+
     while(!done) {
         done = step_program();
+        if (benchmark) {
+            if ((cycle % 1000000) == 0) {
+                struct timeval cur_time;
+                gettimeofday(&cur_time, NULL);
+                int new_time = cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000;
+                fprintf(stderr, "%d instructions in %d ms = %f instructions per second\n",
+                        cycle, new_time - last_time,
+                        (cycle * 1000. / (float)(new_time - last_time)));
+                cycle = 0;
+                last_time = new_time;
+            }
+        }
+        cycle++;
     }
 }
 
@@ -279,7 +304,7 @@ int main(int argc, char** argv) {
     };
     int option_index;
 
-    while ((c = getopt_long(argc, argv, "gvhtrd:o:", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "bgvhtrd:o:", long_options, &option_index)) != -1) {
         switch (c) {
             case 0:
                 switch (option_index) {
@@ -292,6 +317,9 @@ int main(int argc, char** argv) {
                     case 2:
                         input_filename = optarg;
                 }
+                break;
+            case 'b':
+                benchmark = true;
                 break;
             case 'v':
                 verbose = true;
@@ -344,6 +372,8 @@ int main(int argc, char** argv) {
         printf("%s\n", di->to_string().c_str());
         exit(0);
     }
+
+    cpu.packet_cache = new std::vector<boost::optional<decoded_packet> >();
 
     cpu.ram = (uint8_t *)malloc(SIM_RAM_BYTES);
     cpu.peripherals.push_back(new cycle_timer());
