@@ -282,7 +282,7 @@ std::string alu_instruction::disassemble_inner() {
     std::ostringstream result;
     const std::string op_strs[] = {
         "+", "&", "~|", "|", "-", "-:", "^",
-        "", "", "~", "sxb", "sxh",
+        "", "", "~", "sxb", "sxh", "RESV1", "RESV2", "RESV3", "RESV4",
     };
     const std::string shift_strs[] = {
         "<<", ">>l", ">>a", ">>c",
@@ -317,7 +317,10 @@ std::string alu_instruction::disassemble_inner() {
             result << string_format("r%d ", rs.get().reg) << cmpop_strs[cmpop.get()] + " " + op2;
         }
     } else {
-        result << op_strs[aluop] << op2;
+        if (aluop < NUM_ALU_OPS)
+            result << op_strs[aluop] << op2;
+        else
+            result << "INVALID ALU OP " << aluop;
     }
     return result.str();
 }

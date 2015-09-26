@@ -106,7 +106,9 @@ enum aluop_t {
     ALU_RESV1,
     ALU_RESV2,
     ALU_RESV3,
-    ALU_RESV4
+    ALU_RESV4,
+
+    NUM_ALU_OPS,
 };
 
 const size_t ALUOPS_COUNT = ALU_RESV4 + 1;
@@ -305,6 +307,11 @@ const char CP_REG_STR[][MAX_OPCODE_LEN] = {
 };
 static_assert(array_size(CP_REG_STR) == CP_REG_COUNT, "Coreg count mismatch");
 
+struct mem_write_t {
+    uint32_t addr; // Note: physical address!
+    uint8_t width;
+    uint32_t val;
+};
 
 #define PFLAGS_INT_ENABLE 0
 #define PFLAGS_PAGING_ENABLE 1
@@ -344,6 +351,9 @@ struct cpu_t {
     // Used for generating the trace file.
     uint64_t reg_write_mask;
     uint64_t reg_read_mask;
+
+    // For memory write breakpoints.
+    boost::optional<mem_write_t> last_writes[2];
 };
 
 // order must match
@@ -370,12 +380,6 @@ enum interrupt_t {
     INT_FRAMEBUFFER,
     INT_SD,
     INT_SERIAL,
-};
-
-struct mem_write_t {
-    uint32_t addr; // Note: physical address!
-    uint8_t width;
-    uint32_t val;
 };
 
 // Everything we need to know as a result of executing a single instruction.

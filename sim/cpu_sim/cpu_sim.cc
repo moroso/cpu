@@ -535,6 +535,10 @@ bool decoded_packet::execute(cpu_t &cpu) {
             }
         }
     }
+    for (int i = 0; i < 2; ++i)
+    {
+        cpu.last_writes[i] = writes[i];
+    }
     return exception;
 }
 

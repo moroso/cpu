@@ -17,6 +17,7 @@
 extern cpu_t cpu;
 
 std::vector<uint32_t> breakpoints;
+std::vector<uint32_t> write_watchpoints;
 
 void dump_inst_phys(uint32_t phys_addr) {
     instruction_packet *pkt = (instruction_packet *)(cpu.ram + phys_addr);
@@ -39,6 +40,17 @@ void dump_inst(uint32_t virt_addr) {
 boost::optional<int> is_breakpoint(uint32_t addr) {
     for (int i = 0; i < breakpoints.size(); ++i) {
         if (addr == breakpoints[i])
+            return i;
+    }
+    return boost::none;
+}
+
+boost::optional<int> hit_write_watchpoint() {
+    // TODO: this doesn't take into account size, just starting address.
+    for (int i = 0; i < write_watchpoints.size(); ++i) {
+      if (cpu.last_writes[0] && (*cpu.last_writes[0]).addr == write_watchpoints[i])
+            return i;
+      if (cpu.last_writes[1] && (*cpu.last_writes[1]).addr == write_watchpoints[i])
             return i;
     }
     return boost::none;
@@ -102,11 +114,16 @@ void process_line(std::string &line) {
         exit(0);
     } else if (tokens[0] == "run") {
         boost::optional<int> bp = boost::none;
-        while (!bp) {
+        boost::optional<int> wbp = boost::none;
+        while (!bp && !wbp) {
             step_program();
+            wbp = hit_write_watchpoint();
             bp = hit_breakpoint();
         }
-        printf("Hit breakpoint %d\n", *bp);
+        if (bp)
+            printf("Hit breakpoint %d\n", *bp);
+        else if (wbp)
+            printf("Hit watchpoint %d\n", *wbp);
         printf("pc = 0x%08x  ", cpu.regs.pc);
         dump_inst(cpu.regs.pc);
         printf("\n");
@@ -114,12 +131,23 @@ void process_line(std::string &line) {
         if (tokens.size() == 1) {
             printf("Breakpoints:\n");
             for (int i = 0; i < breakpoints.size(); ++i) {
-                printf("%4d at 0x%08x", i, breakpoints[i]);
+                printf("%4d at 0x%08x\n", i, breakpoints[i]);
             }
         } else {
             uint32_t addr = read_num(tokens[1]);
             breakpoints.push_back(addr);
             printf("Breakpoint %d at 0x%08x\n", (int)breakpoints.size() - 1, addr);
+        }
+    } else if (tokens[0] == "b/w" || tokens[0] == "break/w") {
+        if (tokens.size() == 1) {
+            printf("Watchpoints on write:\n");
+            for (int i = 0; i < write_watchpoints.size(); ++i) {
+                printf("%4d at 0x%08x\n", i, write_watchpoints[i]);
+            }
+        } else {
+            uint32_t addr = read_num(tokens[1]);
+            write_watchpoints.push_back(addr);
+            printf("Watchpoint %d on write to 0x%08x\n", (int)write_watchpoints.size() - 1, addr);
         }
     } else if (tokens[0] == "disassemble" || tokens[0] == "dis" || tokens[0] == "d") {
         uint32_t addr;
