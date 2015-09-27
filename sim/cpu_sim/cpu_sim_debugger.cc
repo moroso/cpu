@@ -242,6 +242,19 @@ void process_line(std::string &line) {
             }
         }
         printf("\n");
+    } else if (tokens[0] == "p") {
+      if (tokens.size() != 2) {
+          printf("Give an address!\n");
+          return;
+      }
+      uint32_t addr = read_num(tokens[1]);
+      boost::optional<uint32_t> phys_addr = virt_to_phys(addr, cpu, false);
+      if (phys_addr) {
+          printf("Virtual address 0x%x maps to physical address 0x%x\n",
+                 addr, *phys_addr);
+      } else {
+          printf("Virtual address 0x%x has no physical address\n", addr);
+      }
     } else if (tokens[0] == "help") {
         printf("Commands:\n");
         printf("    x: examine address.\n");
@@ -251,6 +264,7 @@ void process_line(std::string &line) {
         printf("  run: run until a breakpoint is hit\n");
         printf("    i: step instruction packets\n");
         printf("    d: disassemble\n");
+        printf("    p: virtual->physical address lookup\n");
         printf("    q: quit\n");
     }
 }
