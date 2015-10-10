@@ -21,16 +21,17 @@ extern bool verbose;
 // Returns the value of a register, including coprocessor registers and
 // anything else, indexed by their number in the trace file.
 uint32_t cpu_t::reg_value(uint32_t reg) {
-    if (reg < 32)
+    if (reg < 32) {
         return regs.r[reg];
-    else if (reg < 32 + 16)
+    } else if (reg < 32 + 16) {
         return regs.cpr[reg - 32];
-    else if (reg < 32 + 20)
+    } else if (reg < 32 + 20) {
         return regs.cpr[reg - 32 + (16 - 9)];
-    else if (reg == 32 + 20)
+    } else if (reg == 32 + 20) {
         return regs.ovf;
-    else
+    } else {
         return regs.p[reg - 32 - 20];
+    }
 }
 
 uint64_t reg_mask(uint8_t reg) {
@@ -38,10 +39,11 @@ uint64_t reg_mask(uint8_t reg) {
 }
 
 uint64_t coreg_mask(uint8_t coreg) {
-    if (coreg >= 16)
+    if (coreg >= 16) {
         return (((uint64_t)1) << (coreg + 32 - (16 - 9)));
-    else
+    } else {
         return (((uint64_t)1) << (coreg + 32));
+    }
 }
 
 uint64_t ovf_mask() {
