@@ -520,7 +520,7 @@ bool decoded_packet::execute(cpu_t &cpu) {
                                                         mem_write.addr,
                                                         mem_write.val,
                                                         mem_write.width);
-                    if (handled && verbose) {
+                    if (handled) {
                         if (verbose) {
                             printf("Write handled by %s\n", cpu.peripherals[i]->name().c_str());
                         }
