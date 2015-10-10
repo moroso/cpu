@@ -111,7 +111,8 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
                         return exec_result(EXC_HALT);
                     case 1:
                         // MAGIC_PRINT_R0
-                        printf("R0 HAS VALUE %d (%x)\n", cpu.read_reg(0, cpu), cpu.read_reg(0, cpu));
+                        printf("R0 HAS VALUE %d (%x)\n",
+                               cpu.read_reg(0, cpu), cpu.read_reg(0, cpu));
                         break;
                     case 2:
                         // MAGIC_PUTC_R0
@@ -159,24 +160,30 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
             cpu.write_ovf(old_cpu.read_reg(rs.get(), cpu));
             break;
         case OTHER_MFC:
-            if (!old_cpu.read_sys_kmode(cpu))
+            if (!old_cpu.read_sys_kmode(cpu)) {
                 return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
+            }
             cpu.write_reg(rd.get(), old_cpu.read_coreg(rs.get(), cpu));
             break;
         case OTHER_MTC:
-            if (!old_cpu.read_sys_kmode(cpu))
+            if (!old_cpu.read_sys_kmode(cpu)) {
                 return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
+            }
             cpu.write_coreg(rd.get(), old_cpu.read_reg(rs.get(), cpu));
             break;
         case OTHER_ERET:
-            if (!old_cpu.read_sys_kmode(cpu))
+            if (!old_cpu.read_sys_kmode(cpu)) {
                 return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
+            }
             cpu.write_pc(old_cpu.read_coreg(CP_EPC, cpu) & 0xFFFFFFF0);
             cpu.write_sys_kmode(old_cpu.read_coreg(CP_EPC, cpu) & 0x01);
-            if (BIT(old_cpu.read_coreg(CP_EPC, cpu), 1))
-                cpu.write_coreg(CP_PFLAGS, cpu.read_coreg(CP_PFLAGS, cpu) | (1 << PFLAGS_INT_ENABLE));
-            else
-                cpu.write_coreg(CP_PFLAGS, cpu.read_coreg(CP_PFLAGS, cpu) & ~(1 << PFLAGS_INT_ENABLE));
+            if (BIT(old_cpu.read_coreg(CP_EPC, cpu), 1)) {
+                cpu.write_coreg(CP_PFLAGS,
+                                cpu.read_coreg(CP_PFLAGS, cpu) | (1 << PFLAGS_INT_ENABLE));
+            } else {
+                cpu.write_coreg(CP_PFLAGS,
+                                cpu.read_coreg(CP_PFLAGS, cpu) & ~(1 << PFLAGS_INT_ENABLE));
+            }
             cpu.write_link(false);
             break;
         case OTHER_FLUSH:
@@ -298,7 +305,8 @@ std::string alu_instruction::disassemble_inner() {
     } else if (constant) {
         op2 = string_format("0x%x", constant.get());
     } else if (rs && alu_unary()) {
-        op2 = string_format("r%d %s r%d", rt.get().reg, shift_strs[stype.get()].c_str(), rs.get().reg);
+        op2 = string_format("r%d %s r%d",
+                            rt.get().reg, shift_strs[stype.get()].c_str(), rs.get().reg);
     } else {
         op2 = string_format("r%d %s %s",
                             rt.get().reg,
@@ -333,7 +341,8 @@ exec_result alu_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
         op1 = old_cpu.read_reg(rs.get().reg, cpu);
     }
 
-    // For 2-op forms, we are retrieving the second operand here; for 1-op forms, the only operand is called 'op2'.
+    // For 2-op forms, we are retrieving the second operand here; for
+    // 1-op forms, the only operand is called 'op2'.
     if (constant) {
         // ALU short form
         op2 = constant.get();

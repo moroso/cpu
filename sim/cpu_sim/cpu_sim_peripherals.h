@@ -12,12 +12,14 @@ class peripheral {
 public:
     virtual bool process(cpu_t &cpu) { return false; }
     // Returns whether the given write will be handled by this peripheral.
-    virtual bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) { return false; }
+    virtual bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width){return false; }
     // Returns true if the write was handled; false if this peripheral is punting on it.
     virtual bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) { return false; }
     // Perform a read from the specified memory address. none is returned if the address
     // is not special to this peripheral.
-    virtual boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width) { return boost::none; }
+    virtual boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width) {
+		return boost::none;
+	}
     virtual std::string name() { return std::string("<NONE>"); }
 protected:
     bool fire_interrupt(cpu_t &cpu, uint8_t interrupt);

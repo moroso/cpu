@@ -198,7 +198,8 @@ bool step_program() {
                     dump_ram();
                 }
                 if (verbose)
-                    printf("Packet is %x / %x / %x / %x\n", (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
+                    printf("Packet is %x / %x / %x / %x\n",
+                           (*pkt)[0], (*pkt)[1], (*pkt)[2], (*pkt)[3]);
                 (*cpu.packet_cache)[idx] = decoded_packet(*pkt);
             }
             if (verbose) {

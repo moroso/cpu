@@ -324,6 +324,16 @@ struct cpu_t {
     bool halted;
     std::vector<peripheral*> peripherals;
 
+    // Used for generating the trace file.
+    uint64_t reg_write_mask;
+    uint64_t reg_read_mask;
+
+    // For memory write breakpoints.
+    boost::optional<mem_write_t> last_writes[2];
+
+    // Cache of decoded packets.
+    std::vector<boost::optional<decoded_packet>> *packet_cache;
+
     // Clear all exception flags.
     void clear_exceptions();
 
@@ -350,16 +360,6 @@ struct cpu_t {
     void write_sys_kmode(bool val);
     bool read_sys_kmode(cpu_t &new_cpu);
 
-    // Used for generating the trace file.
-    uint64_t reg_write_mask;
-    uint64_t reg_read_mask;
-
-    // For memory write breakpoints.
-    boost::optional<mem_write_t> last_writes[2];
-
-    // Cache of decoded packets.
-    std::vector<boost::optional<decoded_packet>> *packet_cache;
-    int packet_cache_len;
 };
 
 // order must match
@@ -376,7 +376,9 @@ enum exception_t {
     EXC_SYSCALL,
     EXC_BREAK,
 
-    EXC_HALT, // Not something that happens on the real CPU; just to flag that we want to end the simulation.
+    // Not something that happens on the real CPU; just to flag that
+    // we want to end the simulation.
+    EXC_HALT,
 };
 
 // order must match
@@ -395,13 +397,16 @@ struct exec_result {
     boost::optional<mem_write_t> mem_write;
 
     exec_result() : exec_result(EXC_NO_ERROR) {}
-    exec_result(exception_t exception) : exception(exception), fault_address(boost::none), mem_write(boost::none) {}
+    exec_result(exception_t exception) :
+        exception(exception), fault_address(boost::none), mem_write(boost::none) {}
     exec_result(exception_t exception,
                 uint32_t addr,
                 uint8_t width,
-                uint32_t val) : exception(exception), fault_address(boost::none), mem_write({addr, width, val}) {}
+                uint32_t val) :
+        exception(exception), fault_address(boost::none), mem_write({addr, width, val}) {}
     exec_result(exception_t exception,
-                uint32_t fault_address) : exception(exception), fault_address(fault_address), mem_write(boost::none) {}
+                uint32_t fault_address) :
+      exception(exception), fault_address(fault_address), mem_write(boost::none) {}
 };
 
 struct decoded_instruction {

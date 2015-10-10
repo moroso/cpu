@@ -618,20 +618,25 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
 
 
 // These are for interfacing between the simulator and the 'outside world'. We have three modes:
-//   * In 'cmodel mode', we simulate the CPU, and interface with a mixed Verilog/C++ implementation of the rest of the
-//     world. We send memory reads and writes to the outside world, pause execution and return control to the driver
-//     when we can make no further progress, and resume executing (coroutine-style) when a cycle contains a memory read
-//     result for us.
-//   * In 'lockstep mode', we simulate the CPU alongside a Verilog implemention of the CPU. We take our cues from the 
-//     Verilog version -- it feeds us memory reads and writes, and the results, as well as the register file commits
-//     that happen during each instruction. We merely check these against our own. The only time we should be
-//     'surprised' is in the event of a hardware interrupt, which we'll receive in place of register file commits as
-//     the 'outcome' of an instruction.
-//   * In 'freestanding mode', we run the whole world ourselves. This entails simulating an MMU, which is not required 
-//     in the other modes, as well as memory, and providing a way to load memory contents at startup, and emulating
-//     devices if need be.
+//   * In 'cmodel mode', we simulate the CPU, and interface with a
+//     mixed Verilog/C++ implementation of the rest of the world. We
+//     send memory reads and writes to the outside world, pause
+//     execution and return control to the driver when we can make no
+//     further progress, and resume executing (coroutine-style) when a
+//     cycle contains a memory read result for us.
+//   * In 'lockstep mode', we simulate the CPU alongside a Verilog
+//     implemention of the CPU. We take our cues from the Verilog
+//     version -- it feeds us memory reads and writes, and the
+//     results, as well as the register file commits that happen
+//     during each instruction. We merely check these against our
+//     own. The only time we should be 'surprised' is in the event of
+//     a hardware interrupt, which we'll receive in place of register
+//     file commits as the 'outcome' of an instruction.
+//   * In 'freestanding mode', we run the whole world ourselves. This
+//     entails simulating an MMU, which is not required in the other
+//     modes, as well as memory, and providing a way to load memory
+//     contents at startup, and emulating devices if need be.
 std::queue<mem_read_event> instruction_fetch_queue;
 std::queue<mem_event> mem_request_queue[2];
 std::queue<mem_read_result> mem_result_queue[2];
 std::queue<instruction_commit> instruction_commit_queue;
-
