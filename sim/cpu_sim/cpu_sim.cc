@@ -592,7 +592,7 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
     }
     uint32_t pt_addr = BITS(pd_entry, 12, 17) << 12;
     bool pd_write = BIT(pd_entry, 1);
-    bool pd_kmode = BIT(pd_entry, 2);
+    bool pd_umode = BIT(pd_entry, 2);
 
     pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
     pt_entry_t pt_entry = pt[pt_index];
@@ -603,9 +603,9 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
     }
     uint32_t page_addr = pt_entry & BITS(pt_entry, 12, 20) << 12;
     bool pt_write = BIT(pt_entry, 1);
-    bool pt_kmode = BIT(pt_entry, 2);
+    bool pt_umode = BIT(pt_entry, 2);
 
-    if (!cpu.read_sys_kmode(cpu) && (pt_kmode || pd_kmode)) {
+    if (!cpu.read_sys_kmode(cpu) && (!pt_umode || !pd_umode)) {
         // Attempting to access kernel mode memory while in user mode.
         return boost::none;
     }
