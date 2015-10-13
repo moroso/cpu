@@ -6,6 +6,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <ctype.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -68,6 +70,13 @@ uint32_t read_num(std::string &num_str) {
     }
 }
 
+volatile bool stop_flag = false;
+
+void control_c_handler(int s) {
+    stop_flag = true;
+    printf("\n");
+}
+
 void process_line(std::string &line) {
     std::vector<std::string> tokens;
     split(tokens, line, boost::algorithm::is_any_of(" "));
@@ -113,13 +122,20 @@ void process_line(std::string &line) {
     } else if (tokens[0] == "q") {
         exit(0);
     } else if (tokens[0] == "run") {
+        struct sigaction sighandler, old_sighandler;
+        sighandler.sa_handler = control_c_handler;
+        sigemptyset(&sighandler.sa_mask);
+        sighandler.sa_flags = 0;
+        sigaction(SIGINT, &sighandler, &old_sighandler);
         boost::optional<int> bp = boost::none;
         boost::optional<int> wbp = boost::none;
-        while (!bp && !wbp) {
+        stop_flag = false;
+        while (!bp && !wbp && !stop_flag) {
             step_program();
             wbp = hit_write_watchpoint();
             bp = hit_breakpoint();
         }
+        sigaction(SIGINT, &old_sighandler, NULL);
         if (bp)
             printf("Hit breakpoint %d\n", *bp);
         else if (wbp)
