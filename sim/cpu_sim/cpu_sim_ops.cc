@@ -494,7 +494,7 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
 
     if (store) {
         if (linked) {
-            cpu.write_pred(0, !old_cpu.read_link(cpu));
+            cpu.write_pred(0, old_cpu.read_link(cpu));
 
             if (!old_cpu.read_link(cpu)) {
                 return exec_result(EXC_NO_ERROR);
