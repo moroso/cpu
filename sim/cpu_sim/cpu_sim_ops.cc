@@ -99,6 +99,8 @@ std::string other_instruction::disassemble_inner() {
     return result.str();
 }
 
+extern bool stop_flag;
+
 exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu) {
     switch (otherop) {
         case OTHER_SYSCALL:
@@ -117,6 +119,10 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
                     case 2:
                         // MAGIC_PUTC_R0
                         fputc(cpu.read_reg(0, cpu), stderr);
+                        break;
+                    case 3:
+                        // MAGIC_DEBUG
+                        stop_flag = true;
                         break;
                 }
             } else {
