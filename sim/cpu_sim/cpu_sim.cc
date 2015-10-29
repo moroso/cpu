@@ -18,6 +18,12 @@
 
 extern bool verbose;
 
+void cpu_t::flush_packet_cache(void) {
+    delete packet_cache;
+    packet_cache = new std::vector<boost::optional<decoded_packet> >();
+    flush_packet_cache_flag = false;
+}
+
 // Returns the value of a register, including coprocessor registers and
 // anything else, indexed by their number in the trace file.
 uint32_t cpu_t::reg_value(uint32_t reg) {

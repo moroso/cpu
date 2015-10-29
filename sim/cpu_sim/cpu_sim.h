@@ -322,6 +322,7 @@ struct cpu_t {
     regs_t regs;
     uint8_t *ram;
     bool halted;
+    bool flush_packet_cache_flag;
     std::vector<peripheral*> peripherals;
 
     // Used for generating the trace file.
@@ -359,7 +360,7 @@ struct cpu_t {
     bool read_link(cpu_t &new_cpu);
     void write_sys_kmode(bool val);
     bool read_sys_kmode(cpu_t &new_cpu);
-
+    void flush_packet_cache(void);
 };
 
 // order must match

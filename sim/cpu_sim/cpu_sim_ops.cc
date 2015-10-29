@@ -155,6 +155,8 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
             } else {
                 uint32_t rs_val = old_cpu.read_reg(rs.get(), cpu);
                 uint32_t rt_val = old_cpu.read_reg(rt.get(), cpu);
+                if (rt_val == 0)
+                    return exec_result(EXC_DIVIDE_BY_ZERO);
                 cpu.write_reg(rd.get(), rs_val / rt_val);
                 cpu.write_ovf(rs_val % rt_val);
             }
@@ -176,6 +178,9 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
                 return exec_result(EXC_INSUFFICIENT_PERMISSIONS);
             }
             cpu.write_coreg(rd.get(), old_cpu.read_reg(rs.get(), cpu));
+            if (rd.get() == CP_PTB) {
+                cpu.flush_packet_cache_flag = true;
+            }
             break;
         case OTHER_ERET:
             if (!old_cpu.read_sys_kmode(cpu)) {

@@ -265,9 +265,15 @@ void process_line(std::string &line) {
       }
       uint32_t addr = read_num(tokens[1]);
       boost::optional<uint32_t> phys_addr = virt_to_phys(addr, cpu, false);
+      boost::optional<uint32_t> phys_addr_write = virt_to_phys(addr, cpu, true);
       if (phys_addr) {
-          printf("Virtual address 0x%x maps to physical address 0x%x\n",
+          printf("Virtual address 0x%x maps to physical address 0x%x ",
                  addr, *phys_addr);
+          if (phys_addr_write) {
+              printf("(rw)\n");
+          } else {
+              printf("(ro)\n");
+          }
       } else {
           printf("Virtual address 0x%x has no physical address\n", addr);
       }

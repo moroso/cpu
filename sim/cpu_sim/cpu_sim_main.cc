@@ -216,6 +216,9 @@ bool step_program() {
                 dump_regs(cpu.regs, false);
                 return true;
             }
+            if (cpu.flush_packet_cache_flag) {
+                cpu.flush_packet_cache();
+            }
         } else {
             if (verbose)
                 printf("Invalid address in instruction fetch: %x\n", cpu.regs.pc);
@@ -375,6 +378,7 @@ int main(int argc, char** argv) {
     }
 
     cpu.packet_cache = new std::vector<boost::optional<decoded_packet> >();
+    cpu.flush_packet_cache_flag = false;
 
     cpu.ram = (uint8_t *)malloc(SIM_RAM_BYTES);
     cpu.peripherals.push_back(new cycle_timer());
