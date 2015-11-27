@@ -331,6 +331,8 @@ struct cpu_t {
 
     // For memory write breakpoints.
     boost::optional<mem_write_t> last_writes[2];
+    // For breakpoints on exceptions/interrupts.
+    bool exn_last_cycle;
 
     // Cache of decoded packets.
     std::vector<boost::optional<decoded_packet>> *packet_cache;
@@ -380,6 +382,8 @@ enum exception_t {
     // Not something that happens on the real CPU; just to flag that
     // we want to end the simulation.
     EXC_HALT,
+
+    NUM_EXCEPTIONS,
 };
 
 // order must match

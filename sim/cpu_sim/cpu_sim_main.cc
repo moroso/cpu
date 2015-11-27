@@ -176,6 +176,7 @@ bool step_program() {
 
     cpu.reg_write_mask = 0;
     cpu.reg_read_mask = 0;
+    cpu.exn_last_cycle = false;
     uint32_t original_pc = cpu.read_pc(cpu);
     bool interrupt = cpu.process_peripherals();
     bool exc = false;
@@ -241,6 +242,7 @@ bool step_program() {
         cpu.write_pc(cpu.read_coreg(CP_EHA, cpu));
         cpu.write_coreg(CP_PFLAGS, cpu.read_coreg(CP_PFLAGS, cpu) & ~(1 << PFLAGS_INT_ENABLE));
         cpu.write_sys_kmode(true);
+        cpu.exn_last_cycle = true;
     }
     write_reg_trace(original_pc, pkt);
     if (verbose)
@@ -298,12 +300,14 @@ int main(int argc, char** argv) {
     verbose = false;
     bool debugger = false;
     char *input_filename = NULL;
+    char *debug_filename = NULL;
 
 
     static struct option long_options[] = {
         {"trace",     required_argument, 0, 0},
         {"mem_trace", required_argument, 0, 0},
         {"input",     required_argument, 0, 0},
+        {"debugfile", required_argument, 0, 0},
         {0,           0,                 0, 0},
     };
     int option_index;
@@ -320,6 +324,10 @@ int main(int argc, char** argv) {
                         break;
                     case 2:
                         input_filename = optarg;
+                        break;
+                    case 3:
+                        debug_filename = optarg;
+                        break;
                 }
                 break;
             case 'b':
@@ -421,11 +429,13 @@ int main(int argc, char** argv) {
     if (input_filename)
         close(fd);
 
-    printf("Trace to %s\n", trace_filename);
-    trace_file = fopen(trace_filename, "w");
+    if (trace_filename) {
+        printf("Trace to %s\n", trace_filename);
+        trace_file = fopen(trace_filename, "w");
+    }
 
     if (debugger)
-        debug();
+        debug(debug_filename);
     else
         run_program();
     printf("OROSOM simulator terminating\n");
