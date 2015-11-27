@@ -102,6 +102,11 @@ private:
     uint32_t video_offset;
     uint32_t count;
     uint32_t screen_size();
+    bool needs_updating;
+    uint32_t min_x;
+    uint32_t max_x;
+    uint32_t min_y;
+    uint32_t max_y;
 };
 
 #else
