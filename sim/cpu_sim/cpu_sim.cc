@@ -302,7 +302,8 @@ shared_ptr<decoded_instruction> decoded_instruction::decode_instruction(instruct
         result->rd = rd_num;
         result->rt = rt_num;
         other->reserved_bits = (BIT(instr, 19) << 4) | BITS(instr, 10, 4);
-        other->signd = (other->reserved_bits & 0x10) >> 4;
+        other->signd = BIT(other->reserved_bits, 4);
+        other->wide = BIT(other->reserved_bits, 3);
     } else if (BITS(instr, 21, 3) == 0x1) {
         // ALU 1OP REGSH
         shared_ptr<alu_instruction> alu(new alu_instruction());

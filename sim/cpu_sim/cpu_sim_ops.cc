@@ -77,10 +77,11 @@ std::string other_instruction::disassemble_inner() {
             break;
         case OTHER_MULT:
         case OTHER_DIV:
-            result << string_format("r%d <- r%d %c%s r%d",
+            result << string_format("r%d <- r%d %c%s%s r%d",
                                     rd.get(), rs.get(),
                                     (otherop == OTHER_MULT ? '*' : '/'),
                                     (signd ? "s" : ""),
+                                    (wide ? "w" : ""),
                                     rt.get());
             break;
         case OTHER_MTHI:
@@ -146,15 +147,24 @@ exec_result other_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_cpu)
             break;
         case OTHER_DIV:
             if (signd) {
-                int32_t rs_val = old_cpu.read_reg(rs.get(), cpu);
+                int64_t rs_val;
+                if (wide) {
+                    rs_val = old_cpu.read_reg(rs.get(), cpu);
+                    rs_val += ((uint64_t)old_cpu.read_ovf(cpu)) << 32;
+                } else {
+                    rs_val = (int32_t)old_cpu.read_reg(rs.get(), cpu);
+                }
                 int32_t rt_val = old_cpu.read_reg(rt.get(), cpu);
                 if (rt_val == 0)
                     return exec_result(EXC_DIVIDE_BY_ZERO);
                 cpu.write_reg(rd.get(), rs_val / rt_val);
                 cpu.write_ovf(rs_val % rt_val);
             } else {
-                uint32_t rs_val = old_cpu.read_reg(rs.get(), cpu);
+                uint64_t rs_val = old_cpu.read_reg(rs.get(), cpu);
                 uint32_t rt_val = old_cpu.read_reg(rt.get(), cpu);
+                if (wide) {
+                    rs_val += ((uint64_t)old_cpu.read_ovf(cpu)) << 32;
+                }
                 if (rt_val == 0)
                     return exec_result(EXC_DIVIDE_BY_ZERO);
                 cpu.write_reg(rd.get(), rs_val / rt_val);

@@ -15,6 +15,7 @@ struct other_instruction : public decoded_instruction {
     otherop_t otherop;
     uint32_t reserved_bits;
     bool signd;  // mult/div
+    bool wide; // div
 
     std::string opcode_str();
     std::string to_string();
