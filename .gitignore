@@ -1,5 +1,3 @@
 *~
 runs
-cpu_sim
-!cpu_sim/
 tests/results
