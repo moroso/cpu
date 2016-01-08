@@ -465,12 +465,10 @@ bool cpu_t::validate_write(uint32_t addr, uint32_t val, uint8_t width) {
         }
     }
 
-    for (int i = 0; i < width; ++i) {
-        if (addr + i >= SIM_RAM_BYTES) {
-            return false;
-        }
+    // Only have to check the first because everything is aligned to its width
+    if (addr >= SIM_RAM_BYTES) {
+        return false;
     }
-
     return true;
 }
 

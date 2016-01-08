@@ -500,16 +500,9 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
     uint32_t addr_mask = ~(width - 1);
     uint32_t virt_mem_addr = addr_mask & (old_cpu.read_reg(rs.get(), cpu) + offset.get());
     // We know the operation won't cross a page boundary, because of alignment requirements.
-    // TODO: check for a fault here.
     boost::optional<uint32_t> mem_addr_opt = virt_to_phys(virt_mem_addr, old_cpu, store);
     if (!mem_addr_opt)
         return exec_result(EXC_PAGEFAULT_ON_DATA_ACCESS, virt_mem_addr);
-
-    for (int i = 1; i < width; ++i) {
-        // Verify that all remaining bytes in this access are valid.
-        if (!virt_to_phys(virt_mem_addr + i, old_cpu, store))
-            return exec_result(EXC_PAGEFAULT_ON_DATA_ACCESS, virt_mem_addr);
-    }
 
     uint32_t mem_addr = *mem_addr_opt;
 
@@ -543,16 +536,18 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
             }
         }
 
+        if (mem_addr >= SIM_RAM_BYTES) {
+            // XXX: should this really be FATAL? for stores it is a fault
+            printf("FATAL: Load/store outside RAM: %x\n", mem_addr);
+            abort();
+        }
+
         // Little-endian: copy starting at the msb
         mem_addr += width - 1;
 
         if (!val) {
             uint32_t read_val = 0;
             for (int i = 0; i < width; ++i) {
-                if (mem_addr >= SIM_RAM_BYTES) {
-                    printf("FATAL: Load/store outside RAM: %x\n", mem_addr);
-                    abort();
-                }
                 read_val <<= 8;
                 read_val += cpu.ram[mem_addr];
                 mem_addr--;
