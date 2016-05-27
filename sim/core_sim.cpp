@@ -26,6 +26,12 @@ void _close_trace() {
 
 #define TIMEOUT 5000
 
+#define RAM_SIZE 65536
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+uint32_t ram[RAM_SIZE];
+
 int main(int argc, char **argv){
 	if(argc < 2){
 		printf("usage: %s [input hex file]\n", argv[0]);
@@ -46,6 +52,7 @@ int main(int argc, char **argv){
 		printf("Could not mmap file %s: %s\n", argv[1], strerror(errno));
 		return 1;
 	}
+	memcpy(ram, code, MIN(RAM_SIZE / sizeof(uint32_t), stat.st_size));
 	VMCPU_core *core = new VMCPU_core;
 
 	#if VM_TRACE
@@ -71,12 +78,58 @@ int main(int argc, char **argv){
 	TRACE;
 
 	int cycles = 0;
-	while((!core->f2ic_valid || ((core->f2ic_paddr) * 16) <= stat.st_size + 48) && (cycles < TIMEOUT)){
+	while((!core->f2ic_valid || ((core->f2ic_paddr) * 16) <= stat.st_size) && (cycles < TIMEOUT)){
+		
 		if(core->f2ic_valid && (((core->f2ic_paddr + 1) * 16) <= stat.st_size)){
-			core->ic2f_packet[0] = code[(core->f2ic_paddr * 4)];
-			core->ic2f_packet[1] = code[(core->f2ic_paddr * 4 + 1)];
-			core->ic2f_packet[2] = code[(core->f2ic_paddr * 4 + 2)];
-			core->ic2f_packet[3] = code[(core->f2ic_paddr * 4 + 3)];
+			core->ic2f_packet[0] = ram[(core->f2ic_paddr * 4) % RAM_SIZE];
+			core->ic2f_packet[1] = ram[(core->f2ic_paddr * 4 + 1) % RAM_SIZE];
+			core->ic2f_packet[2] = ram[(core->f2ic_paddr * 4 + 2) % RAM_SIZE];
+			core->ic2f_packet[3] = ram[(core->f2ic_paddr * 4 + 3) % RAM_SIZE];
+		}
+
+		//TODO mess with the timing?
+		if(core->mem2dc_valid0){
+			uint32_t addr = core->mem2dc_paddr0 % RAM_SIZE;
+			if(core->mem2dc_write0){
+				uint32_t writemask = 0;
+				writemask |= (core->mem2dc_write0 & 1) ? 0xFF : 0;
+				writemask |= (core->mem2dc_write0 & 2) ? 0xFF00 : 0;
+				writemask |= (core->mem2dc_write0 & 4) ? 0xFF0000 : 0;
+				writemask |= (core->mem2dc_write0 & 8) ? 0xFF000000 : 0;
+				ram[addr] = (core->mem2dc_data0 & writemask) | 
+							(ram[addr] & ~writemask);
+				printf("Lane 0 wrote %x at %x\n", ram[addr], addr);
+			}
+			else{
+				core->mem2dc_data0 = ram[addr];
+				printf("Lane 0 read %x at %x\n", ram[addr], addr);
+			}
+			core->mem2dc_done0 = 1;
+		}
+		else{
+			core->mem2dc_done0 = 0;
+		}
+
+		if(core->mem2dc_valid1){
+			uint32_t addr = core->mem2dc_paddr1 % RAM_SIZE;
+			if(core->mem2dc_write1){
+				uint32_t writemask = 0;
+				writemask |= (core->mem2dc_write1 & 1) ? 0xFF : 0;
+				writemask |= (core->mem2dc_write1 & 2) ? 0xFF00 : 0;
+				writemask |= (core->mem2dc_write1 & 4) ? 0xFF0000 : 0;
+				writemask |= (core->mem2dc_write1 & 8) ? 0xFF000000 : 0;
+				ram[addr] = (core->mem2dc_data1 & writemask) | 
+							(ram[addr] & ~writemask);
+				printf("Lane 1 wrote %x at %x\n", ram[addr], addr);
+			}
+			else{
+				core->mem2dc_data1 = ram[addr];
+				printf("Lane 1 read %x at %x\n", ram[addr], addr);
+			}
+			core->mem2dc_done1 = 1;
+		}
+		else{
+			core->mem2dc_done1 = 0;
 		}
 
 		core->eval();

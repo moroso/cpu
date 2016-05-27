@@ -20,7 +20,8 @@ RTL_COMMON = \
 	rtl/core/cache/MCPU_CACHE_ic_dummy.v \
 	rtl/core/cache/MCPU_CACHE_tlb_dummy.v \
 	rtl/core/MCPU_CORE_coproc.v \
-	rtl/core/MCPU_CORE_exn_encode.v
+	rtl/core/MCPU_CORE_exn_encode.v \
+	rtl/core/MCPU_CORE_stage_mem.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
