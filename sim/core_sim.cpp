@@ -77,16 +77,26 @@ int main(int argc, char **argv){
 
 	TRACE;
 
-	int cycles = 0;
-	while((!core->f2ic_valid || ((core->f2ic_paddr) * 16) <= stat.st_size) && (cycles < TIMEOUT)){
+	int cycles = 0, end_time = TIMEOUT, exiting = 0;
+	while(cycles < end_time){
 		
-		if(core->f2ic_valid && (((core->f2ic_paddr + 1) * 16) <= stat.st_size)){
+		if(!exiting){
 			core->ic2f_packet[0] = ram[(core->f2ic_paddr * 4) % RAM_SIZE];
 			core->ic2f_packet[1] = ram[(core->f2ic_paddr * 4 + 1) % RAM_SIZE];
 			core->ic2f_packet[2] = ram[(core->f2ic_paddr * 4 + 2) % RAM_SIZE];
 			core->ic2f_packet[3] = ram[(core->f2ic_paddr * 4 + 3) % RAM_SIZE];
+			if(core->ic2f_packet[0] == 0xD1183C00){
+				//feed in a few NOPs and end the simulation.
+				exiting = 1;
+				end_time = cycles + 5;
+			}
 		}
-
+		else{
+			core->ic2f_packet[0] = 0xE0000000;
+			core->ic2f_packet[1] = 0xE0000000;
+			core->ic2f_packet[2] = 0xE0000000;
+			core->ic2f_packet[3] = 0xE0000000;
+		}
 		//TODO mess with the timing?
 		if(core->mem2dc_valid0){
 			uint32_t addr = core->mem2dc_paddr0 % RAM_SIZE;
@@ -150,18 +160,7 @@ int main(int argc, char **argv){
 		core->eval();
 		cycles++;
 	}
-	//Hack to flush the pipeline in this simple case - just feed it 5 NOPs.
-	core->ic2f_packet[0] = 0xE0000000;
-	core->ic2f_packet[1] = 0xE0000000;
-	core->ic2f_packet[2] = 0xE0000000;
-	core->ic2f_packet[3] = 0xE0000000;
-	core->eval();
-	for(int i = 0; i < 5; i++){
-		core->clkrst_core_clk = 1;
-		core->eval();
-		core->clkrst_core_clk = 0;
-		core->eval();
-	}
+
 	//dump register contents
 	printf("Execution completed after %d cycles\n", cycles);
 	printf("Beginning register dump\n");
