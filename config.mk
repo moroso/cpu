@@ -10,6 +10,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/lib/FIFO.v \
 	rtl/lib/register.v \
+	rtl/lib/reg_2.v \
 	rtl/core/MCPU_core.v \
 	rtl/core/MCPU_CORE_stage_fetch.v \
 	rtl/core/MCPU_CORE_stage_fetchtlb.v \

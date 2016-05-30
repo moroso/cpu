@@ -114,6 +114,10 @@ module MCPU_CORE_decode(/*AUTOARG*/
         d2pc_out_rd_we = ~d2pc_out_execute_opcode[2];
         depend_rs = 1;
         depend_rt = d2pc_out_execute_opcode[2];
+        if(d2pc_out_execute_opcode[2:0] == 3'b111) begin
+          d2pc_out_pred_we = 1;
+          d2pc_out_rd_num = 5'b0;
+        end
       end
 
       else if(inst[27]) begin // branch

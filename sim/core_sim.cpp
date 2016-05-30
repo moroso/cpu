@@ -144,11 +144,14 @@ int main(int argc, char **argv){
 
 		core->eval();
 
-		printf("Cycle %d: FT PC is %x, fetch PC is %x\n", 
-			cycles, core->v->ft2f_out_virtpc * 16, core->v->ft2f_in_virtpc * 16);
+		printf("Cycle %d: FT PC is %x, fetch PC is %x, pre-commit PC is %x\n", 
+			cycles, core->v->ft2f_out_virtpc * 16, core->v->ft2f_in_virtpc * 16,
+			core->v->d2pc_in_virtpc * 16);
 
-		printf("f_valid: %d, dcd_valid: %d, pc_valid: %d, wb_valid: %d\n", 
-			core->v->f_valid, core->v->dcd_valid, core->v->pc_valid, core->v->wb_valid);
+		uint32_t mem_valid = core->v->mem_valid0 + (core->v->mem_valid1 << 1);
+		uint32_t wb_valid = core->v->wb_valid0 + (core->v->wb_valid1 << 1) + (core->v->wb_valid23 << 2);
+		printf("f_valid: %d, dcd_valid: %d, pc_valid: %d, mem_valid: %d, wb_valid: %d\n", 
+			core->v->f_valid, core->v->dcd_valid, core->v->pc_valid, mem_valid, wb_valid);
 
 		Sim::tick();
 		TRACE;

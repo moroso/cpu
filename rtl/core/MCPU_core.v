@@ -47,9 +47,6 @@ module MCPU_core(/*AUTOARG*/
   input [127:0] ic2f_packet;
   input ic2f_ready;
 
-//  output [31:0]   mem [0:31]; // registers
-
-  /* TODO something about MMIOs */
 
   /*AUTOREG*/
   /*AUTOWIRE*/
@@ -128,6 +125,10 @@ module MCPU_core(/*AUTOARG*/
   wire [4:0]		mem2wb_out_rd_num1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire			mem2wb_out_rd_we0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
   wire			mem2wb_out_rd_we1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			mem2wb_readyout0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			mem2wb_readyout1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			pc2mem_readyin0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			pc2mem_readyin1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire [31:0]		pc2wb_out_result2;	// From alu2 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result3;	// From alu3 of MCPU_CORE_alu.v
   wire			pc_alu_invalid0;	// From alu0 of MCPU_CORE_alu.v
@@ -169,9 +170,13 @@ module MCPU_core(/*AUTOARG*/
   wire [11:0] d2pc_in_lsu_offset0, d2pc_in_lsu_offset1;
   wire d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
   wire [27:0] d2pc_in_virtpc /* verilator public */;
+  wire [27:0] pc2mem_in_virtpc0 /* verilator public */, pc2mem_in_virtpc1 /* verilator public */;
+  wire [27:0] wb_in_virtpc0, wb_in_virtpc1, wb_in_virtpc23;
   wire d2pc_in_inst_pf;
   wire [4:0] d2pc_in_rs_num0;
   wire d2pc_out_invalid3;
+  wire pc2mem_in_rd_we0, pc2mem_in_rd_we1;
+  wire [4:0] pc2mem_in_rd_num0, pc2mem_in_rd_num1;
 
   wire [31:0] wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0 /* verilator public */;
   wire [4:0] wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0 /* verilator public */;
@@ -179,12 +184,23 @@ module MCPU_core(/*AUTOARG*/
   wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0 /* verilator public */;
 
   //stage status signals
-  wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */, wb_valid /* verilator public */;
+  wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */;
+  wire mem_valid0 /* verilator public */, mem_valid1 /* verilator public */;
+  wire wb_valid0 /* verilator public */, wb_valid1 /* verilator public */, wb_valid23 /* verilator public */;
   wire ft2f_readyout, ft2f_readyin, f2d_readyout, f2d_readyin;
-  wire d2pc_readyout, d2pc_readyin, pc2wb_readyout, pc2wb_readyin;
-  wire ft2f_progress, f2d_progress, d2pc_progress, pc2wb_progress;
+  wire d2pc_readyout, d2pc_readyin;
+  wire ft2f_progress, f2d_progress, d2pc_progress;
+
+  wire pc2wb_readyout0, pc2wb_readyout1, pc2mem_readyout0, pc2mem_readyout1;
+  wire pc_readyout;
+  wire pc2wb_readyin0, pc2wb_readyin1;
+  wire pc_out_progress;
+  wire pc2wb_progress0, pc2wb_progress1, pc2mem_progress0, pc2mem_progress1;
+  wire mem2wb_progress0, mem2wb_progress1;
 
   wire ft2f_done, f2d_done;
+
+  `include "oper_type.vh"
 
 
   assign ft2f_readyin = ~f_valid | f2d_progress;
@@ -195,22 +211,43 @@ module MCPU_core(/*AUTOARG*/
   assign f2d_readyout = ~f_valid | f2d_done;
   assign f2d_progress = f2d_readyout & f2d_readyin;
 
-  assign d2pc_readyin = ~pc_valid | pc2wb_progress;
+  assign d2pc_readyin = ~pc_valid | pc_out_progress;
   assign d2pc_readyout = 1;
   assign d2pc_progress = d2pc_readyin & d2pc_readyout;
+  
+  assign pc_readyout = (pc2mem_readyout0 | pc2wb_readyout0) & (pc2mem_readyout1 | pc2wb_readyout1);
 
-  assign pc2wb_readyout = ((d2pc_in_oper_type0 != OPER_TYPE_LSU) | mem2dc_done0) &
-                          ((d2pc_in_oper_type1 != OPER_TYPE_LSU) | mem2dc_done1); // this will get more complicated later
-  assign pc2wb_readyin = 1; // this will also change as we add functional units after commit
-  assign pc2wb_progress = pc2wb_readyout & pc2wb_readyin;
+  assign pc2mem_readyout0 = pc_valid & (d2pc_in_oper_type0 == OPER_TYPE_LSU); //todo TLB done
+  assign pc2mem_readyout1 = pc_valid & (d2pc_in_oper_type1 == OPER_TYPE_LSU);
 
-  `include "oper_type.vh"
+  assign pc2wb_readyout0 = (d2pc_in_oper_type0 != OPER_TYPE_LSU); //todo MUL/DIV stalling?
+  assign pc2wb_readyout1 = (d2pc_in_oper_type1 != OPER_TYPE_LSU);
+
+  // lanes 2 and 3 are never not ready to progress - always straight from ALU to writeback.
+  // so we commit a packet if lanes 0 and 1 are both complete and downstream isn't blocked.
+  assign pc_out_progress = ((pc2wb_readyout0 & pc2wb_readyin0) | (pc2mem_readyout0 & pc2mem_readyin0)) &
+                           ((pc2wb_readyout1 & pc2wb_readyin1) | (pc2mem_readyout1 & pc2mem_readyin1)) &
+                           ~exception;
+
+  assign pc2wb_progress0 = pc_out_progress & pc2wb_readyout0;
+  assign pc2mem_progress0 = pc_out_progress & pc2mem_readyout0;
+  assign pc2wb_progress1 = pc_out_progress & pc2wb_readyout1;
+  assign pc2mem_progress1 = pc_out_progress & pc2mem_readyout1;
+
+  // Prioritize access to the writeback stage for the memory stages over the PC stage
+  assign {mem2wb_progress0, mem2wb_progress1} = {mem2wb_readyout0, mem2wb_readyout1};
+  assign pc2wb_readyin0 = ~mem2wb_progress0;
+  assign pc2wb_readyin1 = ~mem2wb_progress1;
+
+
 
   //unimplemented control inputs
   wire pipe_flush, exception /* verilator public */, paging_on;
   wire [27:0] pc2ft_newpc;
   assign pipe_flush = pc_valid & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
   assign paging_on = 0;
+
+
 
   wire [27:0] branch_newpc = d2pc_in_sop0[27:0] +
               (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
@@ -682,10 +719,6 @@ module MCPU_core(/*AUTOARG*/
   wire [31:0] pc2mem_in_data0, pc2mem_in_data1, pc2mem_out_data0, pc2mem_out_data1;
   wire [2:0] pc2mem_in_type0, pc2mem_in_type1, pc2mem_out_type0, pc2mem_out_type1;
 
-  // TODO pipelined it
-  assign {pc2mem_in_paddr1, pc2mem_in_paddr0, pc2mem_in_data1, pc2mem_in_data0, pc2mem_in_type1, pc2mem_in_type0} = 
-    {pc2mem_out_paddr1, pc2mem_out_paddr0, pc2mem_out_data1, pc2mem_out_data0, pc2mem_out_type1, pc2mem_out_type0};
-
   // actual pc-stage logic
   assign {pc2mem_out_type0, pc2mem_out_type1} = {d2pc_in_execute_opcode0[2:0], d2pc_in_execute_opcode1[2:0]};
   assign {pc2mem_out_data0, pc2mem_out_data1} = {d2pc_in_sop0, d2pc_in_sop1};
@@ -699,13 +732,54 @@ module MCPU_core(/*AUTOARG*/
   // you can have any mapping you want as long as it's the identity mapping
   assign {pc2mem_out_paddr0, pc2mem_out_paddr1} = {pc_vaddr0, pc_vaddr1};
 
+  register #(.WIDTH(102), .RESET_VAL(102'b0)) pc2mem_reg0(
+    .D({
+      pc2mem_out_paddr0, pc2mem_out_data0, pc2mem_out_type0,
+      d2pc_in_rd_num0, d2pc_in_rd_we0,
+      pc_valid,
+      d2pc_in_virtpc
+    }),
+    .Q({
+      pc2mem_in_paddr0, pc2mem_in_data0, pc2mem_in_type0,
+
+      pc2mem_in_rd_num0, pc2mem_in_rd_we0,
+      mem_valid0,
+      pc2mem_in_virtpc0
+    }),
+    .en(pc2mem_progress0),
+  /*AUTOINST*/
+							// Inputs
+							.clkrst_core_clk(clkrst_core_clk),
+							.clkrst_core_rst_n(clkrst_core_rst_n));
+
+  register #(.WIDTH(102), .RESET_VAL(102'b0)) pc2mem_reg1(
+    .D({
+      pc2mem_out_paddr1, pc2mem_out_data1, pc2mem_out_type1,
+      d2pc_in_rd_num1, d2pc_in_rd_we1,
+      pc_valid,
+      d2pc_in_virtpc
+    }),
+    .Q({
+      pc2mem_in_paddr1, pc2mem_in_data1, pc2mem_in_type1,
+      pc2mem_in_rd_num1, pc2mem_in_rd_we1,
+      mem_valid1,
+      pc2mem_in_virtpc1
+    }),
+    .en(pc2mem_progress1),
+  /*AUTOINST*/
+							// Inputs
+							.clkrst_core_clk(clkrst_core_clk),
+							.clkrst_core_rst_n(clkrst_core_rst_n));
+
   /* MCPU_CORE_stage_mem AUTO_TEMPLATE(
-    .mem_valid(pc_valid & (d2pc_in_oper_type@ == OPER_TYPE_LSU)),
+    .mem_valid(mem_valid@),
+    .pc2mem_readyin(pc2mem_readyin@),
+    .mem2wb_readyout(mem2wb_readyout@),
     .pc2mem_in_paddr(pc2mem_in_paddr@[]),
     .pc2mem_in_data(pc2mem_in_data@[]),
     .pc2mem_in_type(pc2mem_in_type@[]),
-    .pc2mem_in_rd_num(d2pc_in_rd_num@[]),
-    .pc2mem_in_rd_we(d2pc_in_rd_we@),
+    .pc2mem_in_rd_num(pc2mem_in_rd_num@[]),
+    .pc2mem_in_rd_we(pc2mem_in_rd_we@),
     .mem2wb_out_data(mem2wb_out_data@[]),
     .mem2wb_out_rd_num(mem2wb_out_rd_num@[]),
     .mem2wb_out_rd_we(mem2wb_out_rd_we@),
@@ -714,10 +788,14 @@ module MCPU_core(/*AUTOARG*/
     .mem2dc_valid(mem2dc_valid@),
     .mem2dc_done(mem2dc_done@),
     .mem2dc_data(mem2dc_data@[]),
+    .pc2mem_progress(pc2mem_progress@),
+    .mem2wb_progress(mem2wb_progress@),
     );*/
 
   MCPU_CORE_stage_mem stage_mem0(/*AUTOINST*/
 				 // Outputs
+				 .pc2mem_readyin	(pc2mem_readyin0), // Templated
+				 .mem2wb_readyout	(mem2wb_readyout0), // Templated
 				 .mem2wb_out_data	(mem2wb_out_data0[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num0[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we0), // Templated
@@ -727,15 +805,21 @@ module MCPU_core(/*AUTOARG*/
 				 // Inouts
 				 .mem2dc_data		(mem2dc_data0[31:0]), // Templated
 				 // Inputs
-				 .mem_valid		(pc_valid & (d2pc_in_oper_type0 == OPER_TYPE_LSU)), // Templated
+				 .clkrst_core_clk	(clkrst_core_clk),
+				 .clkrst_core_rst_n	(clkrst_core_rst_n),
+				 .pc2mem_progress	(pc2mem_progress0), // Templated
+				 .mem2wb_progress	(mem2wb_progress0), // Templated
+				 .mem_valid		(mem_valid0),	 // Templated
 				 .pc2mem_in_paddr	(pc2mem_in_paddr0[31:0]), // Templated
 				 .pc2mem_in_data	(pc2mem_in_data0[31:0]), // Templated
 				 .pc2mem_in_type	(pc2mem_in_type0[2:0]), // Templated
-				 .pc2mem_in_rd_num	(d2pc_in_rd_num0[4:0]), // Templated
-				 .pc2mem_in_rd_we	(d2pc_in_rd_we0), // Templated
+				 .pc2mem_in_rd_num	(pc2mem_in_rd_num0[4:0]), // Templated
+				 .pc2mem_in_rd_we	(pc2mem_in_rd_we0), // Templated
 				 .mem2dc_done		(mem2dc_done0));	 // Templated
   MCPU_CORE_stage_mem stage_mem1(/*AUTOINST*/
 				 // Outputs
+				 .pc2mem_readyin	(pc2mem_readyin1), // Templated
+				 .mem2wb_readyout	(mem2wb_readyout1), // Templated
 				 .mem2wb_out_data	(mem2wb_out_data1[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num1[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we1), // Templated
@@ -745,20 +829,25 @@ module MCPU_core(/*AUTOARG*/
 				 // Inouts
 				 .mem2dc_data		(mem2dc_data1[31:0]), // Templated
 				 // Inputs
-				 .mem_valid		(pc_valid & (d2pc_in_oper_type1 == OPER_TYPE_LSU)), // Templated
+				 .clkrst_core_clk	(clkrst_core_clk),
+				 .clkrst_core_rst_n	(clkrst_core_rst_n),
+				 .pc2mem_progress	(pc2mem_progress1), // Templated
+				 .mem2wb_progress	(mem2wb_progress1), // Templated
+				 .mem_valid		(mem_valid1),	 // Templated
 				 .pc2mem_in_paddr	(pc2mem_in_paddr1[31:0]), // Templated
 				 .pc2mem_in_data	(pc2mem_in_data1[31:0]), // Templated
 				 .pc2mem_in_type	(pc2mem_in_type1[2:0]), // Templated
-				 .pc2mem_in_rd_num	(d2pc_in_rd_num1[4:0]), // Templated
-				 .pc2mem_in_rd_we	(d2pc_in_rd_we1), // Templated
+				 .pc2mem_in_rd_num	(pc2mem_in_rd_num1[4:0]), // Templated
+				 .pc2mem_in_rd_we	(pc2mem_in_rd_we1), // Templated
 				 .mem2dc_done		(mem2dc_done1));	 // Templated
 
 
   /* AUTO_CONSTANT ( OPER_TYPE_BRANCH ) */
   /* AUTO_CONSTANT ( OPER_TYPE_OTHER ) */
+  /* AUTO_CONSTANT ( OPER_TYPE_LSU ) */
   wire pc2wb_out_rd_we0;
-  always @(/*AUTOSENSE*/OPER_TYPE_LSU or alu_result0 or alu_result1
-	   or coproc_rd_we or coproc_reg_result or d2pc_in_oper_type0
+  always @(/*AUTOSENSE*/alu_result0 or alu_result1 or coproc_rd_we
+	   or coproc_reg_result or d2pc_in_oper_type0
 	   or d2pc_in_oper_type1 or d2pc_in_rd_we0 or d2pc_in_virtpc
 	   or mem2wb_out_data0 or mem2wb_out_data1) begin
     pc2wb_out_rd_we0 = d2pc_in_rd_we0;
@@ -768,60 +857,89 @@ module MCPU_core(/*AUTOARG*/
         pc2wb_out_result0 = coproc_reg_result;
         pc2wb_out_rd_we0 = coproc_rd_we;
       end
-      OPER_TYPE_LSU: pc2wb_out_result0 = mem2wb_out_data0;
       default: pc2wb_out_result0 = alu_result0;
     endcase
-    case (d2pc_in_oper_type1)
-      OPER_TYPE_LSU: pc2wb_out_result1 = mem2wb_out_data1;
-      default: pc2wb_out_result1 = alu_result1;
-    endcase
   end
+  assign pc2wb_out_result1 = alu_result1; // TODO SC bits
 
-  assign pc2wb_readyin = 1;
-  assign pc2wb_readyout = pc_valid & ~exception; // for now, PC always takes one cycle
-
-  wire [27:0] pc2wb_in_virtpc0 /* verilator public */;
-  wire [27:0] pc2wb_in_virtpc1 /* verilator public */;
-  wire [27:0] pc2wb_in_virtpc2 /* verilator public */;
-  wire [27:0] pc2wb_in_virtpc3 /* verilator public */;
-  wire pc2wb_in_rd_we0, pc2wb_in_rd_we1, pc2wb_in_rd_we2, pc2wb_in_rd_we3;
-  wire pc2wb_in_pred_we0, pc2wb_in_pred_we1, pc2wb_in_pred_we2, pc2wb_in_pred_we3;
+  wire wb_in_rd_we0, wb_in_rd_we1, wb_in_rd_we2, wb_in_rd_we3;
+  wire wb_in_pred_we0, wb_in_pred_we1, wb_in_pred_we2, wb_in_pred_we3;
 
 
-  register #(.WIDTH(269), .RESET_VAL(269'b0)) pc2wb_reg(
+  register #(.WIDTH(107), .RESET_VAL(107'b0)) pc2wb_reg23(
     .D({
-      pc2wb_out_result3, pc2wb_out_result2, pc2wb_out_result1, pc2wb_out_result0,
-      d2pc_in_rd_num3, d2pc_in_rd_num2, d2pc_in_rd_num1, d2pc_in_rd_num0,
-      d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_rd_we1, pc2wb_out_rd_we0,
-      d2pc_in_pred_we3, d2pc_in_pred_we2, d2pc_in_pred_we1, d2pc_in_pred_we0,
-      pc2wb_progress & pc_valid & ~pipe_flush,
-      d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc, d2pc_in_virtpc
+      pc2wb_out_result3, pc2wb_out_result2,
+      d2pc_in_rd_num3, d2pc_in_rd_num2,
+      d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_pred_we3, d2pc_in_pred_we2,
+      pc_valid & ~pipe_flush,
+      d2pc_in_virtpc
     }),
     .Q({
-      wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0,
-      wb2rf_rd_num3, wb2rf_rd_num2, wb2rf_rd_num1, wb2rf_rd_num0,
-      pc2wb_in_rd_we3, pc2wb_in_rd_we2, pc2wb_in_rd_we1, pc2wb_in_rd_we0, 
-      pc2wb_in_pred_we3, pc2wb_in_pred_we2, pc2wb_in_pred_we1, pc2wb_in_pred_we0, 
-      wb_valid,
-      pc2wb_in_virtpc0, pc2wb_in_virtpc1, pc2wb_in_virtpc2, pc2wb_in_virtpc3
+      wb2rf_rd_data3, wb2rf_rd_data2,
+      wb2rf_rd_num3, wb2rf_rd_num2,
+      wb_in_rd_we3, wb_in_rd_we2, wb_in_pred_we3, wb_in_pred_we2,
+      wb_valid23,
+      wb_in_virtpc23
     }),
-    .en(pc2wb_progress),
+    .en(pc_out_progress),
     /*AUTOINST*/
-							// Inputs
-							.clkrst_core_clk(clkrst_core_clk),
-							.clkrst_core_rst_n(clkrst_core_rst_n));
-      
-  assign wb2rf_rd_we0 = pc2wb_in_rd_we0 & wb_valid;
-  assign wb2rf_rd_we1 = pc2wb_in_rd_we1 & wb_valid;
-  assign wb2rf_rd_we2 = pc2wb_in_rd_we2 & wb_valid;
-  assign wb2rf_rd_we3 = pc2wb_in_rd_we3 & wb_valid;
+							  // Inputs
+							  .clkrst_core_clk	(clkrst_core_clk),
+							  .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  assign wb2rf_pred_we0 = pc2wb_in_pred_we0 & wb_valid;
-  assign wb2rf_pred_we1 = pc2wb_in_pred_we1 & wb_valid;
-  assign wb2rf_pred_we2 = pc2wb_in_pred_we2 & wb_valid;
-  assign wb2rf_pred_we3 = pc2wb_in_pred_we3 & wb_valid;
-  //writeback stage doesn't actually have any logic yet, just scoreboard and regfile connections.
-  //There will need to be arbitration for multiple register writes on a lane arriving in the same cycle.
+  reg_2 #(.WIDTH(68), .RESET_VAL(68'b0)) pc2wb_reg0(
+    .D0({
+      mem2wb_out_data0, mem2wb_out_rd_num0, mem2wb_out_rd_we0, 1'b0,
+      mem_valid0,
+      pc2mem_in_virtpc0
+    }),
+    .D1({
+      pc2wb_out_result0, d2pc_in_rd_num0, d2pc_in_rd_we0, d2pc_in_pred_we0,
+      pc_valid & ~pipe_flush,
+      d2pc_in_virtpc
+    }),
+    .Q({
+      wb2rf_rd_data0, wb2rf_rd_num0, wb_in_rd_we0, wb_in_pred_we0,
+      wb_valid0,
+      wb_in_virtpc0
+    }),
+    .en0(mem2wb_progress0), .en1(pc2wb_progress0),
+    /*AUTOINST*/
+						    // Inputs
+						    .clkrst_core_clk	(clkrst_core_clk),
+						    .clkrst_core_rst_n	(clkrst_core_rst_n));
+
+  reg_2 #(.WIDTH(68), .RESET_VAL(68'b0)) pc2wb_reg1(
+    .D0({
+      mem2wb_out_data1, mem2wb_out_rd_num1, mem2wb_out_rd_we1, 1'b0,
+      mem_valid1,
+      pc2mem_in_virtpc1
+    }),
+    .D1({
+      pc2wb_out_result1, d2pc_in_rd_num1, d2pc_in_rd_we1, d2pc_in_pred_we1,
+      pc_valid & ~pipe_flush,
+      d2pc_in_virtpc
+    }),
+    .Q({
+      wb2rf_rd_data1, wb2rf_rd_num1, wb_in_rd_we1, wb_in_pred_we1,
+      wb_valid1,
+      wb_in_virtpc1
+    }),
+    .en0(mem2wb_progress1), .en1(pc2wb_progress1),
+    /*AUTOINST*/
+						    // Inputs
+						    .clkrst_core_clk	(clkrst_core_clk),
+						    .clkrst_core_rst_n	(clkrst_core_rst_n));
+      
+  assign wb2rf_rd_we0 = wb_in_rd_we0 & wb_valid0;
+  assign wb2rf_rd_we1 = wb_in_rd_we1 & wb_valid1;
+  assign wb2rf_rd_we2 = wb_in_rd_we2 & wb_valid23;
+  assign wb2rf_rd_we3 = wb_in_rd_we3 & wb_valid23;
+
+  assign wb2rf_pred_we0 = wb_in_pred_we0 & wb_valid0;
+  assign wb2rf_pred_we1 = wb_in_pred_we1 & wb_valid1;
+  assign wb2rf_pred_we2 = wb_in_pred_we2 & wb_valid23;
+  assign wb2rf_pred_we3 = wb_in_pred_we3 & wb_valid23;
 
 endmodule
 

@@ -1,18 +1,20 @@
 module MCPU_CORE_stage_mem(/*AUTOARG*/
    // Outputs
-   mem2wb_out_data, mem2wb_out_rd_num, mem2wb_out_rd_we, mem2dc_paddr,
-   mem2dc_write, mem2dc_valid,
+   pc2mem_readyin, mem2wb_readyout, mem2wb_out_data,
+   mem2wb_out_rd_num, mem2wb_out_rd_we, mem2dc_paddr, mem2dc_write,
+   mem2dc_valid,
    // Inouts
    mem2dc_data,
    // Inputs
-   mem_valid, pc2mem_in_paddr, pc2mem_in_data, pc2mem_in_type,
-   pc2mem_in_rd_num, pc2mem_in_rd_we, mem2dc_done
+   clkrst_core_clk, clkrst_core_rst_n, pc2mem_progress,
+   mem2wb_progress, mem_valid, pc2mem_in_paddr, pc2mem_in_data,
+   pc2mem_in_type, pc2mem_in_rd_num, pc2mem_in_rd_we, mem2dc_done
    );
 
-	//input clkrst_core_clk, clkrst_core_rst_n;
+	input clkrst_core_clk, clkrst_core_rst_n;
 
-	//input pc2mem_progress, mem2wb_progress;
-	//output reg pc2mem_readyin, mem2wb_readyout;
+	input pc2mem_progress, mem2wb_progress;
+	output reg pc2mem_readyin, mem2wb_readyout;
 
 	input mem_valid;
 
@@ -35,8 +37,8 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 
 	//reg mem_valid;
 
-	//assign pc2mem_readyin = ~mem2dc_valid | mem2wb_progress;
-	//assign mem2wb_readyout = mem2dc_valid & mem2dc_done;
+	assign pc2mem_readyin = ~mem2dc_valid | mem2wb_progress;
+	assign mem2wb_readyout = mem2dc_valid & mem2dc_done;
 
 	//Compute mask of bytes within the word to write. If this is a read, pass 0.
 	always @(/*AUTOSENSE*/pc2mem_in_paddr or pc2mem_in_type) begin
@@ -48,11 +50,6 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 
 	assign mem2dc_paddr = pc2mem_in_paddr[31:2];
 
-	/*
-	always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
-		mem_valid <= (mem_valid & (~mem2dc_done | ~mem2wb_progress)) | pc2mem_progress;
-	end
-	*/
 
 	assign mem2dc_valid = mem_valid;
 
