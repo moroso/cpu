@@ -101,6 +101,8 @@ module MCPU_CORE_scoreboard(/*AUTOARG*/
             wb_predval1 <= 0;
             wb_predval2 <= 0;
             wb_predval3 <= 0;
+            prev_pred_scoreboard <= 0;
+            prev_reg_scoreboard <= 0;
         end
         else begin
             dcd_reg1h0 <= 32'd1 << d2pc_out_rd_num0;

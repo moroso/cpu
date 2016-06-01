@@ -740,7 +740,7 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2mem_out_paddr0, pc2mem_out_data0, pc2mem_out_type0,
       d2pc_in_rd_num0, d2pc_in_rd_we0,
-      pc_valid,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -760,7 +760,7 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2mem_out_paddr1, pc2mem_out_data1, pc2mem_out_type1,
       d2pc_in_rd_num1, d2pc_in_rd_we1,
-      pc_valid,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -875,7 +875,7 @@ module MCPU_core(/*AUTOARG*/
       pc2wb_out_result3, pc2wb_out_result2,
       d2pc_in_rd_num3, d2pc_in_rd_num2,
       d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_pred_we3, d2pc_in_pred_we2,
-      pc_valid & ~pipe_flush,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -899,7 +899,7 @@ module MCPU_core(/*AUTOARG*/
     }),
     .D1({
       pc2wb_out_result0, d2pc_in_rd_num0, d2pc_in_rd_we0, d2pc_in_pred_we0,
-      pc_valid & ~pipe_flush,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -921,7 +921,7 @@ module MCPU_core(/*AUTOARG*/
     }),
     .D1({
       pc2wb_out_result1, d2pc_in_rd_num1, d2pc_in_rd_we1, d2pc_in_pred_we1,
-      pc_valid & ~pipe_flush,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({

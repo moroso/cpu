@@ -84,7 +84,7 @@ wire [31:0] memoutput;
 
 TB_MCPU_core tb(
 	.clkrst_core_clk(CLOCK_125_p),
-	.clkrst_core_rst_n(CPU_RESET_N),
+	.clkrst_core_rst_n(CPU_RESET_n),
 	.memoutput(memoutput),
 	.meminput({22'b0, SW})
 );

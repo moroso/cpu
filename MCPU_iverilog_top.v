@@ -7,7 +7,12 @@ integer i = 0;
 wire [31:0] memoutput;
 
 initial begin
-  for (i = 0; i < 10000; i = i + 1) begin
+  $dumpfile("iverilog_out.vcd");
+  $dumpvars(0, tb);
+end
+
+initial begin
+  for (i = 0; i < 100; i = i + 1) begin
     #5 CLOCK_125_p = ~CLOCK_125_p;
     #5 CLOCK_125_p = ~CLOCK_125_p;
     $display("clk %d, reset %d, memoutput %x", i, CPU_RESET_n, memoutput);
@@ -23,9 +28,9 @@ end
 
 TB_MCPU_core tb(
 	.clkrst_core_clk(CLOCK_125_p),
-	.clkrst_core_rst_n(CPU_RESET_N),
+	.clkrst_core_rst_n(CPU_RESET_n),
 	.memoutput(memoutput),
-	.meminput(32'b0)
+	.meminput(32'd5)
 );
 
 endmodule

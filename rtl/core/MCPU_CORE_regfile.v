@@ -60,9 +60,9 @@ module MCPU_CORE_regfile(/*AUTOARG*/
     assign rf2d_rs_data2 = &d2rf_rs_num2 ? r31 : mem[d2rf_rs_num2];
     assign rf2d_rs_data3 = &d2rf_rs_num3 ? r31 : mem[d2rf_rs_num3];
 
-    assign rf2d_rt_data0 = &d2rf_rs_num0 ? r31 : mem[d2rf_rt_num0];
-    assign rf2d_rt_data1 = &d2rf_rs_num1 ? r31 : mem[d2rf_rt_num1];
-    assign rf2d_rt_data2 = &d2rf_rs_num2 ? r31 : mem[d2rf_rt_num2];
-    assign rf2d_rt_data3 = &d2rf_rs_num3 ? r31 : mem[d2rf_rt_num3];
+    assign rf2d_rt_data0 = &d2rf_rt_num0 ? r31 : mem[d2rf_rt_num0];
+    assign rf2d_rt_data1 = &d2rf_rt_num1 ? r31 : mem[d2rf_rt_num1];
+    assign rf2d_rt_data2 = &d2rf_rt_num2 ? r31 : mem[d2rf_rt_num2];
+    assign rf2d_rt_data3 = &d2rf_rt_num3 ? r31 : mem[d2rf_rt_num3];
 
 endmodule
