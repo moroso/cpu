@@ -9,7 +9,7 @@ module MCPU_core(/*AUTOARG*/
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_done1, ft2itlb_ready, ft2itlb_physpage,
-   ft2itlb_pagefault, ic2f_packet, ic2f_ready
+   ft2itlb_pagefault, ic2f_packet, ic2f_ready, r0, r31
    );
 
   /* Clocks */
@@ -23,14 +23,14 @@ module MCPU_core(/*AUTOARG*/
 
   /* TODO DTLB/D$ interface */
 
-  output reg [29:0] mem2dc_paddr0;
-  output reg [3:0] mem2dc_write0;
-  output reg mem2dc_valid0;
+  output [29:0] mem2dc_paddr0;
+  output [3:0] mem2dc_write0;
+  output mem2dc_valid0;
   input mem2dc_done0;
   inout [31:0] mem2dc_data0;
-  output reg [29:0] mem2dc_paddr1;
-  output reg [3:0] mem2dc_write1;
-  output reg mem2dc_valid1;
+  output [29:0] mem2dc_paddr1;
+  output [3:0] mem2dc_write1;
+  output mem2dc_valid1;
   input mem2dc_done1;
   inout [31:0] mem2dc_data1;
 
@@ -47,6 +47,8 @@ module MCPU_core(/*AUTOARG*/
   input [127:0] ic2f_packet;
   input ic2f_ready;
 
+  output [31:0] r0;
+  input [31:0] r31;
 
   /*AUTOREG*/
   /*AUTOWIRE*/
@@ -245,7 +247,6 @@ module MCPU_core(/*AUTOARG*/
   wire pipe_flush, exception /* verilator public */, paging_on;
   wire [27:0] pc2ft_newpc;
   assign pipe_flush = pc_valid & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
-  assign paging_on = 0;
 
 
 
@@ -292,7 +293,8 @@ module MCPU_core(/*AUTOARG*/
 			 .wb2rf_pred_we1	(wb2rf_pred_we1),
 			 .wb2rf_pred_we0	(wb2rf_pred_we0),
 			 .clkrst_core_clk	(clkrst_core_clk),
-			 .clkrst_core_rst_n	(clkrst_core_rst_n));
+			 .clkrst_core_rst_n	(clkrst_core_rst_n),
+			 .r0(r0), .r31(r31));
 
   MCPU_CORE_scoreboard sb(
         .d2pc_progress(d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall),
@@ -584,7 +586,8 @@ module MCPU_core(/*AUTOARG*/
   );*/
 
   wire [31:0] alu_result0, alu_result1;
-  wire [31:0] pc2wb_out_result0, pc2wb_out_result1;
+  reg [31:0] pc2wb_out_result0;
+  wire [31:0] pc2wb_out_result1;
   
 
   MCPU_CORE_alu alu0(
@@ -845,7 +848,7 @@ module MCPU_core(/*AUTOARG*/
   /* AUTO_CONSTANT ( OPER_TYPE_BRANCH ) */
   /* AUTO_CONSTANT ( OPER_TYPE_OTHER ) */
   /* AUTO_CONSTANT ( OPER_TYPE_LSU ) */
-  wire pc2wb_out_rd_we0;
+  reg pc2wb_out_rd_we0;
   always @(/*AUTOSENSE*/alu_result0 or alu_result1 or coproc_rd_we
 	   or coproc_reg_result or d2pc_in_oper_type0
 	   or d2pc_in_oper_type1 or d2pc_in_rd_we0 or d2pc_in_virtpc

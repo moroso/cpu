@@ -19,7 +19,8 @@ module MCPU_CORE_exn_encode(/*AUTOARG*/
     input interrupts_enabled;
     input pc_valid;
 
-    output [4:0] combined_ec0, combined_ec1, combined_ec2, combined_ec3;
+    output reg [4:0] combined_ec0, combined_ec1;
+	 output wire [4:0] combined_ec2, combined_ec3;
     output exception;
 
     `include "exn_codes.vh"

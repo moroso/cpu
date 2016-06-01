@@ -56,10 +56,10 @@ module MCPU_CORE_coproc(/*AUTOARG*/
         if(~clkrst_core_rst_n) begin
             integer i;
             for(i = 0; i < 4; i = i + 1) begin
-                scratchpad[i] = 32'b0;
+                scratchpad[i] <= 32'b0;
             end
             for(i = 0; i < 10; i = i + 1) begin
-                coproc_regs[i] = 32'b0;
+                coproc_regs[i] <= 32'b0;
             end
             user_mode <= 0;
         end

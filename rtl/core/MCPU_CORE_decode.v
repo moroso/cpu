@@ -78,6 +78,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
     d2pc_out_invalid = 0;
     d2pc_out_rd_we = 0;
     d2pc_out_pred_we = 0;
+	 d2pc_out_branchreg = 0;
 
 
     if((actual_preds[inst[31:30]] ^ inst[29]) & ~prev_long_imm) begin

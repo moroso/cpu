@@ -14,7 +14,7 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	input clkrst_core_clk, clkrst_core_rst_n;
 
 	input pc2mem_progress, mem2wb_progress;
-	output reg pc2mem_readyin, mem2wb_readyout;
+	output wire pc2mem_readyin, mem2wb_readyout;
 
 	input mem_valid;
 
@@ -25,12 +25,12 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	input pc2mem_in_rd_we;
 
 	output reg [31:0] mem2wb_out_data;
-	output reg [4:0] mem2wb_out_rd_num;
-	output reg mem2wb_out_rd_we;
+	output wire [4:0] mem2wb_out_rd_num;
+	output wire mem2wb_out_rd_we;
 
-	output reg [29:0] mem2dc_paddr;
+	output wire [29:0] mem2dc_paddr;
 	output reg [3:0] mem2dc_write;
-	output reg mem2dc_valid;
+	output wire mem2dc_valid;
 	input mem2dc_done;
 	inout [31:0] mem2dc_data;
 
