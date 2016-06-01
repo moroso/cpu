@@ -209,6 +209,8 @@ module MCPU_core(/*AUTOARG*/
   assign ft2f_readyout = ft2f_done;
   assign ft2f_progress = ft2f_readyin & ft2f_readyout;
 
+  wire dcd_depstall;
+
   assign f2d_readyin = ~dcd_valid | (d2pc_progress & ~dcd_depstall);
   assign f2d_readyout = ~f_valid | f2d_done;
   assign f2d_progress = f2d_readyout & f2d_readyin;
@@ -525,7 +527,6 @@ module MCPU_core(/*AUTOARG*/
 		      .rf2d_rt_data	(rf2d_rt_data3[31:0]));	 // Templated
 
   assign d2pc_out_invalid3 = dcd_invalid3 | long_imm3;
-  wire dcd_depstall;
   assign dcd_depstall = dep_stall0 | dep_stall1 | dep_stall2 | dep_stall3;
 
 
