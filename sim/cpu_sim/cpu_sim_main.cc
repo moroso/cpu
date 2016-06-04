@@ -442,4 +442,6 @@ int main(int argc, char** argv) {
 
     if (trace_file)
         fclose(trace_file);
+    
+    return 0;
 }
