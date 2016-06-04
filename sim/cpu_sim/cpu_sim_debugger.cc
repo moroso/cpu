@@ -13,6 +13,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include <lua-5.3/lua.hpp>
+
 #include "cpu_sim.h"
 #include "cpu_sim_main.h"
 #include "cpu_sim_debugger.h"
@@ -364,25 +366,6 @@ void process_line(std::string &line) {
             }
         }
         printf("\n");
-    } else if (tokens[0] == "p") {
-      if (tokens.size() != 2) {
-          printf("Give an address!\n");
-          return;
-      }
-      uint32_t addr = read_num(tokens[1]);
-      boost::optional<uint32_t> phys_addr = virt_to_phys(addr, cpu, false);
-      boost::optional<uint32_t> phys_addr_write = virt_to_phys(addr, cpu, true);
-      if (phys_addr) {
-          printf("Virtual address 0x%x maps to physical address 0x%x ",
-                 addr, *phys_addr);
-          if (phys_addr_write) {
-              printf("(rw)\n");
-          } else {
-              printf("(ro)\n");
-          }
-      } else {
-          printf("Virtual address 0x%x has no physical address\n", addr);
-      }
     } else if (tokens[0] == "help") {
         printf("Commands:\n");
         printf("    x: examine address.\n");
@@ -463,6 +446,102 @@ void load_debug_file(char *debug_file) {
     fclose(f);
 }
 
+/*** Lua bindings ***/
+
+static int _osorom_readline(lua_State *L) {
+    const char *prompt = luaL_checkstring(L, 1);
+    char *rv = readline(prompt);
+    if (!rv)
+        return 0;
+    lua_pushstring(L, rv);
+    free(rv);
+    return 1;
+}
+
+static int _osorom_add_history(lua_State *L) {
+    const char *s = luaL_checkstring(L, 1);
+    add_history(s);
+    return 0;
+}
+
+static int _osorom_process_line(lua_State *L) {
+    const char *s = luaL_checkstring(L, 1);
+    std::string spp = s;
+    process_line(spp);
+    return 0;
+}
+
+static int _osorom_virt_to_phys(lua_State *L) {
+    // 1: address
+    // 2: for write
+    
+    uint32_t addr = luaL_checkinteger(L, 1);
+    bool wr = lua_toboolean(L, 2);
+    
+    boost::optional<uint32_t> phys_addr = virt_to_phys(addr, cpu, wr);
+    if (!phys_addr)
+        return 0;
+    lua_pushinteger(L, *phys_addr);
+    return 1;
+}
+
+static int _osorom_get_state(lua_State *L) {
+    lua_newtable(L);
+    
+    lua_pushstring(L, "r");
+    lua_newtable(L);
+    for (int i = 0; i < 32; i++) {
+        lua_pushinteger(L, cpu.regs.r[i]);
+        lua_rawseti(L, -2, i);
+    }
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "pred");
+    lua_newtable(L);
+    for (int i = 0; i < 3; i++) {
+        lua_pushinteger(L, cpu.regs.p[i]);
+        lua_rawseti(L, -2, i);
+    }
+    lua_settable(L, -3);
+    
+    lua_pushstring(L, "cp");
+    lua_newtable(L);
+    for (int i = 0; i < CP_REG_COUNT; i++) {
+        lua_pushinteger(L, cpu.regs.cpr[i]);
+        lua_rawseti(L, -2, i);
+    }
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "pc");
+    lua_pushinteger(L, cpu.regs.pc);
+    lua_settable(L, -3);
+    
+    lua_pushstring(L, "ovf");
+    lua_pushinteger(L, cpu.regs.ovf);
+    lua_settable(L, -3);
+    
+    lua_pushstring(L, "kmode");
+    lua_pushinteger(L, cpu.regs.sys_kmode);
+    lua_settable(L, -3);
+    
+    return 1;
+}
+
+static const luaL_Reg osorom_lib[] = {
+    {"readline", _osorom_readline},
+    {"add_history", _osorom_add_history},
+    {"process_line", _osorom_process_line},
+    {"virt_to_phys", _osorom_virt_to_phys},
+    {"get_state", _osorom_get_state},
+    {NULL, NULL}
+};
+
+static int luaopen_osorom(lua_State *L) {
+    luaL_newlib(L, osorom_lib);
+    
+    return 1;
+}
+
 void debug(char *debug_file) {
     cpu.regs.pc = 0x0;
     cpu.regs.sys_kmode = 1;
@@ -473,20 +552,24 @@ void debug(char *debug_file) {
     if (debug_file) {
         load_debug_file(debug_file);
     }
-
-    while(true) {
-        char *line_c_str = readline("mdb> ");
-        if (!line_c_str)
-            return;
-        std::string line(line_c_str);
-        if (line.size() == 0) {
-            line = last;
-        } else {
-            last = line;
-            add_history(line_c_str);
-        }
-        free(line_c_str);
-
-        process_line(line);
+    
+    lua_State *L;
+    L = luaL_newstate();
+    luaL_openlibs(L);
+    luaL_requiref(L, "osorom", luaopen_osorom, 1);
+    lua_pop(L, 1);
+    
+    int rv = luaL_loadfile(L, "debugger.lua");
+    if (rv) {
+        fprintf(stderr, "failed to load debugger.lua: %s\n", lua_tostring(L, -1));
+        exit(1);
     }
+    
+    rv = lua_pcall(L, 0, LUA_MULTRET, 0);
+    if (rv) {
+        fprintf(stderr, "failed to run debugger script: %s\n", lua_tostring(L, -1));
+        exit(1);
+    }
+    
+    lua_close(L);
 }
