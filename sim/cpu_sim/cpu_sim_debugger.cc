@@ -498,12 +498,56 @@ static int _osorom_get_state(lua_State *L) {
     return 1;
 }
 
+static int _osorom_step_program(lua_State *L) {
+    step_program();
+    return 0;
+}
+
+/* XXX: This probably eventually wants to get sucked into Lua, along with
+ * debug symbol loading in its entirety. */
+static int _osorom_func_at(lua_State *L) {
+    uint32_t addr = luaL_checkinteger(L, 1);
+    
+    boost::optional<std::pair<std::string, uint32_t> > funcname
+        = func_at(addr);
+    
+    if (!funcname) {
+        lua_pushnil(L);
+    } else {
+        lua_newtable(L);
+        
+        lua_pushstring(L, "name");
+        lua_pushstring(L, funcname->first.c_str());
+        lua_settable(L, -3);
+        
+        lua_pushstring(L, "offset");
+        lua_pushinteger(L, funcname->second);
+        lua_settable(L, -3);
+    }
+    
+    return 1;
+}
+
+static int _osorom_disas_phys(lua_State *L) {
+    uint32_t addr = luaL_checkinteger(L, 1);
+    
+    instruction_packet *pkt = (instruction_packet *)(cpu.ram + addr);
+    decoded_packet packet(*pkt);
+    
+    lua_pushstring(L, packet.disassemble().c_str());
+    
+    return 1;
+}
+
 static const luaL_Reg osorom_lib[] = {
     {"readline", _osorom_readline},
     {"add_history", _osorom_add_history},
     {"process_line", _osorom_process_line},
     {"virt_to_phys", _osorom_virt_to_phys},
     {"get_state", _osorom_get_state},
+    {"step_program", _osorom_step_program},
+    {"func_at", _osorom_func_at},
+    {"disas_phys", _osorom_disas_phys},
     {NULL, NULL}
 };
 

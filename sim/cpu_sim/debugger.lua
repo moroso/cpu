@@ -1,13 +1,24 @@
+-- Helper bits
+
 cp_regs = {}
 for k,v in ipairs({"pflags", "ptb", "eha", "epc", "ec0", "ec1", "ec2", "ec3", "ea0", "ea1", "", "", "", "", "", "", "sp0", "sp1", "sp2", "sp3", "MAX"}) do
 	cp_regs[k-1] = v
 	cp_regs[v] = k-1
 end
 
+function osorom.disas_virt(va)
+	local pa = osorom.virt_to_phys(va, false)
+	if not pa then return "<cannot access memory>" end
+	return osorom.disas_phys(pa)
+end
+
+-- Command implementations
+
 commands = {}
 
 commands.help = {
 	shortdesc = "show this help",
+	synonyms = { "?", "h" },
 	func = function(toks)
 		print("Commands:")
 		for k,v in pairs(commands) do
@@ -20,6 +31,7 @@ commands.help = {
 
 commands.quit = {
 	shortdesc = "so long mom, I'm off to drop the bomb, so don't wait up for me",
+	synonyms = { "q" },
 	func = function()
 		-- Although it may be / a pile of debris!
 		os.exit()
@@ -28,6 +40,7 @@ commands.quit = {
 
 commands.p = {
 	shortdesc = "virtual -> physical address lookup",
+	synonyms = {},
 	func = function(toks)
 		if #toks ~= 2 then
 			print("Give an address!")
@@ -49,6 +62,7 @@ commands.p = {
 
 commands.regs = {
 	shortdesc = "dump registers (options: r; r pc; r c; r p; r all)",
+	synonyms = { "r" },
 	func = function(toks)
 		local pr_regs = false
 		local pr_pc = false
@@ -113,6 +127,22 @@ commands.regs = {
 	end
 }
 
+commands.where = {
+	shortdesc = "Does Anybody Really Know What Time It Is?",
+	synonyms = { "wh" },
+	func = function (toks)
+		local st = osorom.get_state()
+		local func = osorom.func_at(st.pc)
+		local inst = osorom.disas_virt(st.pc)
+		if func then
+			print(string.format("pc = 0x%08x <%s+0x%x>  %s", st.pc, func.name, func.offset, inst))
+		else
+			print(string.format("pc = 0x%08x <???>  %s", st.pc, inst))
+		end
+	end
+}
+
+
 function process_line(s)
 	-- Special case this thing out.
 	if s:sub(1,1) == "=" then
@@ -142,7 +172,19 @@ function process_line(s)
 		return false
 	end
 	
-	if not commands[toks[1]] then
+	-- Who's that Pokemon?
+	local cmd = commands[toks[1]]
+	if not cmd then
+		for k,v in pairs(commands) do
+			for _,v2 in ipairs(v.synonyms) do
+				if toks[1]:match("^"..v2.."$") then
+					cmd = v
+				end
+			end
+		end
+	end
+	
+	if not cmd then
 		print("Invalid command: "..toks[1])
 		-- Oh well.
 		print("I'm not sure what you meant, so I'm handing your line to the old C++ processor")
@@ -151,12 +193,12 @@ function process_line(s)
 	end
 	
 	toks[0] = s
-	return commands[toks[1]].func(toks)
+	return cmd.func(toks)
 end
 
 local last = ""
 while true do
-	local s = osorom.readline("mdblua> ")
+	local s = osorom.readline(string.format("mdb@0x%08x> ", osorom.get_state().pc))
 	if not s then break end
 	if s == "" then
 		s = last
