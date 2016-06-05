@@ -137,22 +137,6 @@ void process_line(std::string &line) {
 
     if (tokens[0] == "list") {
         printf("List!\n");
-    } else if (tokens[0] == "i") {
-        step_program();
-        boost::optional<std::pair<std::string, uint32_t> > funcname
-            = func_at(cpu.regs.pc);
-        if (funcname) {
-            printf("pc = 0x%08x <%s+0x%x>  ",
-                   cpu.regs.pc,
-                   funcname->first.c_str(),
-                   funcname->second);
-        } else {
-            printf("pc = 0x%08x  ", cpu.regs.pc);
-        }
-        dump_inst(cpu.regs.pc);
-        printf("\n");
-    } else if (tokens[0] == "q") {
-        exit(0);
     } else if (tokens[0] == "run") {
         struct sigaction sighandler, old_sighandler;
         sighandler.sa_handler = control_c_handler;
@@ -232,40 +216,6 @@ void process_line(std::string &line) {
             } else {
                 printf("Removed break on exception %d\n", exn);
             }
-        }
-    } else if (tokens[0] == "disassemble" || tokens[0] == "dis" || tokens[0] == "d") {
-        uint32_t addr;
-        if (tokens.size() == 1)
-            addr = cpu.regs.pc;
-        else
-            addr = read_num(tokens[1]);
-
-        uint32_t start_offs;
-        if (addr < 0x30)
-            start_offs = addr / 0x10;
-        else
-            start_offs = 3;
-
-        for (int i = 0; i < 8; i++)
-        {
-            uint32_t this_addr = addr + 0x10 * (i - start_offs);
-            boost::optional<std::pair<std::string, uint32_t> > funcname
-                = func_at(this_addr);
-            if (funcname) {
-                printf("%c%c%8x <%s+0x%x> ",
-                       (is_breakpoint(this_addr) ? '!' : ' '),
-                       (i == start_offs ? '*' : ' '),
-                       this_addr,
-                       funcname->first.c_str(),
-                       funcname->second);
-            } else {
-                printf("%c%c%8x ",
-                       (is_breakpoint(this_addr) ? '!' : ' '),
-                       (i == start_offs ? '*' : ' '),
-                       this_addr);
-            }
-            dump_inst(this_addr);
-            printf("\n");
         }
     } else if (tokens[0][0] == 'x') {
         // The "examine" instruction. This requires some parsing.

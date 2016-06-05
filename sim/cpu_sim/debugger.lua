@@ -127,21 +127,75 @@ commands.regs = {
 	end
 }
 
+function where()
+	local st = osorom.get_state()
+	local func = osorom.func_at(st.pc)
+	local inst = osorom.disas_virt(st.pc)
+	if func then
+		print(string.format("pc = 0x%08x <%s+0x%x>  %s", st.pc, func.name, func.offset, inst))
+	else
+		print(string.format("pc = 0x%08x <???>  %s", st.pc, inst))
+	end
+end
+
 commands.where = {
 	shortdesc = "Does Anybody Really Know What Time It Is?",
 	synonyms = { "wh" },
 	func = function (toks)
-		local st = osorom.get_state()
-		local func = osorom.func_at(st.pc)
-		local inst = osorom.disas_virt(st.pc)
-		if func then
-			print(string.format("pc = 0x%08x <%s+0x%x>  %s", st.pc, func.name, func.offset, inst))
-		else
-			print(string.format("pc = 0x%08x <???>  %s", st.pc, inst))
-		end
+		where()
 	end
 }
 
+commands.stepi = {
+	shortdesc = "step one packet forward",
+	synonyms = { "si", "i" },
+	func = function (toks)
+		osorom.step_program()
+		where()
+	end
+}
+
+commands.disas = {
+	shortdesc = "disassemble a region",
+	synonyms = { "d", "dis", "disassemble" },
+	func = function (toks)
+		local addr
+		if #toks >= 2 then
+			addr = tonumber(toks[2])
+			if not addr then
+				print(toks[1]..": look, "..toks[2].." isn't even a number")
+				return false
+			end
+		end
+		if not addr then
+			addr = osorom.get_state().pc
+		end
+		if (addr & 0xF) ~= 0 then
+			print(toks[1]..": hey, you can't fool me, "..string.format("0x%x", addr).." isn't packet-aligned")
+			print(toks[1]..": (did you mistakenly specify a packet count instead of an address or something?  cause that ain't how this works.)")
+			return false
+		end
+		
+		local start_addr = addr - 0x30
+		if start_addr < 0 then start_addr = 0 end
+		local lastfuncname = nil
+		for i=0,7 do
+			local thisaddr = start_addr + i * 0x10
+			local thisfunc = osorom.func_at(thisaddr)
+			if lastfuncname and not thisfunc then
+				print("<???>:")
+			elseif thisfunc and lastfuncname ~= thisfunc.name then
+				print(string.format("<%s+0x%x>:", thisfunc.name, thisfunc.offset))
+				lastfuncname = thisfunc.name
+			end
+			print(string.format("%s%s%8x %s",
+			                    false and "!" or " ", -- no breakpt support yet
+			                    thisaddr == addr and ">" or " ",
+			                    thisaddr,
+			                    osorom.disas_virt(thisaddr)))
+		end
+	end
+}
 
 function process_line(s)
 	-- Special case this thing out.
