@@ -1,3 +1,9 @@
+cp_regs = {}
+for k,v in ipairs({"pflags", "ptb", "eha", "epc", "ec0", "ec1", "ec2", "ec3", "ea0", "ea1", "", "", "", "", "", "", "sp0", "sp1", "sp2", "sp3", "MAX"}) do
+	cp_regs[k-1] = v
+	cp_regs[v] = k-1
+end
+
 commands = {}
 
 commands.help = {
@@ -37,6 +43,72 @@ commands.p = {
 			                    addr, pa_ro, pa_rw and "rw" or "ro"))
 		else
 			print(string.format("Virtual address 0x%x has no physical mapping", addr))
+		end
+	end
+}
+
+commands.regs = {
+	shortdesc = "dump registers (options: r; r pc; r c; r p; r all)",
+	func = function(toks)
+		local pr_regs = false
+		local pr_pc = false
+		local pr_cp = false
+		local pr_p = false
+		
+		local st = osorom.get_state()
+		
+		if #toks == 1 then pr_regs = true end
+		
+		for k,v in ipairs(toks) do
+			if k == 1 then
+			elseif v == "all" then
+				pr_regs = true
+				pr_pc = true
+				pr_cp = true
+				pr_p = true
+			elseif v == "p" or v == "pred" then
+				pr_p = true
+			elseif v == "c" or v == "co" or v == "cp" or v == "cpsr" then
+				pr_cp = true
+			elseif v == "pc" then
+				pr_pc = true
+			elseif v == "regs" or v == "gpr" or v == "gprs" then
+				pr_regs = true
+			else
+				print("regs: what is a "..v..", anyway?")
+				return false
+			end
+		end
+		
+		if pr_regs then
+			local s = ""
+			for i=0,31 do
+				s = s .. string.format("%sr%d = 0x%08x ", (i >= 10 and "" or " "), i, st.r[i])
+				if (i % 4) == 3 and i ~= 31 then s = s .. "\n" end
+			end
+			print(s)
+		end
+		
+		if pr_pc then
+			print(string.format("pc = 0x%08x", st.pc))
+		end
+		
+		if pr_cp then
+			local s = ""
+			for i=0,cp_regs.MAX-1 do
+				if cp_regs[i] ~= "" then
+					s = s .. string.format("%6s = 0x%08x", cp_regs[i], st.cp[i])
+					if (i % 2) == 1 then s = s .. "\n" end
+				end
+			end
+			s = s .. string.format("%6s = 0x%08x%6s = 0x%08x",
+			                       "ovf", st.ovf,
+			                       "kmode", st.kmode)
+			print(s)
+		end
+		
+		if pr_p then
+			print(string.format("pred = { %d, %d, %d }", st.pred[0], st.pred[1], st.pred[2]))
 		end
 	end
 }

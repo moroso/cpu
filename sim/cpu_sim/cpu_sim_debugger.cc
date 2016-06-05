@@ -137,35 +137,6 @@ void process_line(std::string &line) {
 
     if (tokens[0] == "list") {
         printf("List!\n");
-    } else if (tokens[0] == "regs" || tokens[0] == "r") {
-        if (tokens.size() == 1) {
-            for (int i = 0; i < 32; ++i) {
-                printf("%sr%d = 0x%08x ", (i >= 10 ? "" : " "), i, cpu.regs.r[i]);
-                if ((i % 4) == 3)
-                    printf("\n");
-            }
-        } else {
-            if (tokens[1] == "pc") {
-                printf("pc = 0x%08x\n", cpu.regs.pc);
-            } else if (tokens[1] == "co" || tokens[1] == "c") {
-                for (int i = 0; i < CP_REG_COUNT; ++i) {
-                    if (i <= CP_EA1 || i >= CP_SP0) {
-                        printf("%6s = 0x%08x", CP_REG_STR[i], cpu.regs.cpr[i]);
-                        if (i % 2 == 1)
-                            printf("\n");
-                    }
-                }
-                // Also print whether we're in kmode, and OVF.
-                printf("%6s = 0x%08x%6s = 0x%08x\n",
-                       "ovf", cpu.regs.ovf,
-                       "kmode", cpu.regs.sys_kmode);
-            } else if (tokens[1] == "p") {
-                printf("pred = { %d, %d, %d }\n",
-                       cpu.regs.p[0],
-                       cpu.regs.p[1],
-                       cpu.regs.p[2]);
-            }
-        }
     } else if (tokens[0] == "i") {
         step_program();
         boost::optional<std::pair<std::string, uint32_t> > funcname
