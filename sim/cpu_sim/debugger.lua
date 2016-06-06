@@ -373,10 +373,7 @@ function process_line(s)
 	
 	if not cmd then
 		print("Invalid command: "..toks[1])
-		-- Oh well.
-		print("I'm not sure what you meant, so I'm handing your line to the old C++ processor")
-		osorom.process_line(s)
-		return true
+		return false
 	end
 	
 	toks[0] = s
