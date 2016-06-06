@@ -133,15 +133,18 @@ commands.regs = {
 	end
 }
 
+function addr_to_sym(addr)
+	local func = osorom.func_at(addr)
+	if func then return string.format("0x%08x <%s+0x%x>", addr, func.name, func.offset)
+	else return string.format("0x%08x <???>", addr)
+	end
+end
+
 function where()
 	local st = osorom.get_state()
-	local func = osorom.func_at(st.pc)
+	local sym = addr_to_sym(st.pc)
 	local inst = osorom.disas_virt(st.pc)
-	if func then
-		print(string.format("pc = 0x%08x <%s+0x%x>  %s", st.pc, func.name, func.offset, inst))
-	else
-		print(string.format("pc = 0x%08x <???>  %s", st.pc, inst))
-	end
+	print(string.format("pc = %s  %s", sym, inst))
 end
 
 commands.where = {
@@ -267,6 +270,35 @@ commands["x"] = {
 			s = s .. string.format(string.format("0x%%0%dx ", sz/4), osorom.physmem(sz, pa))
 		end
 		print(s)
+	end
+}
+
+commands["break"] = {
+	shortdesc = "manage pc addresses to break on",
+	synonyms = { "b", "b/w", "break/w" },
+	func = function (toks)
+		local iswatch = toks[1] == "b/w" or toks[1] == "break/w"
+		local _get = iswatch and osorom.write_watchpoints_get or osorom.breakpoints_get
+		local _add = iswatch and osorom.write_watchpoints_add or osorom.breakpoints_add
+		local _name = iswatch and "Watch" or "Break"
+		local _mkaddr = iswatch and function (a) return string.format("0x%08x", a) end or addr_to_sym
+		
+		if #toks == 1 then
+			print(_name .. "points:")
+			for k,v in ipairs(_get()) do
+				print(string.format("%4d at %s", v.id, _mkaddr(v.address)))
+			end
+		else
+			for i=2,#toks do
+				local addr = tonumber(toks[i])
+				if not addr then
+					print(toks[1]..": "..toks[i].." ain't no country I've ever heard of")
+					return false
+				end
+				local id = _add(addr)
+				print(string.format(_name .. "point %d set at %s", id, _mkaddr(addr)))
+			end
+		end
 	end
 }
 

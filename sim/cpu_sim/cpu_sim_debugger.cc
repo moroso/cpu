@@ -173,28 +173,6 @@ void process_line(std::string &line) {
         }
         dump_inst(cpu.regs.pc);
         printf("\n");
-    } else if (tokens[0] == "b" || tokens[0] == "break") {
-        if (tokens.size() == 1) {
-            printf("Breakpoints:\n");
-            for (int i = 0; i < breakpoints.size(); ++i) {
-                printf("%4d at 0x%08x\n", i, breakpoints[i]);
-            }
-        } else {
-            uint32_t addr = read_num(tokens[1]);
-            breakpoints.push_back(addr);
-            printf("Breakpoint %d at 0x%08x\n", (int)breakpoints.size() - 1, addr);
-        }
-    } else if (tokens[0] == "b/w" || tokens[0] == "break/w") {
-        if (tokens.size() == 1) {
-            printf("Watchpoints on write:\n");
-            for (int i = 0; i < write_watchpoints.size(); ++i) {
-                printf("%4d at 0x%08x\n", i, write_watchpoints[i]);
-            }
-        } else {
-            uint32_t addr = read_num(tokens[1]);
-            write_watchpoints.push_back(addr);
-            printf("Watchpoint %d on write to 0x%08x\n", (int)write_watchpoints.size() - 1, addr);
-        }
     } else if (tokens[0] == "help") {
         printf("Commands:\n");
         printf("    x: examine address.\n");
@@ -430,6 +408,67 @@ static int _osorom_exn_breaks_set(lua_State *L) {
     return 0;
 }
 
+static int _osorom_breakpoints_get(lua_State *L) {
+    lua_newtable(L);
+    for (int i = 0; i < breakpoints.size(); i++) {
+        lua_pushinteger(L, i+1);
+        
+        lua_newtable(L);
+        lua_pushliteral(L, "id");
+        lua_pushinteger(L, i);
+        lua_settable(L, -3);
+        
+        lua_pushliteral(L, "address");
+        lua_pushinteger(L, breakpoints[i]);
+        lua_settable(L, -3);
+        
+        lua_settable(L, -3);
+    }
+    
+    return 1;
+}
+
+static int _osorom_breakpoints_add(lua_State *L) {
+    uint32_t addr = luaL_checkinteger(L, 1);
+    
+    breakpoints.push_back(addr);
+    
+    lua_pushinteger(L, (int)breakpoints.size() - 1);
+    
+    return 1;
+}
+
+static int _osorom_write_watchpoints_get(lua_State *L) {
+    lua_newtable(L);
+    for (int i = 0; i < write_watchpoints.size(); i++) {
+        lua_pushinteger(L, i+1);
+        
+        lua_newtable(L);
+        lua_pushliteral(L, "id");
+        lua_pushinteger(L, i);
+        lua_settable(L, -3);
+        
+        lua_pushliteral(L, "address");
+        lua_pushinteger(L, write_watchpoints[i]);
+        lua_settable(L, -3);
+        
+        lua_settable(L, -3);
+    }
+    
+    return 1;
+}
+
+static int _osorom_write_watchpoints_add(lua_State *L) {
+    uint32_t addr = luaL_checkinteger(L, 1);
+    
+    write_watchpoints.push_back(addr);
+    
+    lua_pushinteger(L, (int)write_watchpoints.size() - 1);
+    
+    return 1;
+}
+
+
 static int _osorom_physmem(lua_State *L) {
     int sz = luaL_checkinteger(L, 1);
     uint32_t addr = luaL_checkinteger(L, 2);
@@ -473,6 +512,10 @@ static const luaL_Reg osorom_lib[] = {
     {"disas_phys", _osorom_disas_phys},
     {"exn_breaks_set", _osorom_exn_breaks_set},
     {"exn_breaks_get", _osorom_exn_breaks_get},
+    {"breakpoints_get", _osorom_breakpoints_get},
+    {"breakpoints_add", _osorom_breakpoints_add},
+    {"write_watchpoints_get", _osorom_write_watchpoints_get},
+    {"write_watchpoints_add", _osorom_write_watchpoints_add},
     {"physmem", _osorom_physmem},
     {NULL, NULL}
 };
