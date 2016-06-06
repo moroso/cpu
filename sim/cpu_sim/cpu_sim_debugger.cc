@@ -44,24 +44,6 @@ boost::optional<std::pair<std::string, uint32_t> > func_at(uint32_t addr) {
     return std::pair<std::string, uint32_t>(it->second, addr - it->first * 0x10);
 }
 
-void dump_inst_phys(uint32_t phys_addr) {
-    instruction_packet *pkt = (instruction_packet *)(cpu.ram + phys_addr);
-    decoded_packet packet(*pkt);
-    printf("%s", packet.disassemble().c_str());
-}
-
-void dump_inst(uint32_t virt_addr) {
-    boost::optional<uint32_t> pc_phys = virt_to_phys(virt_addr, cpu, false);
-    // Note: no need for multiple checks, because packets can't cross page boundaries.
-
-    if (pc_phys) {
-        dump_inst_phys(*pc_phys);
-    } else {
-        printf("<Cannot access memory>");
-    }
-
-}
-
 boost::optional<int> is_breakpoint(uint32_t addr) {
     for (int i = 0; i < breakpoints.size(); ++i) {
         if (addr == breakpoints[i])
@@ -108,85 +90,6 @@ boost::optional<int> hit_exception_break() {
         return last_exc;
     else
         return boost::none;
-}
-
-uint32_t read_num(std::string &num_str) {
-    if (num_str.substr(0, 2) == "0x") {
-        return std::stoul(num_str.substr(2, std::string::npos), NULL, 16);
-    } else {
-        return std::stoul(num_str);
-    }
-}
-
-volatile bool stop_flag = false;
-
-void control_c_handler(int s) {
-    stop_flag = true;
-    printf("\n");
-}
-
-void process_line(std::string &line) {
-    std::vector<std::string> tokens;
-    split(tokens, line, boost::algorithm::is_any_of(" "));
-
-    if (tokens.size() == 0)
-    {
-        printf("No tokens\n");
-        return;
-    }
-
-    if (tokens[0] == "list") {
-        printf("List!\n");
-    } else if (tokens[0] == "run") {
-        struct sigaction sighandler, old_sighandler;
-        sighandler.sa_handler = control_c_handler;
-        sigemptyset(&sighandler.sa_mask);
-        sighandler.sa_flags = 0;
-        sigaction(SIGINT, &sighandler, &old_sighandler);
-        boost::optional<int> bp = boost::none;
-        boost::optional<int> wbp = boost::none;
-        boost::optional<int> ebp = boost::none;
-        stop_flag = false;
-        while (!bp && !wbp && !ebp && !stop_flag) {
-            step_program();
-            wbp = hit_write_watchpoint();
-            bp = hit_breakpoint();
-            ebp = hit_exception_break();
-        }
-        sigaction(SIGINT, &old_sighandler, NULL);
-        if (bp)
-            printf("Hit breakpoint %d\n", *bp);
-        else if (wbp)
-            printf("Hit watchpoint %d\n", *wbp);
-        else if (ebp)
-            printf("Hit exception %d\n", *ebp);
-
-        boost::optional<std::pair<std::string, uint32_t> > funcname
-            = func_at(cpu.regs.pc);
-        if (funcname) {
-            printf("pc = 0x%08x <%s+0x%x>  ",
-                   cpu.regs.pc,
-                   funcname->first.c_str(),
-                   funcname->second);
-        } else {
-            printf("pc = 0x%08x  ", cpu.regs.pc);
-        }
-        dump_inst(cpu.regs.pc);
-        printf("\n");
-    } else if (tokens[0] == "help") {
-        printf("Commands:\n");
-        printf("    x: examine address.\n");
-        printf("   xp: examine physical address.\n");
-        printf("    r: display regs. 'regs co' for coregs; 'regs p' for pred regs; 'regs pc' for pc.\n");
-        printf("    b: add breakpoint/view breakpoints\n");
-        printf("  b/w: add watchpoint/view watchpoints\n");
-        printf("  b/e: add breakpoint on exception/view breakpoints on exceptions\n");
-        printf("  run: run until a breakpoint is hit\n");
-        printf("    i: step instruction packets\n");
-        printf("    d: disassemble\n");
-        printf("    p: virtual->physical address lookup\n");
-        printf("    q: quit\n");
-    }
 }
 
 void load_debug_labels(FILE *f) {
@@ -271,13 +174,6 @@ static int _osorom_add_history(lua_State *L) {
     return 0;
 }
 
-static int _osorom_process_line(lua_State *L) {
-    const char *s = luaL_checkstring(L, 1);
-    std::string spp = s;
-    process_line(spp);
-    return 0;
-}
-
 static int _osorom_virt_to_phys(lua_State *L) {
     // 1: address
     // 2: for write
@@ -337,6 +233,75 @@ static int _osorom_get_state(lua_State *L) {
 static int _osorom_step_program(lua_State *L) {
     step_program();
     return 0;
+}
+
+volatile bool stop_flag = false;
+
+void control_c_handler(int s) {
+    stop_flag = true;
+    printf("\n");
+}
+
+static int _osorom_run_program(lua_State *L) {
+    stop_flag = false;
+    
+    struct sigaction sighandler, old_sighandler;
+    sighandler.sa_handler = control_c_handler;
+    sigemptyset(&sighandler.sa_mask);
+    sighandler.sa_flags = 0;
+    sigaction(SIGINT, &sighandler, &old_sighandler);
+
+    boost::optional<int> bp = boost::none;
+    boost::optional<int> wbp = boost::none;
+    boost::optional<int> ebp = boost::none;
+    while (!bp && !wbp && !ebp && !stop_flag) {
+        step_program();
+        wbp = hit_write_watchpoint();
+        bp = hit_breakpoint();
+        ebp = hit_exception_break();
+    }
+    
+    sigaction(SIGINT, &old_sighandler, NULL);
+    
+    lua_newtable(L);
+    
+    if (stop_flag) {
+        lua_pushliteral(L, "keyboard_interrupt");
+        lua_pushboolean(L, true);
+        lua_settable(L, -3);
+    }
+    
+    if (bp) {
+        lua_pushliteral(L, "breakpoint");
+        lua_newtable(L);
+        lua_pushliteral(L, "id");
+        lua_pushinteger(L, *bp);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "address");
+        lua_pushinteger(L, breakpoints[*bp]);
+        lua_settable(L, -3);
+        lua_settable(L, -3);
+    }
+    
+    if (wbp) {
+        lua_pushliteral(L, "write_watchpoint");
+        lua_newtable(L);
+        lua_pushliteral(L, "id");
+        lua_pushinteger(L, *wbp);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "address");
+        lua_pushinteger(L, write_watchpoints[*wbp]);
+        lua_settable(L, -3);
+        lua_settable(L, -3);
+    }
+    
+    if (ebp) {
+        lua_pushliteral(L, "exception");
+        lua_pushinteger(L, *ebp);
+        lua_settable(L, -3);
+    }
+    
+    return 1;
 }
 
 /* XXX: This probably eventually wants to get sucked into Lua, along with
@@ -504,10 +469,10 @@ static int _osorom_physmem(lua_State *L) {
 static const luaL_Reg osorom_lib[] = {
     {"readline", _osorom_readline},
     {"add_history", _osorom_add_history},
-    {"process_line", _osorom_process_line},
     {"virt_to_phys", _osorom_virt_to_phys},
     {"get_state", _osorom_get_state},
     {"step_program", _osorom_step_program},
+    {"run_program", _osorom_run_program},
     {"func_at", _osorom_func_at},
     {"disas_phys", _osorom_disas_phys},
     {"exn_breaks_set", _osorom_exn_breaks_set},

@@ -302,6 +302,27 @@ commands["break"] = {
 	end
 }
 
+commands["run"] = {
+	shortdesc = "run: run: to the cities of the future",
+	synonyms = { "r", "c", "cont", "continue" },
+	func = function (toks)
+		local reason = osorom.run_program()
+		if reason.keyboard_interrupt then
+			print("Stopped due to keyboard interrupt.")
+		end
+		if reason.breakpoint then
+			print(string.format("Hit breakpoint %d (%s).", reason.breakpoint.id, addr_to_sym(reason.breakpoint.address)))
+		end
+		if reason.write_watchpoint then
+			print(string.format("Hit watchpoint %d (0x%08x).", reason.write_watchpoint.id, reason.write_watchpoint.address))
+		end
+		if reason.exception then
+			print(string.format("Hit exception %d (%s).", reason.exception, exceptions[reason.exception]))
+		end
+		where()
+	end
+}
+
 function process_line(s)
 	-- Special case this thing out.
 	if s:sub(1,1) == "=" then
