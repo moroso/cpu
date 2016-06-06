@@ -233,6 +233,43 @@ commands["break/e"] = {
 	end
 }
 
+commands["x"] = {
+	shortdesc = "x is for examine, is good enough for me",
+	synonyms = { "xp?", "xp?/%d+[bhl]?", "xp?/[bhl]" },
+	func = function (toks)
+		-- ok, let's start by breaking this mess down.  we know it
+		-- matches one of the syntaxes above, so we can simplify a
+		-- bit
+		local phys,count,sz = toks[1]:match("x(p?)/?(%d*)([bhl]?)")
+		phys = phys == "p"
+		count = count == "" and 1 or tonumber(count)
+		if sz == "b" then sz = 8
+		elseif sz == "h" then sz = 16
+		elseif sz == "l" or sz == "" then sz = 32
+		end
+		
+		local addr
+		if #toks >= 2 then addr = tonumber(toks[2]) end
+		if addr == nil then addr = osorom.get_state().pc end
+		
+		-- now we can do the hard work.
+		local s = ""
+		for i=0,count-1 do
+			local va = addr + i * sz / 8
+			local pa
+			if not phys then
+				pa = osorom.virt_to_phys(va, false)
+				if not pa then s = s .. string.format("<invalid access at 0x%x> ", va) end
+			else
+				pa = thisaddr
+			end
+			
+			s = s .. string.format(string.format("0x%%0%dx ", sz/4), osorom.physmem(sz, pa))
+		end
+		print(s)
+	end
+}
+
 function process_line(s)
 	-- Special case this thing out.
 	if s:sub(1,1) == "=" then

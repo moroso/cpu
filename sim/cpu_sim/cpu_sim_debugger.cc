@@ -195,76 +195,6 @@ void process_line(std::string &line) {
             write_watchpoints.push_back(addr);
             printf("Watchpoint %d on write to 0x%08x\n", (int)write_watchpoints.size() - 1, addr);
         }
-    } else if (tokens[0][0] == 'x') {
-        // The "examine" instruction. This requires some parsing.
-        int next_pos;
-        bool physical;
-        if (tokens[0][1] == 'p') {
-            physical = true;
-            next_pos = 2;
-        } else {
-            physical = false;
-            next_pos = 1;
-        }
-
-        int width;
-        int count;
-        if (tokens[0][next_pos] == '/') {
-            next_pos++;
-            if (isdigit(tokens[0][next_pos])) {
-                size_t pos;
-                count = std::stoi(tokens[0].substr(next_pos, std::string::npos), &pos);
-                next_pos += pos;
-            }
-            switch (tokens[0][next_pos]) {
-                case 'b': { width = 1; break; }
-                case 'h': { width = 2; break; }
-                case 0:
-                case 'l': { width = 4; break; }
-                default: { printf("Bad command\n"); return; }
-            }
-        } else {
-            width = 4;
-            count = 1;
-        }
-
-        uint32_t addr;
-        if (tokens.size() == 1 || tokens[1] == "p") {
-            addr = cpu.regs.pc;
-        } else {
-            addr = read_num(tokens[1]);
-        }
-
-        if (physical) {
-            uint8_t *base_addr = ((uint8_t*)cpu.ram) + addr;
-            for (int i = 0; i < count; i++) {
-                if (width == 1) {
-                    printf("0x%02hhx ", base_addr[i]);
-                } else if (width == 2) {
-                    printf("0x%04hx ", ((uint16_t*)base_addr)[i]);
-                } else if (width == 4) {
-                    printf("0x%08x ", ((uint32_t*)base_addr)[i]);
-                }
-            }
-        } else {
-            for (int i = 0; i < count; i++) {
-                // NB: we assume we don't cross a page boundary.
-                boost::optional<uint32_t> phys_addr = virt_to_phys(addr + width * i, cpu, false);
-
-                if (phys_addr) {
-                    if (width == 1) {
-                        printf("0x%02hhx ", *(((uint8_t*)cpu.ram) + *phys_addr));
-                    } else if (width == 2) {
-                        printf("0x%04hx ", *(uint16_t*)((uint8_t*)cpu.ram + *phys_addr));
-                    } else if (width == 4) {
-                        printf("0x%08x ", *(uint32_t*)((uint8_t*)cpu.ram + *phys_addr));
-                    }
-                } else {
-                    printf("<Cannot access memory>");
-                }
-            }
-        }
-        printf("\n");
     } else if (tokens[0] == "help") {
         printf("Commands:\n");
         printf("    x: examine address.\n");
@@ -500,6 +430,38 @@ static int _osorom_exn_breaks_set(lua_State *L) {
     return 0;
 }
 
+static int _osorom_physmem(lua_State *L) {
+    int sz = luaL_checkinteger(L, 1);
+    uint32_t addr = luaL_checkinteger(L, 2);
+    
+    if (sz != 8 && sz != 16 && sz != 32) {
+        lua_pushliteral(L, "size was not a reasonable number of bits");
+        lua_error(L);
+    }
+    
+    if (lua_isinteger(L, 3)) {
+        uint32_t datum = luaL_checkinteger(L, 3);
+        
+        if (sz == 8) {
+            *(uint8_t *)(cpu.ram + addr) = datum;
+        } else if (sz == 16) {
+            *(uint16_t *)(cpu.ram + addr) = datum;
+        } else if (sz == 32) {
+            *(uint32_t *)(cpu.ram + addr) = datum;
+        }
+        return 0;
+    } else {
+        if (sz == 8) {
+            lua_pushinteger(L, *(uint8_t *)(cpu.ram + addr));
+        } else if (sz == 16) {
+            lua_pushinteger(L, *(uint16_t *)(cpu.ram + addr));
+        } else if (sz == 32) {
+            lua_pushinteger(L, *(uint32_t *)(cpu.ram + addr));
+        }
+        return 1;
+    }
+}
+
 static const luaL_Reg osorom_lib[] = {
     {"readline", _osorom_readline},
     {"add_history", _osorom_add_history},
@@ -511,6 +473,7 @@ static const luaL_Reg osorom_lib[] = {
     {"disas_phys", _osorom_disas_phys},
     {"exn_breaks_set", _osorom_exn_breaks_set},
     {"exn_breaks_get", _osorom_exn_breaks_get},
+    {"physmem", _osorom_physmem},
     {NULL, NULL}
 };
 
