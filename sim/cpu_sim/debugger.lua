@@ -6,6 +6,12 @@ for k,v in ipairs({"pflags", "ptb", "eha", "epc", "ec0", "ec1", "ec2", "ec3", "e
 	cp_regs[v] = k-1
 end
 
+exceptions = {}
+for k,v in ipairs({"NO_ERROR", "PAGEFAULT_ON_FETCH", "ILLEGAL_INSTRUCTION", "INSUFFICIENT_PERMISSIONS", "DUPLICATE_DESTINATION", "PAGEFAULT_ON_DATA_ACCESS", "INVALID_PHYSICAL_ADDRESS", "DIVIDE_BY_ZERO", "INTERRUPT", "SYSCALL", "BREAK", "HALT", "MAX"}) do
+	exceptions[k-1] = v
+	exceptions[v] = k-1
+end
+
 function osorom.disas_virt(va)
 	local pa = osorom.virt_to_phys(va, false)
 	if not pa then return "<cannot access memory>" end
@@ -193,6 +199,36 @@ commands.disas = {
 			                    thisaddr == addr and ">" or " ",
 			                    thisaddr,
 			                    osorom.disas_virt(thisaddr)))
+		end
+	end
+}
+
+commands["break/e"] = {
+	shortdesc = "manage exceptions to break on",
+	synonyms = { "b/e", "break/exn", "break/exception", "b/exn", "b/exception", "break-exception" },
+	func = function (toks)
+		local exn_breaks = osorom.exn_breaks_get()
+		if #toks == 1 then
+			print("Breaking on exceptions:")
+			for i=0,exceptions.MAX-1 do
+				if exn_breaks[i] then
+					print(string.format("  %d (%s)", i, exceptions[i]))
+				end
+			end
+		else
+			for i=2,#toks do
+				local v = exceptions[toks[i]:upper()] or tonumber(toks[i])
+				if not v then
+					print(toks[1]..": I don't even know what \""..toks[i].."\" even means")
+					return false
+				end
+				if v >= exceptions.MAX then
+					print(toks[1]..": you can't fool me, there's no such exception as "..v)
+					return false
+				end
+				print(string.format("%sed breakpoint on exception %d (that's %s to you).", exn_breaks[v] and "Remov" or "Add", v, exceptions[v]))
+				osorom.exn_breaks_set(v, not exn_breaks[v])
+			end
 		end
 	end
 }

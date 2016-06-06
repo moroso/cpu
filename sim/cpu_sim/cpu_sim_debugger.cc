@@ -195,28 +195,6 @@ void process_line(std::string &line) {
             write_watchpoints.push_back(addr);
             printf("Watchpoint %d on write to 0x%08x\n", (int)write_watchpoints.size() - 1, addr);
         }
-    } else if (tokens[0] == "b/e" || tokens[0] == "break/e") {
-        if (tokens.size() == 1) {
-            printf("Breaking on exceptions:\n");
-            for (int i = 0; i < NUM_EXCEPTIONS; ++i) {
-                if (exn_breaks[i]) {
-                    printf("   %d\n", i);
-                }
-            }
-        } else {
-            uint32_t exn = read_num(tokens[1]);
-            if (exn >= NUM_EXCEPTIONS) {
-                printf("Bad exception index: %d\n", exn);
-                return;
-            }
-
-            exn_breaks[exn] = !exn_breaks[exn];
-            if (exn_breaks[exn]) {
-                printf("Breaking on exception %d\n", exn);
-            } else {
-                printf("Removed break on exception %d\n", exn);
-            }
-        }
     } else if (tokens[0][0] == 'x') {
         // The "examine" instruction. This requires some parsing.
         int next_pos;
@@ -489,6 +467,39 @@ static int _osorom_disas_phys(lua_State *L) {
     return 1;
 }
 
+/* XXX: This is not really the cleanest interface here.  Probably the best
+ * thing would be to publish a table in the library, exn_breaks, which had
+ * metamethods hooked up to __index, __pairs, and __newindex to be
+ * continuously "in sync" with the C++ view of the world.  But, let's be
+ * real here -- life really is too short to build metatables by hand with
+ * the C API to Lua.
+ */
+
+static int _osorom_exn_breaks_get(lua_State *L) {
+    lua_newtable(L);
+    
+    for (int i = 0; i < NUM_EXCEPTIONS; i++) {
+        lua_pushboolean(L, exn_breaks[i]);
+        lua_rawseti(L, -2, i);
+    }
+    
+    return 1;
+}
+
+static int _osorom_exn_breaks_set(lua_State *L) {
+    int exn = luaL_checkinteger(L, 1);
+    bool trap = lua_toboolean(L, 2);
+    
+    if (exn >= NUM_EXCEPTIONS || exn < 0) {
+        lua_pushliteral(L, "exn out of bounds in exn_breaks_set");
+        lua_error(L);
+    }
+    
+    exn_breaks[exn] = trap;
+    
+    return 0;
+}
+
 static const luaL_Reg osorom_lib[] = {
     {"readline", _osorom_readline},
     {"add_history", _osorom_add_history},
@@ -498,6 +509,8 @@ static const luaL_Reg osorom_lib[] = {
     {"step_program", _osorom_step_program},
     {"func_at", _osorom_func_at},
     {"disas_phys", _osorom_disas_phys},
+    {"exn_breaks_set", _osorom_exn_breaks_set},
+    {"exn_breaks_get", _osorom_exn_breaks_get},
     {NULL, NULL}
 };
 
