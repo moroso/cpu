@@ -185,6 +185,13 @@ commands.disas = {
 			return false
 		end
 		
+		-- build a reverse-map for breakpoints
+		local breakpoints = osorom.breakpoints_get()
+		local break_map = {}
+		for k,v in ipairs(breakpoints) do
+			break_map[v.address] = true
+		end
+		
 		local start_addr = addr - 0x30
 		if start_addr < 0 then start_addr = 0 end
 		local lastfuncname = nil
@@ -198,7 +205,7 @@ commands.disas = {
 				lastfuncname = thisfunc.name
 			end
 			print(string.format("%s%s%8x %s",
-			                    false and "!" or " ", -- no breakpt support yet
+			                    break_map[thisaddr] and "!" or " ",
 			                    thisaddr == addr and ">" or " ",
 			                    thisaddr,
 			                    osorom.disas_virt(thisaddr)))
