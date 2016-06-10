@@ -38,13 +38,13 @@
 
 module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
    // Outputs
+   tlbfetch2tlb_stall_0a, tlbfetch2tlb_response_0a, itlb2arb_wdata,
+   itlb2arb_wbe, itlb2arb_valid, itlb2arb_opcode, itlb2arb_addr,
    ft2itlb_stall_0a, itlb2ft_pagefault_0a, itlb2ft_physpage_0a,
-   itlb2arb_valid, itlb2arb_opcode, itlb2arb_addr, itlb2arb_wdata,
-   itlb2arb_wbe,
    // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, ft2itlb_valid_0a,
-   ft2itlb_kmode_0a, ft2itlb_virtpage_0a, clkrst_mem_clk,
-   clkrst_mem_rst_n, itlb2arb_stall, itlb2arb_rvalid, itlb2arb_rdata
+   itlb2arb_stall, itlb2arb_rvalid, itlb2arb_rdata, clkrst_mem_rst_n,
+   clkrst_mem_clk, clkrst_core_clk, clkrst_core_rst_n,
+   ft2itlb_valid_0a, ft2itlb_kmode_0a, ft2itlb_virtpage_0a
    );
 
 `include "MCPU_MEM_ltc.vh"
@@ -67,23 +67,28 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	output wire  [19:0] itlb2ft_physpage_0a = 0;
 	
 	/* LTC interface */
-	input               clkrst_mem_clk;
-	input               clkrst_mem_rst_n;
-	
-	input               itlb2arb_stall;
-	output reg          itlb2arb_valid;
-	output reg    [2:0] itlb2arb_opcode;
-	output reg    [2:0] itlb2arb_addr;
-	
-	output wire [255:0] itlb2arb_wdata = {256{1'bx}};
-	output wire  [31:0] itlb2arb_wbe   = {32{1'bx}};
-	
-	input               itlb2arb_rvalid;
-	input       [255:0] itlb2arb_rdata;
+	/*AUTOINPUT*/
+	// Beginning of automatic inputs (from unused autoinst inputs)
+	input		clkrst_mem_clk;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	input		clkrst_mem_rst_n;	// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	input [255:0]	itlb2arb_rdata;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	input		itlb2arb_rvalid;	// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	input		itlb2arb_stall;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	// End of automatics
+	/*AUTOOUTPUT*/
+	// Beginning of automatic outputs (from unused autoinst outputs)
+	output [2:0]	itlb2arb_addr;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output [2:0]	itlb2arb_opcode;	// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output		itlb2arb_valid;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output [31:0]	itlb2arb_wbe;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output [255:0]	itlb2arb_wdata;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output [31:0]	tlbfetch2tlb_response_0a;// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output		tlbfetch2tlb_stall_0a;	// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	// End of automatics
 	
 	/*** Wires ***/
-	wire        tlbfetch2tlb_stall_0a = 0;
-	wire        tlb2tlbfetch_request_0a = 0;
+	wire        tlbfetch2tlb_stall_0a;
+	wire        tlb2tlbfetch_request_0a;
 	wire [19:0] tlb2tlbfetch_reqaddr_0a;
 	wire [31:0] tlbfetch2tlb_response_0a; /* phys [31:12], g, k, w, p */
 	
@@ -139,8 +144,28 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	assign ft2itlb_stall_0a = tlbfetch2tlb_stall_0a;
 	
 	/*** TLB fetcher. ***/
-	assign      tlbfetch2tlb_stall_0a = tlb2tlbfetch_request_0a;
-	assign      tlbfetch2tlb_response_0a = 32'hx; /* "same to you, buddy" */
+	/* MCPU_CORE_CACHE_tlbfetch AUTO_TEMPLATE( 
+		.xtlb2arb_\(.*\) (itlb2arb_\1[]),
+	        ); */
+        MCPU_CORE_CACHE_tlbfetch tlbfetch(/*AUTOINST*/
+					  // Outputs
+					  .tlbfetch2tlb_stall_0a(tlbfetch2tlb_stall_0a),
+					  .tlbfetch2tlb_response_0a(tlbfetch2tlb_response_0a[31:0]),
+					  .xtlb2arb_valid	(itlb2arb_valid), // Templated
+					  .xtlb2arb_opcode	(itlb2arb_opcode[2:0]), // Templated
+					  .xtlb2arb_addr	(itlb2arb_addr[2:0]), // Templated
+					  .xtlb2arb_wdata	(itlb2arb_wdata[255:0]), // Templated
+					  .xtlb2arb_wbe		(itlb2arb_wbe[31:0]), // Templated
+					  // Inputs
+					  .clkrst_core_clk	(clkrst_core_clk),
+					  .clkrst_core_rst_n	(clkrst_core_rst_n),
+					  .tlb2tlbfetch_request_0a(tlb2tlbfetch_request_0a),
+					  .tlb2tlbfetch_reqaddr_0a(tlb2tlbfetch_reqaddr_0a[19:0]),
+					  .clkrst_mem_clk	(clkrst_mem_clk),
+					  .clkrst_mem_rst_n	(clkrst_mem_rst_n),
+					  .xtlb2arb_stall	(itlb2arb_stall), // Templated
+					  .xtlb2arb_rvalid	(itlb2arb_rvalid), // Templated
+					  .xtlb2arb_rdata	(itlb2arb_rdata[255:0])); // Templated
 	
 	/*** You know, just have something there to start with. ***/
 	integer i;
@@ -151,6 +176,4 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 			cam_data[i] = i[21:0];
 		end
 	end
-	
 endmodule
-
