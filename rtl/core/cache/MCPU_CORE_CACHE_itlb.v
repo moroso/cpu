@@ -44,7 +44,9 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
    // Inputs
    itlb2arb_stall, itlb2arb_rvalid, itlb2arb_rdata, clkrst_mem_rst_n,
    clkrst_mem_clk, clkrst_core_clk, clkrst_core_rst_n,
-   ft2itlb_valid_0a, ft2itlb_kmode_0a, ft2itlb_virtpage_0a
+   ft2itlb_valid_0a, ft2itlb_kmode_0a, ft2itlb_virtpage_0a,
+   core2tlb_flush_nonglobal, core2tlb_flush_specific,
+   core2tlb_flush_pa
    );
 
 `include "MCPU_MEM_ltc.vh"
@@ -62,6 +64,9 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	input               ft2itlb_kmode_0a;
 	input        [19:0] ft2itlb_virtpage_0a;
 	output wire         ft2itlb_stall_0a;
+	input               core2tlb_flush_nonglobal;
+	input               core2tlb_flush_specific;
+	input        [19:0] core2tlb_flush_pa;
 
 	output wire         itlb2ft_pagefault_0a = 0;
 	output wire  [19:0] itlb2ft_physpage_0a = 0;
@@ -108,16 +113,59 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	wire [ITLB_SIZE-1:0]     cam_lookup[CAM_DATA_SIZE-1:0];
 	
 	wire [ITLB_SIZE-1:0]     cam_match;
+	wire [ITLB_SIZE-1:0]     cam_match_flush;
 	
 	wire [CAM_TAG_SIZE-1:0]  cam_input = ft2itlb_virtpage_0a;
 	wire [CAM_DATA_SIZE-1:0] cam_output;
 	wire                     cam_nomatch;
 	
+	wire                     cam_write;
+	wire [CAM_DATA_SIZE-1:0] cam_write_data;
+	
+	/* one-hot encoding: which one we replace if we're going to replace something */
+	reg [ITLB_SIZE-1:0]      cam_replace = {{(ITLB_SIZE-1){1'b0}}, 1'b1};
+	always @(posedge clkrst_core_clk or negedge clkrst_core_rst_n) begin
+        	if (~clkrst_core_rst_n)
+        		cam_replace <= {{(ITLB_SIZE-1){1'b0}}, 1'b1};
+		else
+			cam_replace <= {cam_replace[ITLB_SIZE-2:0], cam_replace[ITLB_SIZE-1]};
+	end
+	
 	genvar ii, jj;
 	generate for (ii = 0; ii < ITLB_SIZE; ii = ii + 1) begin: cam_entries
 		assign cam_match[ii] = cam_valid[ii] && (cam_tags[ii] == cam_input);
+		assign cam_match_flush[ii] = cam_tags[ii] == core2tlb_flush_pa;
+		
 		for (jj = 0; jj < CAM_DATA_SIZE; jj = jj + 1) begin: cam_lookup_gen
 			assign cam_lookup[jj][ii] = cam_match[ii] & cam_data[ii][jj];
+		end
+		
+		always @(posedge clkrst_core_clk or negedge clkrst_core_rst_n) begin
+			if (~clkrst_core_rst_n)
+				cam_valid[ii] <= 0;
+			else begin
+				if ((core2tlb_flush_nonglobal & ~cam_data[ii][CAM_DATA_GLOBAL]) |
+				    (core2tlb_flush_specific & cam_match_flush[ii]))
+					cam_valid[ii] <= 0;
+				else if (cam_write & cam_replace[ii]) begin /* if this is the replace, it takes priority */
+					cam_valid[ii] <= 1;
+					cam_tags[ii] <= cam_input;
+					cam_data[ii] <= cam_write_data;
+				end
+				
+				/* We can't have a stale entry while
+				 * replacing with something else, because we
+				 * can only replace if something wasn't in
+				 * the TLB to begin with.  But if we were
+				 * worried about that, the expression would
+				 * be:
+				 *
+				 *   cam_write & cam_match[ii]
+				 *
+				 * with the negation of the cam_write term
+				 * above (i.e., in an else from there.)
+				 */
+			end
 		end
 	end endgenerate
 	
