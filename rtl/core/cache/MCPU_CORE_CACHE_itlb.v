@@ -40,6 +40,7 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
    // Outputs
    ft2itlb_stall_0a, itlb2ft_pagefault_0a, itlb2ft_physpage_0a,
    itlb2arb_valid, itlb2arb_opcode, itlb2arb_addr, itlb2arb_wdata,
+   itlb2arb_wbe,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, ft2itlb_valid_0a,
    ft2itlb_kmode_0a, ft2itlb_virtpage_0a, clkrst_mem_clk,
@@ -75,14 +76,14 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	output reg    [2:0] itlb2arb_addr;
 	
 	output wire [255:0] itlb2arb_wdata = {256{1'bx}};
-	output wire  [31:0] itlb2arb_wdata = {32{1'bx}};
+	output wire  [31:0] itlb2arb_wbe   = {32{1'bx}};
 	
 	input               itlb2arb_rvalid;
 	input       [255:0] itlb2arb_rdata;
 	
 	/*** Wires ***/
 	wire        tlbfetch2tlb_stall_0a = 0;
-	wire        tlb2tlbfetch_request = 0;
+	wire        tlb2tlbfetch_request_0a = 0;
 	wire [19:0] tlb2tlbfetch_reqaddr_0a;
 	wire [31:0] tlbfetch2tlb_response_0a; /* phys [31:12], g, k, w, p */
 	
@@ -110,8 +111,8 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	genvar ii, jj;
 	generate for (ii = 0; ii < ITLB_SIZE; ii = ii + 1) begin: cam_entries
 		assign cam_match[ii] = cam_valid[ii] && (cam_tags[ii] == cam_input);
-		for (jj = 0; jj < CAM_DATA_SIZE; jj = jj + 1) begin: cam_lookup
-			assign cam_lookup[jj][ii] = cam_match[ii]} & cam_data[jj];
+		for (jj = 0; jj < CAM_DATA_SIZE; jj = jj + 1) begin: cam_lookup_gen
+			assign cam_lookup[jj][ii] = cam_match[ii] & cam_data[ii][jj];
 		end
 	end endgenerate
 	
@@ -138,16 +139,16 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	assign ft2itlb_stall_0a = tlbfetch2tlb_stall_0a;
 	
 	/*** TLB fetcher. ***/
-	assign      tlbfetch2tlb_stall_0a = tlb2tlbfetch_request;
+	assign      tlbfetch2tlb_stall_0a = tlb2tlbfetch_request_0a;
 	assign      tlbfetch2tlb_response_0a = 32'hx; /* "same to you, buddy" */
 	
 	/*** You know, just have something there to start with. ***/
 	integer i;
 	initial begin
 		for (i = 0; i < ITLB_SIZE; i = i + 1) begin
-			cam_tags[i] = i;
+			cam_tags[i] = i[19:0];
 			cam_valid[i] = 1'b1;
-			cam_data[i] = i;
+			cam_data[i] = i[21:0];
 		end
 	end
 	
