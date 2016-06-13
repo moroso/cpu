@@ -157,7 +157,134 @@ module MCPU_CORE_CACHE_tlbfetch(/*AUTOARG*/
 	assign      tlbfetch2tlb_response_0a = response_cclk_0a;
 	
 	/*** Now the work of actually fetching. ***/
-	assign response_ready = request_0a;
-	assign response = 32'b0;
+	
+	parameter SM_IDLE = 2'd0;
+	parameter SM_WAITING_L1_PDE = 2'd1;
+	parameter SM_WAITING_L2_PTE = 2'd2;
+	
+	reg [1:0] sm_0a = SM_IDLE;
+	reg [1:0] sm_next_0a;
+	
+	/* We have to queue up reads from the state machine, since the arb could push back. */
+	reg sm_want_read_0a;
+	reg [31:2] sm_want_read_addr_0a;
+	
+	reg [2:0] reqlsb_0a = {3{1'bx}};
+	wire [31:0] wordmux_0a =
+		reqlsb_0a == 3'b000 ? xtlb2arb_rdata[31:0] :
+		reqlsb_0a == 3'b001 ? xtlb2arb_rdata[63:32] :
+		reqlsb_0a == 3'b010 ? xtlb2arb_rdata[95:64] :
+		reqlsb_0a == 3'b011 ? xtlb2arb_rdata[127:96] :
+		reqlsb_0a == 3'b100 ? xtlb2arb_rdata[159:128] :
+		reqlsb_0a == 3'b101 ? xtlb2arb_rdata[191:160] :
+		reqlsb_0a == 3'b110 ? xtlb2arb_rdata[223:192] :
+		           /*3'b111*/ xtlb2arb_rdata[255:224];
+	
+	reg sm_response_ready_0a;
+	
+	reg [3:0] sm_attribs_0a = {4{1'bx}};
+	reg [3:0] sm_attribs_next_0a;
+	
+	always @(*) begin
+		sm_next_0a = sm_0a;
+		sm_want_read_0a = 1'b0;
+		sm_want_read_addr_0a = {30{1'bx}};
+		sm_attribs_next_0a = sm_attribs_0a;
+		case (sm_0a)
+		SM_IDLE: begin
+			if (request_0a) begin
+				sm_next_0a = SM_WAITING_L1_PDE;
+				sm_want_read_0a = 1'b1;
+				sm_want_read_addr_0a = {ptbr[19:0], reqaddr_0a[19:10]};
+			end
+			sm_attribs_next_0a = {4{1'bx}};
+		end
+		SM_WAITING_L1_PDE: begin
+			if (xtlb2arb_rvalid) begin
+				if (~wordmux_0a[0] /* not present */) begin
+					sm_next_0a = SM_IDLE;
+					sm_response_ready_0a = 1'b1;
+					sm_attribs_next_0a = {4{1'bx}};
+				end else begin /* present */
+					sm_next_0a = SM_WAITING_L2_PTE;
+					sm_want_read_0a = 1'b1;
+					sm_want_read_addr_0a = {wordmux_0a[31:12], reqaddr_0a[9:0]};
+					sm_attribs_next_0a = wordmux_0a[3:0];
+				end
+			end
+		end
+		SM_WAITING_L2_PTE: begin
+			if (xtlb2arb_rvalid) begin
+				sm_next_0a = SM_IDLE;
+				sm_response_ready_0a = 1'b1;
+			end
+		end
+		default: begin
+`ifndef BROKEN_ASSERTS
+			assert(0) else $error("state machine in invalid state");
+`endif
+		end
+		endcase
+	end
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+		if (~clkrst_mem_rst_n) begin
+			sm_0a <= SM_IDLE;
+			sm_attribs_0a <= {4{1'bx}};
+		end else begin
+			sm_0a <= sm_next_0a;
+			sm_attribs_0a <= sm_attribs_next_0a;
+		end
+	end
+
+
+`ifndef BROKEN_ASSERTS
+	always @(posedge clkrst_mem_clk) begin
+		assert((sm_0a == SM_IDLE) || ~request_0a) else $error("request outside of state machine idle");
+		assert((sm_0a != SM_IDLE) || ~xtlb2arb_rvalid) else $error("read response while in idle state");
+	end
+`endif
+	assign response_ready = sm_response_ready_0a;
+	assign response = {wordmux_0a[31:12],
+	                   {8{1'bx}},
+	                   wordmux_0a[3:2] | sm_attribs_0a[3:2] /* G, K */,
+	                   wordmux_0a[1] & sm_attribs_0a[1] /* W */,
+	                   wordmux_0a[0] /* P */};
+	
+	/*** And finally, actually go submit stuff to the memory interface ***/
+	reg pending_read_0a = 1'b0;
+	reg [31:5] pending_read_addr_0a = {27{1'bx}};
+	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+		if (~clkrst_mem_rst_n) begin
+			pending_read_0a <= 1'b0;
+			pending_read_addr_0a <= {27{1'bx}};
+			reqlsb_0a <= {3{1'bx}};
+			xtlb2arb_valid <= 1'b0;
+			xtlb2arb_opcode <= {3{1'bx}};
+			xtlb2arb_addr <= {27{1'bx}};
+		end else begin
+`ifndef BROKEN_ASSERTS
+			assert(!(sm_want_read_0a && pending_read_0a)) else $error("what, do you think this is some kind of FIFO?");
+`endif
+			if (sm_want_read_0a)
+				reqlsb_0a <= sm_want_read_addr_0a[4:2];
+			
+			if (xtlb2arb_stall && sm_want_read_0a) begin
+				pending_read_0a <= 1'b1;
+				pending_read_addr_0a <= sm_want_read_addr_0a[31:5];
+			end else if (~xtlb2arb_stall) begin
+				xtlb2arb_valid <= sm_want_read_0a || pending_read_0a;
+				xtlb2arb_opcode <= (sm_want_read_0a || pending_read_0a) ? LTC_OPC_READ : {3{1'bx}};
+				xtlb2arb_addr <= (sm_want_read_0a && pending_read_0a) ? {27{1'bx}} :
+				                 sm_want_read_0a ? sm_want_read_addr_0a[31:5] :
+				                 pending_read_0a ? pending_read_addr_0a :
+				                 {27{1'bx}};
+				if (pending_read_0a) begin
+					pending_read_0a <= 1'b0;
+					pending_read_addr_0a <= {27{1'bx}};
+				end
+			end
+		end
+	end
+
 
 endmodule
