@@ -42,11 +42,11 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
    itlb2arb_wbe, itlb2arb_valid, itlb2arb_opcode, itlb2arb_addr,
    ft2itlb_stall_0a, itlb2ft_pagefault_0a, itlb2ft_physpage_0a,
    // Inputs
-   itlb2arb_stall, itlb2arb_rvalid, itlb2arb_rdata, clkrst_mem_rst_n,
-   clkrst_mem_clk, clkrst_core_clk, clkrst_core_rst_n,
-   ft2itlb_valid_0a, ft2itlb_kmode_0a, ft2itlb_virtpage_0a,
-   core2tlb_flush_nonglobal, core2tlb_flush_specific,
-   core2tlb_flush_pa
+   itlb2arb_stall, itlb2arb_rvalid, itlb2arb_rdata, core2tlb_ptbr,
+   clkrst_mem_rst_n, clkrst_mem_clk, clkrst_core_clk,
+   clkrst_core_rst_n, ft2itlb_valid_0a, ft2itlb_kmode_0a,
+   ft2itlb_virtpage_0a, core2tlb_flush_nonglobal,
+   core2tlb_flush_specific, core2tlb_flush_pa
    );
 
 `include "MCPU_MEM_ltc.vh"
@@ -76,13 +76,14 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
 	input		clkrst_mem_clk;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	input		clkrst_mem_rst_n;	// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	input [19:0]	core2tlb_ptbr;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	input [255:0]	itlb2arb_rdata;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	input		itlb2arb_rvalid;	// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	input		itlb2arb_stall;		// To tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	// End of automatics
 	/*AUTOOUTPUT*/
 	// Beginning of automatic outputs (from unused autoinst outputs)
-	output [2:0]	itlb2arb_addr;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
+	output [31:5]	itlb2arb_addr;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	output [2:0]	itlb2arb_opcode;	// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	output		itlb2arb_valid;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
 	output [31:0]	itlb2arb_wbe;		// From tlbfetch of MCPU_CORE_CACHE_tlbfetch.v
@@ -201,12 +202,13 @@ module MCPU_CORE_CACHE_itlb(/*AUTOARG*/
 					  .tlbfetch2tlb_response_0a(tlbfetch2tlb_response_0a[31:0]),
 					  .xtlb2arb_valid	(itlb2arb_valid), // Templated
 					  .xtlb2arb_opcode	(itlb2arb_opcode[2:0]), // Templated
-					  .xtlb2arb_addr	(itlb2arb_addr[2:0]), // Templated
+					  .xtlb2arb_addr	(itlb2arb_addr[31:5]), // Templated
 					  .xtlb2arb_wdata	(itlb2arb_wdata[255:0]), // Templated
 					  .xtlb2arb_wbe		(itlb2arb_wbe[31:0]), // Templated
 					  // Inputs
 					  .clkrst_core_clk	(clkrst_core_clk),
 					  .clkrst_core_rst_n	(clkrst_core_rst_n),
+					  .core2tlb_ptbr	(core2tlb_ptbr[19:0]),
 					  .tlb2tlbfetch_request_0a(tlb2tlbfetch_request_0a),
 					  .tlb2tlbfetch_reqaddr_0a(tlb2tlbfetch_reqaddr_0a[19:0]),
 					  .clkrst_mem_clk	(clkrst_mem_clk),
