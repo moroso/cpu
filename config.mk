@@ -20,6 +20,8 @@ RTL_COMMON = \
 	rtl/core/MCPU_CORE_scoreboard.v \
 	rtl/core/cache/MCPU_CACHE_ic_dummy.v \
 	rtl/core/cache/MCPU_CACHE_tlb_dummy.v \
+	rtl/core/cache/MCPU_CORE_CACHE_itlb.v \
+	rtl/core/cache/MCPU_CORE_CACHE_tlbfetch.v \
 	rtl/core/MCPU_CORE_coproc.v \
 	rtl/core/MCPU_CORE_exn_encode.v \
 	rtl/core/MCPU_CORE_stage_mem.v
