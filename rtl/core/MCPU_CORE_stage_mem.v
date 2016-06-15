@@ -2,13 +2,12 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
    // Outputs
    pc2mem_readyin, mem2wb_readyout, mem2wb_out_data,
    mem2wb_out_rd_num, mem2wb_out_rd_we, mem2dc_paddr, mem2dc_write,
-   mem2dc_valid,
-   // Inouts
-   mem2dc_data,
+   mem2dc_valid, mem2dc_data_out,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, pc2mem_progress,
    mem2wb_progress, mem_valid, pc2mem_in_paddr, pc2mem_in_data,
-   pc2mem_in_type, pc2mem_in_rd_num, pc2mem_in_rd_we, mem2dc_done
+   pc2mem_in_type, pc2mem_in_rd_num, pc2mem_in_rd_we, mem2dc_done,
+   mem2dc_data_in
    );
 
 	input clkrst_core_clk, clkrst_core_rst_n;
@@ -32,10 +31,11 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	output reg [3:0] mem2dc_write;
 	output wire mem2dc_valid;
 	input mem2dc_done;
-	inout [31:0] mem2dc_data;
+	input [31:0] mem2dc_data_in;
+	output [31:0] mem2dc_data_out;
 
 
-	//reg mem_valid;
+	reg mem_alreadydone;
 
 	assign pc2mem_readyin = ~mem2dc_valid | mem2wb_progress;
 	assign mem2wb_readyout = mem2dc_valid & mem2dc_done;
@@ -51,18 +51,22 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	assign mem2dc_paddr = pc2mem_in_paddr[31:2];
 
 
-	assign mem2dc_valid = mem_valid;
+	assign mem2dc_valid = mem_valid & ~mem_alreadydone;
+	always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
+		if(~clkrst_core_rst_n) mem_alreadydone <= 0;
+		else mem_alreadydone <= mem_valid & (mem2dc_done | mem_alreadydone) & ~pc2mem_progress;
+	end
 
 	//Send the input data on the bus if we're doing a write, or read from it if it's a read
 	//I think this is how inout ports work? >.>
-	assign mem2dc_data = (mem_valid & pc2mem_in_type[2]) ? pc2mem_in_data : 32'bZ;
+	assign mem2dc_data_out = pc2mem_in_data;
 	
 	//Take the part of the word that we wanted to read and put it in the low bits of the output
-	always @(/*AUTOSENSE*/mem2dc_data or pc2mem_in_paddr
+	always @(/*AUTOSENSE*/mem2dc_data_in or pc2mem_in_paddr
 		 or pc2mem_in_type) begin
-		if(pc2mem_in_type[1]) mem2wb_out_data = mem2dc_data;
-		else if(pc2mem_in_type[0]) mem2wb_out_data = mem2dc_data >> (pc2mem_in_paddr[1] * 5'd16) & 32'hFFFF;
-		else mem2wb_out_data = mem2dc_data >> (pc2mem_in_paddr[1:0] * 5'd8) & 32'hFF;
+		if(pc2mem_in_type[1]) mem2wb_out_data = mem2dc_data_in;
+		else if(pc2mem_in_type[0]) mem2wb_out_data = mem2dc_data_in >> (pc2mem_in_paddr[1] * 5'd16) & 32'hFFFF;
+		else mem2wb_out_data = mem2dc_data_in >> (pc2mem_in_paddr[1:0] * 5'd8) & 32'hFF;
 	end
 
 	assign mem2wb_out_rd_num = pc2mem_in_rd_num;

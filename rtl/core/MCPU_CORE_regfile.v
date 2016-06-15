@@ -6,6 +6,7 @@ module MCPU_CORE_regfile(/*AUTOARG*/
    // Outputs
    rf2d_rs_data0, rf2d_rs_data1, rf2d_rs_data2, rf2d_rs_data3,
    rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3, preds,
+   r0,
    // Inputs
    wb2rf_rd_num0, wb2rf_rd_num1, wb2rf_rd_num2, wb2rf_rd_num3,
    d2rf_rs_num0, d2rf_rs_num1, d2rf_rs_num2, d2rf_rs_num3,
@@ -13,7 +14,7 @@ module MCPU_CORE_regfile(/*AUTOARG*/
    wb2rf_rd_data0, wb2rf_rd_data1, wb2rf_rd_data2, wb2rf_rd_data3,
    wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0,
    wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0,
-   clkrst_core_clk, clkrst_core_rst_n, r0, r31
+   clkrst_core_clk, clkrst_core_rst_n, r31
    );
 
     input [4:0] wb2rf_rd_num0, wb2rf_rd_num1, wb2rf_rd_num2, wb2rf_rd_num3;
@@ -55,14 +56,14 @@ module MCPU_CORE_regfile(/*AUTOARG*/
         end
     end
 	 
-    assign rf2d_rs_data0 = &d2rf_rs_num0 ? r31 : mem[d2rf_rs_num0];
-    assign rf2d_rs_data1 = &d2rf_rs_num1 ? r31 : mem[d2rf_rs_num1];
-    assign rf2d_rs_data2 = &d2rf_rs_num2 ? r31 : mem[d2rf_rs_num2];
-    assign rf2d_rs_data3 = &d2rf_rs_num3 ? r31 : mem[d2rf_rs_num3];
+    assign rf2d_rs_data0 = mem[d2rf_rs_num0];
+    assign rf2d_rs_data1 = mem[d2rf_rs_num1];
+    assign rf2d_rs_data2 = mem[d2rf_rs_num2];
+    assign rf2d_rs_data3 = mem[d2rf_rs_num3];
 
-    assign rf2d_rt_data0 = &d2rf_rs_num0 ? r31 : mem[d2rf_rt_num0];
-    assign rf2d_rt_data1 = &d2rf_rs_num1 ? r31 : mem[d2rf_rt_num1];
-    assign rf2d_rt_data2 = &d2rf_rs_num2 ? r31 : mem[d2rf_rt_num2];
-    assign rf2d_rt_data3 = &d2rf_rs_num3 ? r31 : mem[d2rf_rt_num3];
+    assign rf2d_rt_data0 = mem[d2rf_rt_num0];
+    assign rf2d_rt_data1 = mem[d2rf_rt_num1];
+    assign rf2d_rt_data2 = mem[d2rf_rt_num2];
+    assign rf2d_rt_data3 = mem[d2rf_rt_num3];
 
 endmodule

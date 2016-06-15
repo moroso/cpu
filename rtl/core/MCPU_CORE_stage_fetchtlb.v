@@ -47,7 +47,7 @@ module MCPU_CORE_stage_fetchtlb(/*AUTOARG*/
 
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
     if(~clkrst_core_rst_n) begin
-      ft2f_out_virtpc <= 28'd0; // What are we doing about mapping at boot?
+      ft2f_out_virtpc <= 28'd0;
     end
     /* TODO handle page faults correctly
      * Propagate an exception signal down the pipeline, give it priority in PC phase

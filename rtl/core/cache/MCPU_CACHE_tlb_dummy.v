@@ -19,8 +19,13 @@ module MCPU_CACHE_tlb_dummy(/*AUTOARG*/
 	input ft2itlb_valid;
 	input [19:0] ft2itlb_virtpage;
 	
-	output wire ft2itlb_pagefault = 0;
-	output wire [19:0] ft2itlb_physpage = ft2itlb_virtpage;
-	output wire ft2itlb_ready = ft2itlb_valid;
+	output ft2itlb_pagefault;
+	wire ft2itlb_pagefault = 0;
+	
+	output [19:0] ft2itlb_physpage;
+	wire [19:0] ft2itlb_physpage = ft2itlb_virtpage;
+	
+	output ft2itlb_ready;
+	wire ft2itlb_ready = ft2itlb_valid;
 
 endmodule

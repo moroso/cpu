@@ -2,14 +2,14 @@
 module MCPU_core(/*AUTOARG*/
    // Outputs
    int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-   mem2dc_paddr1, mem2dc_write1, mem2dc_valid1, ft2itlb_valid,
-   ft2itlb_virtpage, f2ic_paddr, f2ic_valid,
-   // Inouts
-   mem2dc_data0, mem2dc_data1,
+   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+   mem2dc_data_out1, ft2itlb_valid, ft2itlb_virtpage, f2ic_paddr,
+   f2ic_valid, r0,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-   mem2dc_done0, mem2dc_done1, ft2itlb_ready, ft2itlb_physpage,
-   ft2itlb_pagefault, ic2f_packet, ic2f_ready, r0, r31
+   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+   ft2itlb_ready, ft2itlb_physpage, ft2itlb_pagefault, ic2d_packet,
+   ic2f_ready, r31
    );
 
   /* Clocks */
@@ -27,12 +27,14 @@ module MCPU_core(/*AUTOARG*/
   output [3:0] mem2dc_write0;
   output mem2dc_valid0;
   input mem2dc_done0;
-  inout [31:0] mem2dc_data0;
+  input [31:0] mem2dc_data_in0;
+  output [31:0] mem2dc_data_out0;
   output [29:0] mem2dc_paddr1;
   output [3:0] mem2dc_write1;
   output mem2dc_valid1;
   input mem2dc_done1;
-  inout [31:0] mem2dc_data1;
+  input [31:0] mem2dc_data_in1;
+  output [31:0] mem2dc_data_out1;
 
   /* ITLB interface */
   output ft2itlb_valid;
@@ -44,7 +46,7 @@ module MCPU_core(/*AUTOARG*/
   /* I$ interface */
   output [27:0] f2ic_paddr;
   output f2ic_valid;
-  input [127:0] ic2f_packet;
+  input [127:0] ic2d_packet;
   input ic2f_ready;
 
   output [31:0] r0;
@@ -116,7 +118,6 @@ module MCPU_core(/*AUTOARG*/
   wire			dep_stall1;		// From d1 of MCPU_CORE_decode.v
   wire			dep_stall2;		// From d2 of MCPU_CORE_decode.v
   wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
-  wire [127:0]		f2d_out_packet;		// From f of MCPU_CORE_stage_fetch.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
   wire			ft2f_out_inst_pf;	// From ft of MCPU_CORE_stage_fetchtlb.v
   wire [19:0]		ft2f_out_physpage;	// From ft of MCPU_CORE_stage_fetchtlb.v
@@ -201,7 +202,9 @@ module MCPU_core(/*AUTOARG*/
   wire mem2wb_progress0, mem2wb_progress1;
 
   wire ft2f_done, f2d_done;
-
+  wire pipe_flush, exception /* verilator public */, paging_on;
+  wire [27:0] pc2ft_newpc;
+  
   `include "oper_type.vh"
 
 
@@ -209,8 +212,10 @@ module MCPU_core(/*AUTOARG*/
   assign ft2f_readyout = ft2f_done;
   assign ft2f_progress = ft2f_readyin & ft2f_readyout;
 
+  wire dcd_depstall;
+
   assign f2d_readyin = ~dcd_valid | (d2pc_progress & ~dcd_depstall);
-  assign f2d_readyout = ~f_valid | f2d_done;
+  assign f2d_readyout = 1; //~f_valid | f2d_done;
   assign f2d_progress = f2d_readyout & f2d_readyin;
 
   assign d2pc_readyin = ~pc_valid | pc_out_progress;
@@ -244,8 +249,7 @@ module MCPU_core(/*AUTOARG*/
 
 
   //unimplemented control inputs
-  wire pipe_flush, exception /* verilator public */, paging_on;
-  wire [27:0] pc2ft_newpc;
+
   assign pipe_flush = pc_valid & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
 
 
@@ -267,6 +271,7 @@ module MCPU_core(/*AUTOARG*/
 			 .rf2d_rt_data2		(rf2d_rt_data2[31:0]),
 			 .rf2d_rt_data3		(rf2d_rt_data3[31:0]),
 			 .preds			(preds[2:0]),
+			 .r0			(r0[31:0]),
 			 // Inputs
 			 .wb2rf_rd_num0		(wb2rf_rd_num0[4:0]),
 			 .wb2rf_rd_num1		(wb2rf_rd_num1[4:0]),
@@ -294,7 +299,7 @@ module MCPU_core(/*AUTOARG*/
 			 .wb2rf_pred_we0	(wb2rf_pred_we0),
 			 .clkrst_core_clk	(clkrst_core_clk),
 			 .clkrst_core_rst_n	(clkrst_core_rst_n),
-			 .r0(r0), .r31(r31));
+			 .r31			(r31[31:0]));
 
   MCPU_CORE_scoreboard sb(
         .d2pc_progress(d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall),
@@ -364,7 +369,6 @@ module MCPU_core(/*AUTOARG*/
   MCPU_CORE_stage_fetch f(/*AUTOINST*/
 			  // Outputs
 			  .f2d_done		(f2d_done),
-			  .f2d_out_packet	(f2d_out_packet[127:0]),
 			  .f2d_out_virtpc	(f2d_out_virtpc[27:0]),
 			  .f2ic_paddr		(f2ic_paddr[27:0]),
 			  .f2ic_valid		(f2ic_valid),
@@ -375,18 +379,20 @@ module MCPU_core(/*AUTOARG*/
 			  .ft2f_progress	(ft2f_progress),
 			  .ft2f_in_physpage	(ft2f_in_physpage[19:0]),
 			  .ft2f_in_virtpc	(ft2f_in_virtpc[27:0]),
+			  .f2d_progress		(f2d_progress),
 			  .pipe_flush		(pipe_flush),
-			  .ic2f_packet		(ic2f_packet[127:0]),
 			  .ic2f_ready		(ic2f_ready));
 
-  register #(.WIDTH(158), .RESET_VAL(158'd0))
-           f2d_reg(.D({f2d_out_packet, f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush, ft2f_in_inst_pf}),
-                   .Q({f2d_in_packet, f2d_in_virtpc, dcd_valid, f2d_in_inst_pf}),
+  register #(.WIDTH(30), .RESET_VAL(30'd0))
+           f2d_reg(.D({f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush, ft2f_in_inst_pf}),
+                   .Q({f2d_in_virtpc, dcd_valid, f2d_in_inst_pf}),
                    .en(f2d_progress | pipe_flush),
                    /*AUTOINST*/
 		   // Inputs
 		   .clkrst_core_clk	(clkrst_core_clk),
 		   .clkrst_core_rst_n	(clkrst_core_rst_n));
+
+  assign f2d_in_packet = ic2d_packet;
 
 
   /* MCPU_CORE_decode AUTO_TEMPLATE(
@@ -525,7 +531,6 @@ module MCPU_core(/*AUTOARG*/
 		      .rf2d_rt_data	(rf2d_rt_data3[31:0]));	 // Templated
 
   assign d2pc_out_invalid3 = dcd_invalid3 | long_imm3;
-  wire dcd_depstall;
   assign dcd_depstall = dep_stall0 | dep_stall1 | dep_stall2 | dep_stall3;
 
 
@@ -739,7 +744,7 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2mem_out_paddr0, pc2mem_out_data0, pc2mem_out_type0,
       d2pc_in_rd_num0, d2pc_in_rd_we0,
-      pc_valid,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -751,15 +756,15 @@ module MCPU_core(/*AUTOARG*/
     }),
     .en(pc2mem_progress0),
   /*AUTOINST*/
-							// Inputs
-							.clkrst_core_clk(clkrst_core_clk),
-							.clkrst_core_rst_n(clkrst_core_rst_n));
+							  // Inputs
+							  .clkrst_core_clk	(clkrst_core_clk),
+							  .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   register #(.WIDTH(102), .RESET_VAL(102'b0)) pc2mem_reg1(
     .D({
       pc2mem_out_paddr1, pc2mem_out_data1, pc2mem_out_type1,
       d2pc_in_rd_num1, d2pc_in_rd_we1,
-      pc_valid,
+      pc_valid & ~exception,
       d2pc_in_virtpc
     }),
     .Q({
@@ -770,9 +775,9 @@ module MCPU_core(/*AUTOARG*/
     }),
     .en(pc2mem_progress1),
   /*AUTOINST*/
-							// Inputs
-							.clkrst_core_clk(clkrst_core_clk),
-							.clkrst_core_rst_n(clkrst_core_rst_n));
+							  // Inputs
+							  .clkrst_core_clk	(clkrst_core_clk),
+							  .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   /* MCPU_CORE_stage_mem AUTO_TEMPLATE(
     .mem_valid(mem_valid@),
@@ -790,7 +795,8 @@ module MCPU_core(/*AUTOARG*/
     .mem2dc_write(mem2dc_write@[]),
     .mem2dc_valid(mem2dc_valid@),
     .mem2dc_done(mem2dc_done@),
-    .mem2dc_data(mem2dc_data@[]),
+    .mem2dc_data_out(mem2dc_data_out@[]),
+	  .mem2dc_data_in(mem2dc_data_in@[]),
     .pc2mem_progress(pc2mem_progress@),
     .mem2wb_progress(mem2wb_progress@),
     );*/
@@ -805,8 +811,7 @@ module MCPU_core(/*AUTOARG*/
 				 .mem2dc_paddr		(mem2dc_paddr0[29:0]), // Templated
 				 .mem2dc_write		(mem2dc_write0[3:0]), // Templated
 				 .mem2dc_valid		(mem2dc_valid0), // Templated
-				 // Inouts
-				 .mem2dc_data		(mem2dc_data0[31:0]), // Templated
+				 .mem2dc_data_out	(mem2dc_data_out0[31:0]), // Templated
 				 // Inputs
 				 .clkrst_core_clk	(clkrst_core_clk),
 				 .clkrst_core_rst_n	(clkrst_core_rst_n),
@@ -818,7 +823,9 @@ module MCPU_core(/*AUTOARG*/
 				 .pc2mem_in_type	(pc2mem_in_type0[2:0]), // Templated
 				 .pc2mem_in_rd_num	(pc2mem_in_rd_num0[4:0]), // Templated
 				 .pc2mem_in_rd_we	(pc2mem_in_rd_we0), // Templated
-				 .mem2dc_done		(mem2dc_done0));	 // Templated
+				 .mem2dc_done		(mem2dc_done0),	 // Templated
+				 .mem2dc_data_in	(mem2dc_data_in0[31:0])); // Templated
+
   MCPU_CORE_stage_mem stage_mem1(/*AUTOINST*/
 				 // Outputs
 				 .pc2mem_readyin	(pc2mem_readyin1), // Templated
@@ -829,8 +836,7 @@ module MCPU_core(/*AUTOARG*/
 				 .mem2dc_paddr		(mem2dc_paddr1[29:0]), // Templated
 				 .mem2dc_write		(mem2dc_write1[3:0]), // Templated
 				 .mem2dc_valid		(mem2dc_valid1), // Templated
-				 // Inouts
-				 .mem2dc_data		(mem2dc_data1[31:0]), // Templated
+				 .mem2dc_data_out	(mem2dc_data_out1[31:0]), // Templated
 				 // Inputs
 				 .clkrst_core_clk	(clkrst_core_clk),
 				 .clkrst_core_rst_n	(clkrst_core_rst_n),
@@ -842,17 +848,17 @@ module MCPU_core(/*AUTOARG*/
 				 .pc2mem_in_type	(pc2mem_in_type1[2:0]), // Templated
 				 .pc2mem_in_rd_num	(pc2mem_in_rd_num1[4:0]), // Templated
 				 .pc2mem_in_rd_we	(pc2mem_in_rd_we1), // Templated
-				 .mem2dc_done		(mem2dc_done1));	 // Templated
+				 .mem2dc_done		(mem2dc_done1),	 // Templated
+				 .mem2dc_data_in	(mem2dc_data_in1[31:0])); // Templated
 
 
   /* AUTO_CONSTANT ( OPER_TYPE_BRANCH ) */
   /* AUTO_CONSTANT ( OPER_TYPE_OTHER ) */
   /* AUTO_CONSTANT ( OPER_TYPE_LSU ) */
   reg pc2wb_out_rd_we0;
-  always @(/*AUTOSENSE*/alu_result0 or alu_result1 or coproc_rd_we
+  always @(/*AUTOSENSE*/alu_result0 or coproc_rd_we
 	   or coproc_reg_result or d2pc_in_oper_type0
-	   or d2pc_in_oper_type1 or d2pc_in_rd_we0 or d2pc_in_virtpc
-	   or mem2wb_out_data0 or mem2wb_out_data1) begin
+	   or d2pc_in_rd_we0 or d2pc_in_virtpc) begin
     pc2wb_out_rd_we0 = d2pc_in_rd_we0;
     case(d2pc_in_oper_type0)
       OPER_TYPE_BRANCH: pc2wb_out_result0 = {d2pc_in_virtpc, 4'b0};
@@ -874,7 +880,7 @@ module MCPU_core(/*AUTOARG*/
       pc2wb_out_result3, pc2wb_out_result2,
       d2pc_in_rd_num3, d2pc_in_rd_num2,
       d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_pred_we3, d2pc_in_pred_we2,
-      pc_valid & ~pipe_flush,
+      pc_valid & ~exception & pc_out_progress,
       d2pc_in_virtpc
     }),
     .Q({
@@ -884,7 +890,7 @@ module MCPU_core(/*AUTOARG*/
       wb_valid23,
       wb_in_virtpc23
     }),
-    .en(pc_out_progress),
+    .en(1),
     /*AUTOINST*/
 							  // Inputs
 							  .clkrst_core_clk	(clkrst_core_clk),
@@ -897,8 +903,8 @@ module MCPU_core(/*AUTOARG*/
       pc2mem_in_virtpc0
     }),
     .D1({
-      pc2wb_out_result0, d2pc_in_rd_num0, d2pc_in_rd_we0, d2pc_in_pred_we0,
-      pc_valid & ~pipe_flush,
+      pc2wb_out_result0, d2pc_in_rd_num0, pc2wb_out_rd_we0, d2pc_in_pred_we0,
+      pc_valid & ~exception & pc2wb_progress0,
       d2pc_in_virtpc
     }),
     .Q({
@@ -906,7 +912,7 @@ module MCPU_core(/*AUTOARG*/
       wb_valid0,
       wb_in_virtpc0
     }),
-    .en0(mem2wb_progress0), .en1(pc2wb_progress0),
+    .en0(mem2wb_progress0), .en1(~mem2wb_progress0),
     /*AUTOINST*/
 						    // Inputs
 						    .clkrst_core_clk	(clkrst_core_clk),
@@ -920,7 +926,7 @@ module MCPU_core(/*AUTOARG*/
     }),
     .D1({
       pc2wb_out_result1, d2pc_in_rd_num1, d2pc_in_rd_we1, d2pc_in_pred_we1,
-      pc_valid & ~pipe_flush,
+      pc_valid & ~exception & pc2wb_progress1,
       d2pc_in_virtpc
     }),
     .Q({
@@ -928,7 +934,7 @@ module MCPU_core(/*AUTOARG*/
       wb_valid1,
       wb_in_virtpc1
     }),
-    .en0(mem2wb_progress1), .en1(pc2wb_progress1),
+    .en0(mem2wb_progress1), .en1(~mem2wb_progress1),
     /*AUTOINST*/
 						    // Inputs
 						    .clkrst_core_clk	(clkrst_core_clk),

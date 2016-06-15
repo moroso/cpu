@@ -51,10 +51,9 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     assign coproc_branch = exception | eret_inst;
     assign coproc_branchaddr = exception ? coproc_regs[2][31:4] : coproc_regs[3][31:4]; // EHA or EPC
 
-
+    integer i;
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
         if(~clkrst_core_rst_n) begin
-            integer i;
             for(i = 0; i < 4; i = i + 1) begin
                 scratchpad[i] <= 32'b0;
             end

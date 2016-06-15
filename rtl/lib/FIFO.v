@@ -5,7 +5,7 @@ module FIFO(/*AUTOARG*/
    clk, rst_n, push, wdata, pop
    );
 
-	parameter               DEPTH = 1;
+	parameter               DEPTH = 2;
 	parameter               WIDTH = 1;
 
 	input                   clk;

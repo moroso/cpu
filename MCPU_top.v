@@ -83,10 +83,12 @@ wire [31:0] memoutput;
 //=======================================================
 
 TB_MCPU_core tb(
-	.clkrst_core_clk(CLOCK_125_p),
-	.clkrst_core_rst_n(CPU_RESET_N),
+	.clkrst_core_clk(CLOCK_50_B5B),
+	.clkrst_core_rst_n(CPU_RESET_n),
 	.memoutput(memoutput),
-	.meminput({22'b0, SW})
+	.meminput({22'b0, SW}),
+	.uart_rx(UART_RX),
+	.uart_tx(UART_TX)
 );
 
 seg seg0(.in(memoutput[3:0]), .out(HEX0));
@@ -96,7 +98,10 @@ seg seg3(.in(memoutput[15:12]), .out(HEX3));
 assign LEDG = memoutput[23:16];
 assign LEDR[7:0] = memoutput[31:24];
 
-
-assign LEDR[9:8] = SW[1:0];
-
+reg [23:0] ctr;
+always @(posedge CLOCK_50_B5B, negedge CPU_RESET_n) begin
+	if(~CPU_RESET_n) ctr <= 0;
+	else ctr <= ctr + 16'b1;
+end
+assign LEDR[9:8] = ctr[23:22];
 endmodule
