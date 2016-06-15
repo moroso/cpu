@@ -106,12 +106,12 @@ int main(int argc, char **argv){
 				writemask |= (core->mem2dc_write0 & 2) ? 0xFF00 : 0;
 				writemask |= (core->mem2dc_write0 & 4) ? 0xFF0000 : 0;
 				writemask |= (core->mem2dc_write0 & 8) ? 0xFF000000 : 0;
-				ram[addr] = (core->mem2dc_data0 & writemask) | 
+				ram[addr] = (core->mem2dc_data_out0 & writemask) | 
 							(ram[addr] & ~writemask);
 				printf("Lane 0 wrote %x at %x\n", ram[addr], addr);
 			}
 			else{
-				core->mem2dc_data0 = ram[addr];
+				core->mem2dc_data_in0 = ram[addr];
 				printf("Lane 0 read %x at %x\n", ram[addr], addr);
 			}
 			core->mem2dc_done0 = 1;
@@ -128,12 +128,12 @@ int main(int argc, char **argv){
 				writemask |= (core->mem2dc_write1 & 2) ? 0xFF00 : 0;
 				writemask |= (core->mem2dc_write1 & 4) ? 0xFF0000 : 0;
 				writemask |= (core->mem2dc_write1 & 8) ? 0xFF000000 : 0;
-				ram[addr] = (core->mem2dc_data1 & writemask) | 
+				ram[addr] = (core->mem2dc_data_out1 & writemask) | 
 							(ram[addr] & ~writemask);
 				printf("Lane 1 wrote %x at %x\n", ram[addr], addr);
 			}
 			else{
-				core->mem2dc_data1 = ram[addr];
+				core->mem2dc_data_in1 = ram[addr];
 				printf("Lane 1 read %x at %x\n", ram[addr], addr);
 			}
 			core->mem2dc_done1 = 1;

@@ -1,16 +1,18 @@
 module TB_MCPU_core(/*AUTOARG*/
-   // Inouts
-   clkrst_core_rst_n, clkrst_core_clk,
-	memoutput, meminput
+   // Outputs
+   uart_tx, memoutput,
+   // Inputs
+   r31, clkrst_core_rst_n, clkrst_core_clk, uart_rx, meminput
    );
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
 	input		clkrst_core_clk;	// To core of MCPU_core.v
 	input		clkrst_core_rst_n;	// To core of MCPU_core.v
-	input [31:0] meminput;
-	output [31:0] memoutput;
+	input [31:0]	r31;			// To core of MCPU_core.v
 	// End of automatics
-
+	input uart_rx;
+	output uart_tx;
+	
 	/*AUTOWIRE*/
 	// Beginning of automatic wires (for undeclared instantiated-module outputs)
 	wire [27:0]	f2ic_paddr;		// From core of MCPU_core.v
@@ -20,83 +22,83 @@ module TB_MCPU_core(/*AUTOARG*/
 	wire		ft2itlb_ready;		// From tlb of MCPU_CACHE_tlb_dummy.v
 	wire		ft2itlb_valid;		// From core of MCPU_core.v
 	wire [19:0]	ft2itlb_virtpage;	// From core of MCPU_core.v
-	wire [127:0]	ic2f_packet;		// From ic of MCPU_CACHE_ic_dummy.v
-	wire		ic2f_ready;		// From ic of MCPU_CACHE_ic_dummy.v
 	// End of automatics
-
+	input [31:0] meminput;
+	output [31:0] memoutput;
+	wire ic2f_ready;		// To core of MCPU_core.v
+	
 	wire mem2dc_valid0, mem2dc_valid1;
-	wire mem2dc_done0, mem2dc_done1;
-	wire [31:0] mem2dc_data0, mem2dc_data1;
+	reg mem2dc_done0, mem2dc_done1;
+	wire [31:0] mem2dc_data_out0, mem2dc_data_out1;
+	wire [31:0] mem2dc_data_in0, mem2dc_data_in1;
 	wire [29:0] mem2dc_paddr0, mem2dc_paddr1;
 	wire [3:0] mem2dc_write0, mem2dc_write1;
-	
-	wire [31:0] data_hookup0, data_hookup1;
-	assign data_hookup0 = mem2dc_data0;
-	assign data_hookup1 = mem2dc_data1;
-	
-	integer i;
+	wire [127:0] ic2d_packet;
 	
 	wire int_pending = 0;
 	wire [3:0] int_type = 0;
 	wire int_clear;
 	
 	wire [31:0] r0;
-	assign memoutput = r0;
-	
-	/*
-	reg [31:0] ram[256];
-	
-	
-	wire [31:0] writemask0, writemask1;
-	assign writemask0 = {{8{mem2dc_write0[3]}},{8{mem2dc_write0[2]}},{8{mem2dc_write0[1]}},{8{mem2dc_write0[0]}}};
-	assign writemask1 = {{8{mem2dc_write1[3]}},{8{mem2dc_write1[2]}},{8{mem2dc_write1[1]}},{8{mem2dc_write1[0]}}};
-	/*
-	always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
-		if(~clkrst_core_rst_n) begin
-			for(i=0; i < 256; i=i+1) begin
-				ram[i] <= 32'b0;
-			end
-		end
-				
-		else begin
-			if(mem2dc_valid0) begin
-				if(|mem2dc_write0) begin
-					ram[mem2dc_paddr0] <= (mem2dc_data0 & writemask0) | (ram[mem2dc_paddr0] & ~writemask0);
-					mem2dc_done0 <= 1;
-					mem2dc_data0 <= 32'bZ;
-				end
-				else begin
-					mem2dc_done0 <= 1;
-					mem2dc_data0 <= ram[mem2dc_paddr0];
-				end
-			end
-			else begin
-				mem2dc_done0 <= 0;
-				mem2dc_data0 <= 32'bZ;
-			end
-			if(mem2dc_valid1) begin
-				if(|mem2dc_write1) begin
-					ram[mem2dc_paddr1] <= (mem2dc_data1 & writemask1) | (ram[mem2dc_paddr1] & ~writemask1);
-					mem2dc_done1 <= 1;
-					mem2dc_data1 <= 32'bZ;
-				end
-				else begin
-					mem2dc_done1 <= 1;
-					mem2dc_data1 <= ram[mem2dc_paddr1];
-				end
-			end
-			else begin
-				mem2dc_done1 <= 0;
-				mem2dc_data1 <= 32'bZ;
-			end
-		end
-	end
-	*/				
 
-	assign mem2dc_data0 = 32'bZ;
-	assign mem2dc_data1 = 32'bZ;
-	assign mem2dc_done0 = 0;
-	assign mem2dc_done1 = 0;
+	wire write0, write1;
+	wire [3:0] byteen;
+	wire [29:0] addr_a;
+	wire [31:0] data_a;
+	wire [31:0] q_a;
+	wire [31:0] periph_q;
+
+	assign write0 = |mem2dc_write0 & mem2dc_valid0;
+	assign write1 = |mem2dc_write1 & mem2dc_valid1;
+	always @(posedge clkrst_core_clk) begin
+		mem2dc_done0 <= mem2dc_valid0;
+		mem2dc_done1 <= mem2dc_valid1 & ~mem2dc_valid0;
+	end
+	assign addr_a = mem2dc_valid0 ? mem2dc_paddr0 : mem2dc_paddr1;
+	assign data_a = mem2dc_valid0 ? mem2dc_data_out0 : mem2dc_data_out1;
+	assign byteen = mem2dc_valid0 ? mem2dc_write0 : mem2dc_write1;
+	
+	assign mem2dc_data_in0 = mem2dc_paddr0[29] ? periph_q : q_a;
+	assign mem2dc_data_in1 = mem2dc_paddr1[29] ? periph_q : q_a;
+	
+
+	altsyncram #(
+		.OPERATION_MODE("BIDIR_DUAL_PORT"),
+		.WIDTH_A(32),
+		.WIDTHAD_A(14), // 14 bits => 16k addrs => 64KB
+		.WIDTH_B(128),
+		.WIDTHAD_B(12),
+		.INIT_FILE("bootrom.mif"),
+		.INIT_FILE_LAYOUT("PORT_A"),
+		.WIDTH_BYTEENA_A(4)
+	) ram(
+		.wren_a((write0 | write1) & ~addr_a[29]),
+		.wren_b(1'b0),
+		.data_a(data_a),
+		.address_a(addr_a[13:0]),
+		.address_b(f2ic_paddr[11:0]),
+		.clock0(clkrst_core_clk),
+		.clock1(clkrst_core_clk),
+		.byteena_a(byteen),
+		.clocken0(mem2dc_valid0 | mem2dc_valid1),
+		.clocken1(f2ic_valid),
+
+		.q_a(q_a),
+		.q_b(ic2d_packet)
+	);
+
+	MCPU_SOC_mmio mmio(
+		.clkrst_core_clk(clkrst_core_clk),
+		.clkrst_core_rst_n(clkrst_core_rst_n),
+		.data_in(data_a),
+		.addr(addr_a[28:0]),
+		.wren(byteen & {4{addr_a[29] & (mem2dc_valid0 | mem2dc_valid1)}}),
+		.data_out(periph_q),
+		.meminput(meminput),
+		.memoutput(memoutput),
+		.uart_tx(uart_tx),
+		.uart_rx(uart_rx)
+	);
 	
 	MCPU_core core(/*AUTOINST*/
 		       // Outputs
@@ -104,37 +106,40 @@ module TB_MCPU_core(/*AUTOARG*/
 		       .mem2dc_paddr0	(mem2dc_paddr0[29:0]),
 		       .mem2dc_write0	(mem2dc_write0[3:0]),
 		       .mem2dc_valid0	(mem2dc_valid0),
+		       .mem2dc_data_out0(mem2dc_data_out0[31:0]),
 		       .mem2dc_paddr1	(mem2dc_paddr1[29:0]),
 		       .mem2dc_write1	(mem2dc_write1[3:0]),
 		       .mem2dc_valid1	(mem2dc_valid1),
+		       .mem2dc_data_out1(mem2dc_data_out1[31:0]),
 		       .ft2itlb_valid	(ft2itlb_valid),
 		       .ft2itlb_virtpage(ft2itlb_virtpage[19:0]),
 		       .f2ic_paddr	(f2ic_paddr[27:0]),
 		       .f2ic_valid	(f2ic_valid),
-		       // Inouts
-		       .mem2dc_data0	(data_hookup0[31:0]),
-		       .mem2dc_data1	(data_hookup1[31:0]),
+		       .r0		(r0[31:0]),
 		       // Inputs
 		       .clkrst_core_clk	(clkrst_core_clk),
 		       .clkrst_core_rst_n(clkrst_core_rst_n),
 		       .int_pending	(int_pending),
 		       .int_type	(int_type[3:0]),
 		       .mem2dc_done0	(mem2dc_done0),
+		       .mem2dc_data_in0	(mem2dc_data_in0[31:0]),
 		       .mem2dc_done1	(mem2dc_done1),
+		       .mem2dc_data_in1	(mem2dc_data_in1[31:0]),
 		       .ft2itlb_ready	(ft2itlb_ready),
 		       .ft2itlb_physpage(ft2itlb_physpage[19:0]),
 		       .ft2itlb_pagefault(ft2itlb_pagefault),
-		       .ic2f_packet	(ic2f_packet[127:0]),
+		       .ic2d_packet	(ic2d_packet[127:0]),
 		       .ic2f_ready	(ic2f_ready),
-				 .r0(r0), .r31(meminput));
+		       .r31		(r31[31:0]));
 
-	MCPU_CACHE_ic_dummy ic(/*AUTOINST*/
-			       // Outputs
-			       .ic2f_ready	(ic2f_ready),
-			       .ic2f_packet	(ic2f_packet[127:0]),
-			       // Inputs
-			       .f2ic_valid	(f2ic_valid),
-			       .f2ic_paddr	(f2ic_paddr[27:0]));
+//	MCPU_CACHE_ic_dummy ic(/*AUTOINST*/
+//			       // Outputs
+//			       .ic2f_ready	(ic2f_ready),
+//			       .ic2f_packet	(ic2f_packet[127:0]),
+//			       // Inputs
+//			       .f2ic_valid	(f2ic_valid),
+//			       .f2ic_paddr	(f2ic_paddr[27:0]));
+assign ic2f_ready = f2ic_valid;
 
 	MCPU_CACHE_tlb_dummy tlb(/*AUTOINST*/
 				 // Outputs

@@ -11,6 +11,7 @@ RTL_COMMON = \
 	rtl/lib/FIFO.v \
 	rtl/lib/register.v \
 	rtl/lib/reg_2.v \
+	rtl/lib/altsyncram.v \
 	rtl/core/MCPU_core.v \
 	rtl/core/MCPU_CORE_stage_fetch.v \
 	rtl/core/MCPU_CORE_stage_fetchtlb.v \
@@ -22,7 +23,9 @@ RTL_COMMON = \
 	rtl/core/cache/MCPU_CACHE_tlb_dummy.v \
 	rtl/core/MCPU_CORE_coproc.v \
 	rtl/core/MCPU_CORE_exn_encode.v \
-	rtl/core/MCPU_CORE_stage_mem.v
+	rtl/core/MCPU_CORE_stage_mem.v \
+	rtl/soc/uart.v \
+	rtl/soc/MCPU_SOC_mmio.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
