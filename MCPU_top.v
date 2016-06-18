@@ -88,7 +88,8 @@ TB_MCPU_core tb(
 	.memoutput(memoutput),
 	.meminput({22'b0, SW}),
 	.uart_rx(UART_RX),
-	.uart_tx(UART_TX)
+	.uart_tx(UART_TX),
+    .uart_status(LEDR[9:5])
 );
 
 seg seg0(.in(memoutput[3:0]), .out(HEX0));
@@ -96,12 +97,13 @@ seg seg1(.in(memoutput[7:4]), .out(HEX1));
 seg seg2(.in(memoutput[11:8]), .out(HEX2));
 seg seg3(.in(memoutput[15:12]), .out(HEX3));
 assign LEDG = memoutput[23:16];
-assign LEDR[7:0] = memoutput[31:24];
-
+assign LEDR[4:0] = memoutput[28:24];
+/*
 reg [23:0] ctr;
 always @(posedge CLOCK_50_B5B, negedge CPU_RESET_n) begin
 	if(~CPU_RESET_n) ctr <= 0;
 	else ctr <= ctr + 16'b1;
 end
 assign LEDR[9:8] = ctr[23:22];
+*/
 endmodule

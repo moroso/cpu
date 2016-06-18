@@ -151,7 +151,8 @@ module uart(
             input             write_en,
             input [31:0]      write_val,
             input             addr,
-            output reg [31:0] read_val
+            output reg [31:0] read_val,
+            output [4:0]      uart_status
             );
 
    parameter CLOCK_HZ = 50000000;
@@ -176,6 +177,8 @@ module uart(
    wire            tx_complete;
    reg             rx_en = 0;
 
+   assign uart_status = {rx_err, rxc, rx_en, ~tx_queue_full, txc};
+   
    always @(posedge clk) begin
       if (addr)
         read_val <= {rx_err, rxc, rx_en, ~tx_queue_full, txc};

@@ -1,6 +1,6 @@
 module TB_MCPU_core(/*AUTOARG*/
    // Outputs
-   uart_tx, memoutput,
+   uart_tx, memoutput, uart_status,
    // Inputs
    r31, clkrst_core_rst_n, clkrst_core_clk, uart_rx, meminput
    );
@@ -12,6 +12,7 @@ module TB_MCPU_core(/*AUTOARG*/
 	// End of automatics
 	input uart_rx;
 	output uart_tx;
+    output [4:0] uart_status;
 	
 	/*AUTOWIRE*/
 	// Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -28,7 +29,7 @@ module TB_MCPU_core(/*AUTOARG*/
 	wire ic2f_ready;		// To core of MCPU_core.v
 	
 	wire mem2dc_valid0, mem2dc_valid1;
-	reg mem2dc_done0, mem2dc_done1;
+	wire mem2dc_done0, mem2dc_done1;
 	wire [31:0] mem2dc_data_out0, mem2dc_data_out1;
 	wire [31:0] mem2dc_data_in0, mem2dc_data_in1;
 	wire [29:0] mem2dc_paddr0, mem2dc_paddr1;
@@ -47,13 +48,20 @@ module TB_MCPU_core(/*AUTOARG*/
 	wire [31:0] data_a;
 	wire [31:0] q_a;
 	wire [31:0] periph_q;
+	reg [31:0] prev_addr0, prev_addr1;
+	reg prev_valid0, prev_valid1;
 
 	assign write0 = |mem2dc_write0 & mem2dc_valid0;
 	assign write1 = |mem2dc_write1 & mem2dc_valid1;
 	always @(posedge clkrst_core_clk) begin
-		mem2dc_done0 <= mem2dc_valid0;
-		mem2dc_done1 <= mem2dc_valid1 & ~mem2dc_valid0;
+		prev_addr0 <= mem2dc_paddr0;
+		prev_addr1 <= mem2dc_paddr1;
+		prev_valid0 <= mem2dc_valid0;
+		prev_valid1 <= mem2dc_valid1 & ~mem2dc_valid0;
 	end
+	assign mem2dc_done0 = prev_valid0 & (prev_addr0 == mem2dc_paddr0);
+	assign mem2dc_done1 = prev_valid1 & (prev_addr1 == mem2dc_paddr1);
+
 	assign addr_a = mem2dc_valid0 ? mem2dc_paddr0 : mem2dc_paddr1;
 	assign data_a = mem2dc_valid0 ? mem2dc_data_out0 : mem2dc_data_out1;
 	assign byteen = mem2dc_valid0 ? mem2dc_write0 : mem2dc_write1;
@@ -97,7 +105,8 @@ module TB_MCPU_core(/*AUTOARG*/
 		.meminput(meminput),
 		.memoutput(memoutput),
 		.uart_tx(uart_tx),
-		.uart_rx(uart_rx)
+		.uart_rx(uart_rx),
+        .uart_status(uart_status)
 	);
 	
 	MCPU_core core(/*AUTOINST*/

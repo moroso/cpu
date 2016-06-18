@@ -28,18 +28,21 @@ module altsyncram(/*AUTOARG*/
   input clock0, clock1;
   input clocken0, clocken1;
 
-  output reg [31:0] q_a;
+  output reg [31:0] q_a = 0;
   output reg [127:0] q_b;
 
   reg [WIDTH_A-1:0] ram[1<<WIDTHAD_A-1:0];
 
   initial $readmemh("bootrom.hex", ram);
-  wire writemask0;
+  wire [31:0] writemask0;
   assign writemask0 = {{8{byteena_a[3]}},{8{byteena_a[2]}},{8{byteena_a[1]}},{8{byteena_a[0]}}};
   always @(posedge clock0) begin
     if(clocken0) begin
       q_a <= ram[address_a];
-      if(wren_a) ram[address_a] <= (data_a & writemask0) | (ram[address_a] & ~writemask0);
+      if(wren_a) begin
+        ram[address_a] <= (data_a & writemask0) | (ram[address_a] & ~writemask0);
+        $display("Wrote %x to %x - data_a = %x, writemask0 = %x", (data_a & writemask0) | (ram[address_a] & ~writemask0), address_a, data_a, writemask0);
+      end
     end
   end
 

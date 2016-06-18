@@ -1,0 +1,43 @@
+static led_base: *u32 = 0x80000000 as *u32;
+static uart_data: *u32 = 0x80001000 as *u32;
+static uart_ctl: *u32 = 0x80001004 as *u32;
+
+fn send_char(b: u8) {
+	while(*uart_ctl & 0x2 == 0) {}
+	*led_base = 0xDEADBEEF;
+	*uart_data = b as u32;
+}
+
+fn recv_char() -> u8 {
+	let ctrl: u8 = *uart_ctl as u8;
+	if((ctrl & 0x8) == 0 ) {
+		return 0xFF;
+	}
+	let c: u8 = *uart_data as u8;
+	*led_base = c as u32;
+	*uart_ctl = 4;
+	c
+}
+
+fn main() -> u32 {
+	*uart_ctl = 4;
+	let buf: u8[128];
+	let ctr: u32 = 0;
+	while(true) {
+		let c = recv_char();
+		if(c == (0xFF)){
+			continue;
+		}
+		send_char(c);
+		buf[ctr] = c;
+		ctr = ctr + 1;
+		if(c == '\n'){
+			buf[ctr] = 0;
+			let i:u32;
+			for(i = 0; buf[i] != 0; i = i + 1){
+				send_char(buf[i]);
+			}
+		}
+	}
+	0
+}

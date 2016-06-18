@@ -250,7 +250,7 @@ module MCPU_core(/*AUTOARG*/
 
   //unimplemented control inputs
 
-  assign pipe_flush = pc_valid & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
+  assign pipe_flush = pc_valid & (pc_out_progress | exception) & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
 
 
 
