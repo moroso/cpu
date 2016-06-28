@@ -180,7 +180,7 @@ boost::optional<uint32_t> video::read(cpu_t &cpu, uint32_t addr, uint8_t width) 
 
 bool serial_port::check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) {
     // TODO: improve this.
-    return addr >= SERIAL_BASE && addr <= SERIAL_BASE + SERIAL_CONTROL;
+    return addr >= SERIAL_BASE && addr <= SERIAL_BASE + SERIAL_STATUS;
 }
 
 bool serial_port::process(cpu_t &cpu) {
@@ -190,17 +190,16 @@ bool serial_port::process(cpu_t &cpu) {
             printf("%c", tx_shift);
             counter = 0;
             // Is there another character waiting in the buffer?
-            if (!(control & (1 << SERIAL_CONTROL_TXE))) {
+            if (!(status & (1 << SERIAL_STATUS_TXE))) {
                 tx_shift = tx_buf;
             } else {
                 state = SERIAL_IDLE;
             }
-            control |= (1 << SERIAL_CONTROL_TXC) | (1 << SERIAL_CONTROL_TXE);
+            status |= (1 << SERIAL_STATUS_TXC) | (1 << SERIAL_STATUS_TXE);
         }
     }
 
-    if (((control & (1 << SERIAL_CONTROL_TXC)) && (control & (1 << SERIAL_CONTROL_TXCI)))
-        || ((control & (1 << SERIAL_CONTROL_TXE)) && (control & (1 << SERIAL_CONTROL_TXEI)))) {
+    if ((status & control) != 0) {
         return fire_interrupt(cpu, INT_SERIAL);
     }
 
@@ -218,9 +217,9 @@ bool serial_port::write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) 
             state = SERIAL_TRANSMITTING;
             counter = 0;
             tx_shift = tx_buf;
-            control |= (1 << SERIAL_CONTROL_TXE);
+            status |= (1 << SERIAL_STATUS_TXE);
         } else {
-            control &= ~(1 << SERIAL_CONTROL_TXE);
+            status &= ~(1 << SERIAL_STATUS_TXE);
         }
         return true;
     } else if (addr == SERIAL_BASE + SERIAL_BAUD) {
@@ -228,6 +227,10 @@ bool serial_port::write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) 
         return true;
     } else if (addr == SERIAL_BASE + SERIAL_CONTROL) {
         control = val;
+        return true;
+    } else if (addr == SERIAL_BASE + SERIAL_CONTROL) {
+        // Clear the bits that were set in the write
+        status &= ~val;
         return true;
     }
 
@@ -241,6 +244,8 @@ boost::optional<uint32_t> serial_port::read(cpu_t &cpu, uint32_t addr, uint8_t w
         return baud;
     } else if (addr == SERIAL_BASE + SERIAL_CONTROL) {
         return control;
+    } else if (addr == SERIAL_BASE + SERIAL_STATUS) {
+        return status;
     }
 
     return boost::none;

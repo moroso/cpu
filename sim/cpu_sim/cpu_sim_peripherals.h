@@ -54,17 +54,19 @@ private:
 #define SERIAL_BAUD 0
 #define SERIAL_DATA 4
 #define SERIAL_CONTROL 8
-#define SERIAL_CONTROL_TXC 0
-#define SERIAL_CONTROL_TXCI 1
-#define SERIAL_CONTROL_TXE 2
-#define SERIAL_CONTROL_TXEI 3
-#define SERIAL_CONTROL_RXC 4
-#define SERIAL_CONTROL_RXCI 5
+#define SERIAL_STATUS 12
+
+#define SERIAL_CONTROL_TXCI 0
+#define SERIAL_CONTROL_TXEI 1
+#define SERIAL_CONTROL_RXCI 2
+#define SERIAL_STATUS_TXC 0
+#define SERIAL_STATUS_TXE 1
+#define SERIAL_STATUS_RXC 2
 
 // Serial port implementation. Just supports tx for now.
 class serial_port : public peripheral {
 public:
-    serial_port() : counter(0), tx_buf(0), tx_shift(0), state(SERIAL_IDLE), baud(0), control(0x4) {}
+	serial_port() : counter(0), tx_buf(0), tx_shift(0), state(SERIAL_IDLE), baud(0), control(0), status(1 << SERIAL_STATUS_TXE) {}
     bool process(cpu_t &cpu);
     bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
     bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
@@ -81,6 +83,7 @@ private:
 
     uint32_t baud;
     uint32_t control;
+    uint32_t status;
 };
 
 
