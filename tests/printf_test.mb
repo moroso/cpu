@@ -1,0 +1,25 @@
+const led_base: *u32 = 0x80000000 as *u32;
+const uart_data: *u32 = 0x80001000 as *u32;
+const uart_ctl: *u32 = 0x80001004 as *u32;
+static str_array: (*u8)[3] = ["first", "second", "third"];
+
+fn send_char(b: u32) {
+	while(*uart_ctl & 0x2 == 0) {}
+	*uart_data = b;
+}
+
+macro __serial_vprintf_out!(c) { n += 1; send_char($c as u32) }
+fn serial_vprintf(fmt: *u8, args: **()) -> i32 {
+    let n = 0;
+    do_printf!(fmt, args, __serial_vprintf_out!);
+    n
+}
+macro serial_printf!(fmt) { call_printf!(serial_vprintf, varargs!(...), $fmt) }
+
+fn main() -> u32 {
+	let pos = (*led_base % 3);
+	serial_printf!("Hello! You have selected the %s switch position (%d).\r\n", str_array[pos], pos);
+	*led_base = 0xDEADBEEF;
+	while(true){}
+	0
+}
