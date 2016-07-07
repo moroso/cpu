@@ -41,8 +41,10 @@ module altsyncram(/*AUTOARG*/
       q_a <= ram[address_a];
       if(wren_a) begin
         ram[address_a] <= (data_a & writemask0) | (ram[address_a] & ~writemask0);
-        $display("Wrote %x to %x - data_a = %x, writemask0 = %x", (data_a & writemask0) | (ram[address_a] & ~writemask0), address_a, data_a, writemask0);
+        //$display("Wrote %x to %x - data_a = %x, writemask0 = %x", (data_a & writemask0) | (ram[address_a] & ~writemask0), {address_a, 2'b0}, data_a, writemask0);
       end
+      //else
+        //$display("Read %x at %x", q_a, {address_a, 2'b0});
     end
   end
 

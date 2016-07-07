@@ -12,10 +12,10 @@ initial begin
 end
 
 initial begin
-  for (i = 0; i < 200; i = i + 1) begin
+  for (i = 0; i < 20000; i = i + 1) begin
     #5 CLOCK_125_p = ~CLOCK_125_p;
     #5 CLOCK_125_p = ~CLOCK_125_p;
-    $display("clk %d, reset %d, memoutput %x", i, CPU_RESET_n, memoutput);
+    //$display("clk %d, reset %d, memoutput %x", i, CPU_RESET_n, memoutput);
   end
 end
 

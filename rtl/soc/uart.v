@@ -194,6 +194,7 @@ module uart(
            rxc <= write_val[3];
            rx_err <= write_val[4];
         end else begin // Data register
+           $display("UART write %x (%c)", write_val, write_val);
            tx_queue <= write_val[7:0];
            tx_queue_full <= 1;
         end

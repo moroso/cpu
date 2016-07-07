@@ -4,7 +4,7 @@ module MCPU_core(/*AUTOARG*/
    int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
    mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
    mem2dc_data_out1, ft2itlb_valid, ft2itlb_virtpage, f2ic_paddr,
-   f2ic_valid, r0,
+   f2ic_valid, r0, dispatch,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
@@ -35,6 +35,7 @@ module MCPU_core(/*AUTOARG*/
   input mem2dc_done1;
   input [31:0] mem2dc_data_in1;
   output [31:0] mem2dc_data_out1;
+  output dispatch;
 
   /* ITLB interface */
   output ft2itlb_valid;
@@ -246,6 +247,14 @@ module MCPU_core(/*AUTOARG*/
   assign pc2wb_readyin0 = ~mem2wb_progress0;
   assign pc2wb_readyin1 = ~mem2wb_progress1;
 
+  // Debugging: Print out every virtpc we send past the commit point, and output a status
+  // signal so the testbench can count instructions dispatched
+  assign dispatch = pc_out_progress & pc_valid;
+  /*
+  always @(posedge clkrst_core_clk) begin
+    if(dispatch) $display("Committing instruction %x", d2pc_in_virtpc);
+  end
+  */
 
 
   //unimplemented control inputs

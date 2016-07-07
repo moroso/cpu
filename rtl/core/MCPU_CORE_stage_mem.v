@@ -32,7 +32,7 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	output wire mem2dc_valid;
 	input mem2dc_done;
 	input [31:0] mem2dc_data_in;
-	output [31:0] mem2dc_data_out;
+	output reg [31:0] mem2dc_data_out;
 
 
 	reg mem_alreadydone;
@@ -41,11 +41,24 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 	assign mem2wb_readyout = mem2dc_valid & mem2dc_done;
 
 	//Compute mask of bytes within the word to write. If this is a read, pass 0.
-	always @(/*AUTOSENSE*/pc2mem_in_paddr or pc2mem_in_type) begin
-		if(~pc2mem_in_type[2]) mem2dc_write = 0;
-		else if(pc2mem_in_type[1]) mem2dc_write = 4'b1111;
-		else if(pc2mem_in_type[0]) mem2dc_write = 4'b0011 << (pc2mem_in_paddr[1:0] & 2'b10);
-		else mem2dc_write = 4'b0001 << pc2mem_in_paddr[1:0];
+	always @(/*AUTOSENSE*/pc2mem_in_data or pc2mem_in_paddr
+		 or pc2mem_in_type) begin
+		if(~pc2mem_in_type[2]) begin
+			mem2dc_write = 0;
+			mem2dc_data_out = 32'bx;
+		end
+		else if(pc2mem_in_type[1]) begin 
+			mem2dc_write = 4'b1111;
+			mem2dc_data_out = pc2mem_in_data;
+		end
+		else if(pc2mem_in_type[0]) begin
+			mem2dc_write = 4'b0011 << (pc2mem_in_paddr[1:0] & 2'b10);
+			mem2dc_data_out = pc2mem_in_data << (pc2mem_in_paddr[1] * 16);
+		end
+		else begin
+			mem2dc_write = 4'b0001 << pc2mem_in_paddr[1:0];
+			mem2dc_data_out = pc2mem_in_data << (pc2mem_in_paddr[1:0] * 8);
+		end
 	end
 
 	assign mem2dc_paddr = pc2mem_in_paddr[31:2];
@@ -57,9 +70,6 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 		else mem_alreadydone <= mem_valid & (mem2dc_done | mem_alreadydone) & ~pc2mem_progress;
 	end
 
-	//Send the input data on the bus if we're doing a write, or read from it if it's a read
-	//I think this is how inout ports work? >.>
-	assign mem2dc_data_out = pc2mem_in_data;
 	
 	//Take the part of the word that we wanted to read and put it in the low bits of the output
 	always @(/*AUTOSENSE*/mem2dc_data_in or pc2mem_in_paddr

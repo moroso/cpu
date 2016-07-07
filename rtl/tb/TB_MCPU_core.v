@@ -1,6 +1,6 @@
 module TB_MCPU_core(/*AUTOARG*/
    // Outputs
-   uart_tx, memoutput, uart_status,
+   uart_tx, uart_status, memoutput,
    // Inputs
    r31, clkrst_core_rst_n, clkrst_core_clk, uart_rx, meminput
    );
@@ -27,7 +27,7 @@ module TB_MCPU_core(/*AUTOARG*/
 	input [31:0] meminput;
 	output [31:0] memoutput;
 	wire ic2f_ready;		// To core of MCPU_core.v
-	
+	wire dispatch;
 	wire mem2dc_valid0, mem2dc_valid1;
 	wire mem2dc_done0, mem2dc_done1;
 	wire [31:0] mem2dc_data_out0, mem2dc_data_out1;
@@ -69,6 +69,11 @@ module TB_MCPU_core(/*AUTOARG*/
 	assign mem2dc_data_in0 = mem2dc_paddr0[29] ? periph_q : q_a;
 	assign mem2dc_data_in1 = mem2dc_paddr1[29] ? periph_q : q_a;
 	
+    reg [22:0] ctr;
+    always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n)
+        if(~clkrst_core_rst_n) ctr <= 0;
+        else if(dispatch) ctr <= ctr + 1;
+    assign uart_status[4] = ctr[22];
 
 	altsyncram #(
 		.OPERATION_MODE("BIDIR_DUAL_PORT"),
@@ -106,7 +111,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		.memoutput(memoutput),
 		.uart_tx(uart_tx),
 		.uart_rx(uart_rx),
-        .uart_status(uart_status)
+        .uart_status(uart_status[3:0])
 	);
 	
 	MCPU_core core(/*AUTOINST*/
@@ -125,6 +130,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		       .f2ic_paddr	(f2ic_paddr[27:0]),
 		       .f2ic_valid	(f2ic_valid),
 		       .r0		(r0[31:0]),
+               .dispatch(dispatch),
 		       // Inputs
 		       .clkrst_core_clk	(clkrst_core_clk),
 		       .clkrst_core_rst_n(clkrst_core_rst_n),
