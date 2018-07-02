@@ -2,13 +2,7 @@
 
 #include "Stim_MCPU_MEM.h"
 #include "Sim.h"
-
-#define LTC_OPC_READ         0x0
-#define LTC_OPC_WRITE        0x1
-#define LTC_OPC_READTHROUGH  0x2
-#define LTC_OPC_WRITETHROUGH 0x3
-#define LTC_OPC_PREFETCH     0x4
-#define LTC_OPC_CLEAN        0x6
+#include "mem_common.h"
 
 void Stim_MCPU_MEM::read(uint32_t addr, int through) {
 	Stim_MCPU_MEM::Command cmd;
