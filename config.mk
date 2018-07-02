@@ -8,6 +8,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_LTC_bram.sv \
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_preload.v \
+	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/lib/FIFO.v \
 	rtl/lib/register.v \
 	rtl/lib/reg_2.v \
@@ -31,7 +32,7 @@ RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
 	rtl/mc/lpddr2_phy.v \
 	rtl/mc/MCPU_mc.v
-	
+
 RTL_SIM = \
 	rtl/tb/TB_MCPU_MEM_arb.v \
 	rtl/tb/TB_MCPU_MEM_preload.v \
@@ -150,3 +151,14 @@ TB_core_sys_top = TB_MCPU_core
 TB_core_sys_cpps = core_sys.cpp Sim.cpp
 ALL_TBS += core_sys
 
+# Pagetable walker tests
+
+TB_pt_walk_top = MCPU_MEM_pt_walk
+TB_pt_walk_cpps = walk.cpp Sim.cpp Cmod_MCPU_MEM_arb.cpp
+ALL_TBS += pt_walk
+
+TEST_pt_walk_basic_tb  = pt_walk
+TEST_pt_walk_basic_env =
+
+TESTPLAN_L0_tests += pt_walk_basic
+ALL_TESTS += pt_walk_basic
