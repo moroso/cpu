@@ -39,7 +39,7 @@ public:
   }
 
   void set_base(uint32_t base) {
-    tb->pagedir_base = base >> 12;
+    tb->tlb2ptw_pagedir_base = base >> 12;
   }
 
   void do_lookup(uint32_t addr);
@@ -58,14 +58,14 @@ WalkTest::WalkTest(VMCPU_MEM_pt_walk *tb)
   arb = new Cmod_MCPU_MEM_arb;
   arb_ports = new Cmod_MCPU_MEM_arb_ports;
 
-  Cmod_MCPU_MEM_arb_CONNECT(arb_ports, tb);
+  Cmod_MCPU_MEM_arb_CONNECT(arb_ports, tb, ptw);
 
   arb->add_client(arb_ports);
 
-  tb->clk = 0;
-  tb->addr = 0;
-  tb->re = 0;
-  tb->pagedir_base = 0;
+  tb->tlb2ptw_clk = 0;
+  tb->tlb2ptw_addr = 0;
+  tb->tlb2ptw_re = 0;
+  tb->tlb2ptw_pagedir_base = 0;
   tb->eval();
   arb->clk();
   tb->eval();
@@ -81,10 +81,10 @@ WalkTest::~WalkTest() {
 }
 
 void WalkTest::do_lookup(uint32_t addr) {
-  tb->clk = 1;
+  tb->tlb2ptw_clk = 1;
   tb->eval();
-  tb->re = 1;
-  tb->addr = addr;
+  tb->tlb2ptw_re = 1;
+  tb->tlb2ptw_addr = addr;
   tb->eval();
   arb->clk();
   tb->eval();
@@ -92,18 +92,18 @@ void WalkTest::do_lookup(uint32_t addr) {
   TRACE;
 
   while(1) {
-    tb->clk = 0;
+    tb->tlb2ptw_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 1;
+    tb->tlb2ptw_clk = 1;
     tb->eval();
-    tb->re = 0;
+    tb->tlb2ptw_re = 0;
     arb->clk();
     tb->eval();
 
-    if (tb->ready) { break; }
+    if (tb->tlb2ptw_ready) { break; }
     Sim::tick();
     TRACE;
   }
@@ -129,17 +129,17 @@ void WalkTest::set_tab_entry(uint32_t pagetab_base, uint32_t addr, uint32_t page
 
 void WalkTest::verify(uint32_t virt, uint32_t phys, uint8_t pd_flags, uint8_t pt_flags) {
   do_lookup(virt);
-  uint32_t actual_phys = tb->phys_addr;
-  if (!tb->present) {
+  uint32_t actual_phys = tb->tlb2ptw_phys_addr;
+  if (!tb->tlb2ptw_present) {
     SIM_FATAL("Address 0x%x is not present", virt);
   }
-  if (tb->pagedir_flags != pd_flags) {
+  if (tb->tlb2ptw_pagedir_flags != pd_flags) {
     SIM_FATAL("0x%x has pagedir flags 0x%x (expected 0x%x)",
-              virt, tb->pagedir_flags, pd_flags);
+              virt, tb->tlb2ptw_pagedir_flags, pd_flags);
   }
-  if (tb->pagetab_flags != pt_flags) {
+  if (tb->tlb2ptw_pagetab_flags != pt_flags) {
     SIM_FATAL("0x%x has pagetab flags 0x%x (expected 0x%x)",
-              virt, tb->pagetab_flags, pt_flags);
+              virt, tb->tlb2ptw_pagetab_flags, pt_flags);
   }
   if (actual_phys != phys) {
     SIM_FATAL("0x%x translates to 0x%x (expected 0x%x)",
@@ -149,7 +149,7 @@ void WalkTest::verify(uint32_t virt, uint32_t phys, uint8_t pd_flags, uint8_t pt
 
 void WalkTest::verify_absent(uint32_t virt) {
   do_lookup(virt);
-  if (tb->present) {
+  if (tb->tlb2ptw_present) {
     SIM_FATAL("Expected 0x%x to be missing, but it is present");
   }
 }
@@ -206,12 +206,12 @@ int main(int argc, char **argv, char **env) {
   // Let a few clock cycles go by before we exit (it's nicer
   // when we're looking at the .vcd file)
   for (int i = 0; i < 16; i++) {
-    tb->clk = 0;
+    tb->tlb2ptw_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 1;
+    tb->tlb2ptw_clk = 1;
     tb->eval();
     Sim::tick();
     TRACE;

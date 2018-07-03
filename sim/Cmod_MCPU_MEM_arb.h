@@ -20,17 +20,17 @@ struct Cmod_MCPU_MEM_arb_ports {
   CData *arb_rvalid; // [0:0]
 };
 
-#define Cmod_MCPU_MEM_arb_CONNECT(str, cla) \
+#define Cmod_MCPU_MEM_arb_CONNECT(str, cla, prefix) \
 	do { \
-		(str)->arb_valid = &((cla)->arb_valid); \
-		(str)->arb_opcode = &((cla)->arb_opcode); \
-		(str)->arb_addr = &((cla)->arb_addr); \
-		(str)->arb_wdata = ((cla)->arb_wdata); \
-		(str)->arb_wbe = &((cla)->arb_wbe); \
+		(str)->arb_valid = &((cla)->prefix##2arb_valid); \
+		(str)->arb_opcode = &((cla)->prefix##2arb_opcode); \
+		(str)->arb_addr = &((cla)->prefix##2arb_addr); \
+		(str)->arb_wdata = ((cla)->prefix##2arb_wdata); \
+		(str)->arb_wbe = &((cla)->prefix##2arb_wbe); \
 		\
-		(str)->arb_stall = &((cla)->arb_stall); \
-		(str)->arb_rdata = ((cla)->arb_rdata); \
-		(str)->arb_rvalid = &((cla)->arb_rvalid); \
+		(str)->arb_stall = &((cla)->prefix##2arb_stall); \
+		(str)->arb_rdata = ((cla)->prefix##2arb_rdata); \
+		(str)->arb_rvalid = &((cla)->prefix##2arb_rvalid); \
 	} while(0)
 
 class Cmod_MCPU_MEM_arb {
