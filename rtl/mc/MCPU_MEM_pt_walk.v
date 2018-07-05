@@ -1,34 +1,34 @@
 `timescale 1 ns / 1 ps
 
 module MCPU_MEM_pt_walk(
-                      input             tlb2ptw_clk,
+                      input              tlb2ptw_clk,
 
                       // Control interface
-                      input [31:0]      tlb2ptw_addr,
-                      input             tlb2ptw_re,
+                      input [31:12]      tlb2ptw_addr,
+                      input              tlb2ptw_re,
                       // 20 bits, since page directories are aligned to pages.
-                      input [19:0]      tlb2ptw_pagedir_base,
+                      input [19:0]       tlb2ptw_pagedir_base,
 
-                      output reg [31:0] tlb2ptw_phys_addr,
-                      output            tlb2ptw_ready,
-                      output reg        tlb2ptw_present = 0,
-                      output reg [3:0]  tlb2ptw_pagetab_flags = 0,
-                      output reg [3:0]  tlb2ptw_pagedir_flags = 0,
+                      output reg [31:12] tlb2ptw_phys_addr,
+                      output             tlb2ptw_ready,
+                      output reg         tlb2ptw_present = 0,
+                      output reg [3:0]   tlb2ptw_pagetab_flags = 0,
+                      output reg [3:0]   tlb2ptw_pagedir_flags = 0,
 
 
 
                       // Atom interface to arb
-                      output reg        ptw2arb_valid,
-                      output [2:0]      ptw2arb_opcode,
-                      output reg [31:5] ptw2arb_addr,
+                      output reg         ptw2arb_valid,
+                      output [2:0]       ptw2arb_opcode,
+                      output reg [31:5]  ptw2arb_addr,
 
                       // TODO: remove this two; we don't need them.
-                      output [255:0]    ptw2arb_wdata,
-                      output [31:0]     ptw2arb_wbe,
+                      output [255:0]     ptw2arb_wdata,
+                      output [31:0]      ptw2arb_wbe,
 
-                      input [255:0]     ptw2arb_rdata,
-                      input             ptw2arb_rvalid,
-                      input             ptw2arb_stall
+                      input [255:0]      ptw2arb_rdata,
+                      input              ptw2arb_rvalid,
+                      input              ptw2arb_stall
                       );
 
 
@@ -139,7 +139,7 @@ module MCPU_MEM_pt_walk(
       end else if (state == ST_READ_TAB && next_state == ST_IDLE) begin
          if (arb_rdata_pt_present) begin
             tlb2ptw_present = 1;
-            tlb2ptw_phys_addr = {{arb_rdata_pt_addr}, {tlb2ptw_addr[11:0]}};
+            tlb2ptw_phys_addr = arb_rdata_pt_addr;
             tlb2ptw_pagetab_flags = arb_rdata_pt_flags;
          end else begin
             tlb2ptw_present = 0;
