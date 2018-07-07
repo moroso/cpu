@@ -1,5 +1,5 @@
 #ifndef _CMOD_MCPU_MEM_arb_H
-#define _CMOD_MCPU_MEM_arh_H
+#define _CMOD_MCPU_MEM_arb_H
 
 #include <vector>
 #include "verilated.h"
