@@ -10,6 +10,11 @@ VerilatedVcdC* tfp;
 #include "Cmod_MCPU_MEM_arb.h"
 #include "VMCPU_MEM_pt_walk.h"
 
+// (Loose) upper bound on cycle count any operation should take.
+#define DEADLINE 128
+// Mask for the present bit among the flags for an entry.
+#define BIT_PRESENT 1
+
 #if VM_TRACE
   #define TRACE tfp->dump(Sim::main_time)
 #else
@@ -81,6 +86,8 @@ WalkTest::~WalkTest() {
 }
 
 void WalkTest::do_lookup(uint32_t addr) {
+  int cycles = 0;
+
   tb->tlb2ptw_clk = 1;
   tb->eval();
   tb->tlb2ptw_re = 1;
@@ -91,7 +98,7 @@ void WalkTest::do_lookup(uint32_t addr) {
   Sim::tick();
   TRACE;
 
-  while(1) {
+  while (cycles++ < DEADLINE) {
     tb->tlb2ptw_clk = 0;
     tb->eval();
     Sim::tick();
@@ -103,10 +110,13 @@ void WalkTest::do_lookup(uint32_t addr) {
     arb->clk();
     tb->eval();
 
-    if (tb->tlb2ptw_ready) { break; }
+    if (tb->tlb2ptw_ready) { return; }
     Sim::tick();
     TRACE;
   }
+
+  // If we get here, we hit the deadline.
+  SIM_FATAL("Hit deadline when looking up 0x%x", addr);
 }
 
 void WalkTest::set_dir_entry(uint32_t pagedir_base, uint32_t addr, uint32_t page,
@@ -130,7 +140,8 @@ void WalkTest::set_tab_entry(uint32_t pagetab_base, uint32_t addr, uint32_t page
 void WalkTest::verify(uint32_t virt, uint32_t phys, uint8_t pd_flags, uint8_t pt_flags) {
   do_lookup(virt);
   uint32_t actual_phys = tb->tlb2ptw_phys_addr;
-  if (!tb->tlb2ptw_present) {
+  if (!((tb->tlb2ptw_pagetab_flags & BIT_PRESENT) &&
+        (tb->tlb2ptw_pagedir_flags & BIT_PRESENT))) {
     SIM_FATAL("Address 0x%x is not present", virt);
   }
   if (tb->tlb2ptw_pagedir_flags != pd_flags) {
@@ -149,7 +160,8 @@ void WalkTest::verify(uint32_t virt, uint32_t phys, uint8_t pd_flags, uint8_t pt
 
 void WalkTest::verify_absent(uint32_t virt) {
   do_lookup(virt);
-  if (tb->tlb2ptw_present) {
+  if ((tb->tlb2ptw_pagetab_flags & BIT_PRESENT) &&
+      (tb->tlb2ptw_pagedir_flags & BIT_PRESENT)) {
     SIM_FATAL("Expected 0x%x to be missing, but it is present");
   }
 }
