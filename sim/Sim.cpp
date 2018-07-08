@@ -30,9 +30,9 @@ void Sim::init(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 
 	log_level = (Level)param_u64("SIM_LOG_LEVEL", Info);
-	
+
 	max_assertions_failed = param_u64("SIM_MAX_ASSERTIONS", 10);
-	
+
 	srandom(param_u64("SIM_RANDOM_SEED", time(NULL)));
 }
 
@@ -56,9 +56,14 @@ uint64_t Sim::param_u64(const char *name, uint64_t dfl) {
 	const char *r;
 	
 	r = getenv(name);
-	if (!r)
+	if (r) {
+		uint64_t converted_val = strtoull(r, NULL, 0);
+		SIM_INFO("parameter \"%s\" specified as \"%lu\"", name, converted_val);
+		return converted_val;
+	} else {
 		SIM_INFO("parameter \"%s\" not found, defaulting to \"%lu\"", name, dfl);
-	return r ? strtoull(r, NULL, 0) : dfl;
+		return dfl;
+	}
 }
 
 uint64_t Sim::random(uint64_t range) {
