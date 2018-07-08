@@ -3,7 +3,11 @@
 #include "mem_common.h"
 
 #define DATA_BYTES 32
-#define DELAY_CYCLES 16
+// Requests will be delayed by anywhere from
+// DELAY_CYCLES_BASE to DELAY_CYCLES_BASE + DELAY_CYCLES_RAND
+// cycles.
+#define DELAY_CYCLES_BASE 16
+#define DELAY_CYCLES_RAND 16
 
 Cmod_MCPU_MEM_arb::Cmod_MCPU_MEM_arb() :
   current_client(0),
@@ -81,7 +85,7 @@ void Cmod_MCPU_MEM_arb::clk() {
         // Found one! Mark it as in-progress.
         current_client = candidate;
 
-        remaining_cycles = DELAY_CYCLES;
+        remaining_cycles = DELAY_CYCLES_BASE + Sim::random(DELAY_CYCLES_RAND);
         active = true;
 
         break;
@@ -118,16 +122,3 @@ uint32_t Cmod_MCPU_MEM_arb::read(uint32_t addr) {
     memory[addr+2] << 16 |
     memory[addr+3] << 24;
 }
-
-/*
-int main() {
-  Cmod_MCPU_MEM_arb *arbtest = new Cmod_MCPU_MEM_arb();
-
-  arbtest->write_w(8, 0xdeadbeef);
-  printf("0x%08x\n", arbtest->read(8));
-  arbtest->write_b(8, 0x11);
-  printf("0x%08x\n", arbtest->read(8));
-  arbtest->write_h(8, 0x2222);
-  printf("0x%08x\n", arbtest->read(8));
-}
-*/
