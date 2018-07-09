@@ -83,7 +83,7 @@ module MCPU_MEM_pt_walk(
    reg                    latch_pt;
 
    always @(*) begin
-      next_ptw2arb_addr = 27'hxxxxxxxx;
+      next_ptw2arb_addr = 27'hxxxxxxx;
       next_ptw2arb_valid = 0;
       next_state = state;
       latch_pd = 0;
