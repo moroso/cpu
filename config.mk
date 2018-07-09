@@ -7,12 +7,14 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_LTC_bram.sv \
 	rtl/mc/MCPU_MEM_arb.v \
+	rtl/mc/MCPU_MEM_dtlb.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/lib/FIFO.v \
 	rtl/lib/register.v \
 	rtl/lib/reg_2.v \
 	rtl/lib/altsyncram.v \
+	rtl/lib/dp_bram.v \
 	rtl/core/MCPU_core.v \
 	rtl/core/MCPU_CORE_stage_fetch.v \
 	rtl/core/MCPU_CORE_stage_fetchtlb.v \
@@ -42,6 +44,7 @@ RTL_SIM = \
 RTL_INC = \
 	$(wildcard rtl/mc/lpddr2_phy/*.hex) \
 	rtl/mc/MCPU_MEM_ltc.vh \
+	rtl/mc/MCPU_MEM_pt.vh \
 	rtl/lib/clog2.vh \
 	rtl/core/oper_type.vh \
 	rtl/core/exn_codes.vh
@@ -162,3 +165,15 @@ TEST_pt_walk_basic_env =
 
 TESTPLAN_L0_tests += pt_walk_basic
 ALL_TESTS += pt_walk_basic
+
+# TLB tests
+
+TB_dtlb_top = MCPU_MEM_dtlb
+TB_dtlb_cpps = dtlb.cpp Sim.cpp Cmod_MCPU_MEM_walk.cpp
+ALL_TBS += dtlb
+
+TEST_dtlb_basic_tb  = dtlb
+TEST_dtlb_basic_env =
+
+TESTPLAN_L0_tests += dtlb_basic
+ALL_TESTS += dtlb_basic
