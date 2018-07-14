@@ -12,7 +12,7 @@ module MCPU_MEM_dtlb(
                      input              dtlb_re_b,
                      // 20 bits, since page directories are aligned to pages.
                      // Base address is common to both ports.
-                     input [19:0]       dtlb2ptw_pagedir_base,
+                     input [19:0]       dtlb_pagedir_base,
 
                      output [31:12]     dtlb_phys_addr_a,
                      output [31:12]     dtlb_phys_addr_b,
@@ -74,7 +74,7 @@ module MCPU_MEM_dtlb(
    wire [TAG_WIDTH-1:0]  tag_b_old = dtlb_addr_b_old[31 -: TAG_WIDTH];
    wire [SET_WIDTH-1:0] set_b_old = dtlb_addr_b_old[31 - TAG_WIDTH -: SET_WIDTH];
 
-   assign tlb2ptw_pagedir_base = dtlb2ptw_pagedir_base;
+   assign tlb2ptw_pagedir_base = dtlb_pagedir_base;
 
    wire clk = dtlb_clk;
 
@@ -197,21 +197,22 @@ module MCPU_MEM_dtlb(
         end
         ST_COMPARING: begin
            read_addresses_imm = 1;
+
+           // Update eviction bits for any hits.
+           if (dtlb_re_a_old & hit_a)
+             evict_update_a_mode = EVICT_UPDATE_FROM_HIT;
+           if (dtlb_re_b_old & hit_b)
+             evict_update_b_mode = EVICT_UPDATE_FROM_HIT;
+
            // On cache miss, perform a walk. If both addresses miss, we'll
            // walk address A first.
            if (dtlb_re_a_old & ~hit_a) begin
               lookup_mode = LOOKUP_A;
               next_state = ST_LOOKUP_A;
            end else if (dtlb_re_b_old & ~hit_b) begin
-              if (dtlb_re_a_old)
-                evict_update_a_mode = EVICT_UPDATE_FROM_HIT;
               lookup_mode = LOOKUP_B;
               next_state = ST_LOOKUP_B;
            end else begin
-              if (dtlb_re_a_old)
-                evict_update_a_mode = EVICT_UPDATE_FROM_HIT;
-              if (dtlb_re_b_old)
-                evict_update_b_mode = EVICT_UPDATE_FROM_HIT;
               // All addresses that were requested were cache hits.
               // If there's another request, we'll have the cache data next
               // cycle, so go to the COMPARING state. Otherwise, we're idle.

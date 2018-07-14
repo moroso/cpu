@@ -169,7 +169,8 @@ ALL_TESTS += pt_walk_basic
 # TLB tests
 
 TB_dtlb_top = MCPU_MEM_dtlb
-TB_dtlb_cpps = dtlb.cpp Sim.cpp Cmod_MCPU_MEM_walk.cpp
+TB_dtlb_cpps = dtlb.cpp Sim.cpp Cmod_MCPU_MEM_walk.cpp Check_MCPU_MEM_dtlb.cpp \
+	 Stim_MCPU_MEM_dtlb.cpp
 ALL_TBS += dtlb
 
 TEST_dtlb_basic_tb  = dtlb

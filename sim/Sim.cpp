@@ -75,7 +75,7 @@ void Sim::log(Sim::Level lvl, const char *fmt, ...) {
 	
 	if (lvl >= log_level) {
 		va_start(ap, fmt);
-		vprintf(fmt, ap);
+		vfprintf(stderr, fmt, ap);
 		va_end(ap);
 	}
 	
