@@ -34,7 +34,6 @@ void Cmod_MCPU_MEM_walk::clk() {
       if (address_map.find(*ports->tlb2ptw_addr) == address_map.end()) {
         SIM_ERROR("Address map does not contain %x", *ports->tlb2ptw_addr);
       }
-      //SIM_INFO("Finished read (addr %x); returning", *ports->tlb2ptw_addr);
       mapping_entry entry = address_map[*ports->tlb2ptw_addr];
       *ports->tlb2ptw_phys_addr = entry.phys;
       *ports->tlb2ptw_pagedir_flags = entry.pd_flags;
@@ -42,7 +41,6 @@ void Cmod_MCPU_MEM_walk::clk() {
       *ports->tlb2ptw_ready = 1;
     }
   } else if (*ports->tlb2ptw_re) {
-    //SIM_INFO("Starting read");
     accesses += 1;
     active = true;
     *ports->tlb2ptw_ready = 0;

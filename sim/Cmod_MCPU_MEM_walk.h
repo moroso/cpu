@@ -17,7 +17,6 @@ struct Cmod_MCPU_MEM_walk_ports {
   /* Outputs */
   IData *tlb2ptw_phys_addr; // 20 bits
   CData *tlb2ptw_ready; // 1 bit
-  CData *tlb2ptw_present; // 1 bit
   CData *tlb2ptw_pagetab_flags; // 4 bits
   CData *tlb2ptw_pagedir_flags; // 4 bits
 };

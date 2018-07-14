@@ -8,6 +8,10 @@
 VerilatedVcdC* tfp;
 #endif
 #include "Cmod_MCPU_MEM_walk.h"
+#include "Check_MCPU_MEM_dtlb.h"
+#include "Stim_MCPU_MEM_dtlb.h"
+#include "MCPU_MEM_dtlb_ports.h"
+
 #include "VMCPU_MEM_dtlb.h"
 
 // (Loose) upper bound on cycle count any operation should take.
@@ -32,169 +36,115 @@ void _close_trace() {
 
 class TlbTest {
   Cmod_MCPU_MEM_walk_ports *walk_ports;
+  MCPU_MEM_dtlb_ports *dtlb_ports;
   Cmod_MCPU_MEM_walk *walk;
 	VMCPU_MEM_dtlb *tb;
+  Check_MCPU_MEM_dtlb *check;
+  Stim_MCPU_MEM_dtlb *stim;
 
 public:
   TlbTest(VMCPU_MEM_dtlb *tb);
   ~TlbTest();
 
-  void lookup(uint32_t addr_a, bool addr_a_en, uint32_t addr_b, bool addr_b_en,
-              int expected_accesses);
-  void lookup_complex(uint32_t addr_a, bool addr_a_en,
-                      uint32_t addr_a_new, bool addr_a_new_en,
-                      uint32_t addr_b, bool addr_b_en,
-                      uint32_t addr_b_new, bool addr_b_new_en,
-                      int expected_accesses);
-  void lookup_single(uint32_t addr, bool is_addr_b, int expected_accesses);
-  void complete_lookup(uint32_t addr_a, bool addr_a_en,
-                       uint32_t addr_a_new, bool addr_a_new_en,
-                       uint32_t addr_b, bool addr_b_en,
-                       uint32_t addr_b_new, bool addr_b_new_en,
-                       int expected_accesses, int prior_accesses);
+  void lookup(uint32_t addr_a, bool addr_a_en, uint32_t addr_b, bool addr_b_en);
+  void lookup_nowait(uint32_t addr_a, bool addr_a_en, uint32_t addr_b, bool addr_b_en);
+  void lookup_single(uint32_t addr, bool is_addr_b);
   void set_addr(uint32_t virt, uint32_t phys, uint8_t virt_flags, uint8_t phys_flags);
-  void reset();
-  void verify(uint32_t expected_addr_a, uint32_t expected_flags_a, bool check_addr_a,
-              uint32_t expected_addr_b, uint32_t expected_flags_b, bool check_addr_b);
-  void verify_single(uint32_t expected_addr, uint32_t expected_flags, bool is_addr_b);
+  bool done();
+
+  void clk() {
+    walk->clk();
+    tb->eval();
+    stim->clk();
+    tb->eval();
+    check->clk();
+    tb->eval();
+  }
 };
 
 TlbTest::TlbTest(VMCPU_MEM_dtlb *tb) : tb(tb) {
   walk_ports = new Cmod_MCPU_MEM_walk_ports;
   Cmod_MCPU_MEM_walk_CONNECT(walk_ports, tb);
   walk = new Cmod_MCPU_MEM_walk(walk_ports);
+  dtlb_ports = new MCPU_MEM_dtlb_ports;
+  MCPU_MEM_dtlb_CONNECT(dtlb_ports, tb);
+  check = new Check_MCPU_MEM_dtlb(dtlb_ports);
+  stim = new Stim_MCPU_MEM_dtlb(dtlb_ports);
 }
 
 TlbTest::~TlbTest() {
   delete walk;
   delete walk_ports;
-}
-
-void TlbTest::reset() {
-  // Clear the cache, for a new test.
-  for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__0__KET____DOT__data_bram0__DOT__ram[i] = 0;
-    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__1__KET____DOT__data_bram0__DOT__ram[i] = 0;
-    tb->MCPU_MEM_dtlb__DOT__evict_bram0__DOT__ram[i] = 0;
-  }
-
-  walk->clear();
+  delete check;
+  delete stim;
+  delete dtlb_ports;
 }
 
 void TlbTest::lookup(uint32_t addr_a, bool addr_a_en,
-                     uint32_t addr_b, bool addr_b_en,
-                     int expected_accesses) {
-  lookup_complex(addr_a, addr_a_en, addr_a, false,
-                 addr_b, addr_b_en, addr_b, false,
-                 expected_accesses);
+                     uint32_t addr_b, bool addr_b_en) {
+  stim->read(addr_a, addr_a_en, addr_b, addr_b_en);
 }
 
-void TlbTest::complete_lookup(uint32_t addr_a, bool addr_a_en,
-                              uint32_t addr_a_new, bool addr_a_new_en,
-                              uint32_t addr_b, bool addr_b_en,
-                              uint32_t addr_b_new, bool addr_b_new_en,
-                              int expected_accesses, int prior_accesses) {
-  int cycles = 0;
-  while (cycles++ < DEADLINE) {
-    tb->dtlb_clk = 0;
-    tb->eval();
-    Sim::tick();
-    TRACE;
-
-    tb->dtlb_clk = 1;
-    walk->clk();
-    tb->eval();
-    tb->dtlb_re_a = addr_a_new_en;
-    tb->dtlb_addr_a = addr_a_new;
-    tb->dtlb_re_b = addr_b_new_en;
-    tb->dtlb_addr_b = addr_b_new;
-    tb->eval();
-    if (tb->dtlb_ready) {
-      int access_count = walk->get_access_count() - prior_accesses;
-      if (expected_accesses >= 0 && access_count != expected_accesses) {
-        SIM_FATAL("On read from %x(%d), %x(%d) expected %d walk accesses; got %d",
-                  addr_a, addr_a_en, addr_b, addr_b_en, expected_accesses, access_count);
-      }
-      return;
-    }
-    Sim::tick();
-    TRACE;
-  }
-
-  SIM_FATAL("Deadline of %d exceeded on read from %x(%d), %x(%d)",
-            DEADLINE, addr_a, addr_a_en, addr_b, addr_b_en);
+void TlbTest::lookup_nowait(uint32_t addr_a, bool addr_a_en,
+                            uint32_t addr_b, bool addr_b_en) {
+  stim->read_nowait(addr_a, addr_a_en, addr_b, addr_b_en);
 }
 
-void TlbTest::lookup_complex(uint32_t addr_a, bool addr_a_en,
-                             uint32_t addr_a_new, bool addr_a_new_en,
-                             uint32_t addr_b, bool addr_b_en,
-                             uint32_t addr_b_new, bool addr_b_new_en,
-                             int expected_accesses) {
-  int prior_accesses = walk->get_access_count();
-
-  tb->dtlb_clk = 1;
-  tb->eval();
-  tb->dtlb_re_a = addr_a_en;
-  tb->dtlb_addr_a = addr_a;
-  tb->dtlb_re_b = addr_b_en;
-  tb->dtlb_addr_b = addr_b;
-  tb->eval();
-  Sim::tick();
-  TRACE;
-
-  complete_lookup(addr_a, addr_a_en,
-                  addr_a_new, addr_a_new_en,
-                  addr_b, addr_b_en,
-                  addr_b_new, addr_b_new_en,
-                  expected_accesses,
-                  prior_accesses);
-}
-
-void TlbTest::lookup_single(uint32_t addr, bool is_addr_b, int expected_accesses) {
+void TlbTest::lookup_single(uint32_t addr, bool is_addr_b) {
   if (is_addr_b) {
-    lookup(0, false, addr, true, expected_accesses);
+    lookup(0, false, addr, true);
   } else {
-    lookup(addr, true, 0, false, expected_accesses);
-  }
-}
-
-void TlbTest::verify(uint32_t expected_addr_a,
-                     uint32_t expected_flags_a,
-                     bool check_addr_a,
-                     uint32_t expected_addr_b,
-                     uint32_t expected_flags_b,
-                     bool check_addr_b) {
-  if (check_addr_a) {
-    if (tb->dtlb_phys_addr_a != expected_addr_a ||
-        tb->dtlb_flags_a != expected_flags_a) {
-      SIM_FATAL("Bad lookup on A: expected 0x%x(0x%x), got 0x%x(0x%x)",
-                expected_addr_a, expected_flags_a,
-                tb->dtlb_phys_addr_a, tb->dtlb_flags_a);
-    }
-  }
-
-  if (check_addr_b) {
-    if (tb->dtlb_phys_addr_b != expected_addr_b ||
-        tb->dtlb_flags_b != expected_flags_b) {
-      SIM_FATAL("Bad lookup on B: expected 0x%x(0x%x), got 0x%x(0x%x)",
-                expected_addr_b, expected_flags_b,
-                tb->dtlb_phys_addr_b, tb->dtlb_flags_b);
-    }
-  }
-}
-
-void TlbTest::verify_single(uint32_t expected_addr, uint32_t expected_flags,
-                            bool is_addr_b) {
-  if (is_addr_b) {
-    verify(0, 0, false, expected_addr, expected_flags, true);
-  } else {
-    verify(expected_addr, expected_flags, true, 0, 0, false);
+    lookup(addr, true, 0, false);
   }
 }
 
 void TlbTest::set_addr(uint32_t virt, uint32_t phys,
                        uint8_t virt_flags, uint8_t phys_flags) {
   walk->add_mapping(virt, phys, virt_flags, phys_flags);
+}
+
+bool TlbTest::done() {
+  return stim->done() && tb->dtlb_ready;
+}
+
+void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
+  // Clear cache state, in case we're running multiple tests.
+  // TODO: the cache needs a reset signal.
+  for (int i = 0; i < DATA_BRAM_SIZE; i++) {
+    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__0__KET____DOT__data_bram0__DOT__ram[i] = 0;
+    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__1__KET____DOT__data_bram0__DOT__ram[i] = 0;
+    tb->MCPU_MEM_dtlb__DOT__evict_bram0__DOT__ram[i] = 0;
+  }
+
+  TlbTest test(tb);
+
+  testfunc(test);
+  while (!test.done()) {
+    tb->dtlb_clk = 1;
+    test.clk();
+    tb->eval();
+    Sim::tick();
+    TRACE;
+
+    tb->dtlb_clk = 0;
+    tb->eval();
+    Sim::tick();
+    TRACE;
+  }
+
+  // Wait a few cycles before starting the next test.
+  for (int i = 0; i < 16; i++) {
+    tb->dtlb_clk = 1;
+    test.clk();
+    tb->eval();
+    Sim::tick();
+    TRACE;
+
+    tb->dtlb_clk = 0;
+    tb->eval();
+    Sim::tick();
+    TRACE;
+  }
 }
 
 /* TEST CASES */
@@ -205,58 +155,43 @@ void test_cache_single_part(TlbTest &test, bool is_addr_b) {
   test.set_addr(0x42345, 0xeeeee, 0xf, 0xf);
   test.set_addr(0x52345, 0xfffff, 0xf, 0xf);
 
-  test.lookup_single(0x12345, is_addr_b, 1);
-  test.verify_single(0x56789, 0xf, is_addr_b);
+  test.lookup_single(0x12345, is_addr_b);
 
   // If we read again, it should come back in a single cycle
-  test.lookup_single(0x12345, is_addr_b, 0);
-  test.verify_single(0x56789, 0xf, is_addr_b);
+  test.lookup_single(0x12345, is_addr_b);
 
-  test.lookup_single(0x22345, is_addr_b, 1);
-  test.verify_single(0xccccc, 0xf, is_addr_b);
+  test.lookup_single(0x22345, is_addr_b);
 
   // Now both values should be cached, and come back in one cycle
-  test.lookup_single(0x12345, is_addr_b, 0);
-  test.verify_single(0x56789, 0xf, is_addr_b);
-  test.lookup_single(0x22345, is_addr_b, 0);
-  test.verify_single(0xccccc, 0xf, is_addr_b);
+  test.lookup_single(0x12345, is_addr_b);
+  test.lookup_single(0x22345, is_addr_b);
 
-  test.lookup_single(0x32345, is_addr_b, 1);
-  test.verify_single(0xddddd, 0xf, is_addr_b);
+  test.lookup_single(0x32345, is_addr_b);
 
   // 0x12345 should have been evicted. The other two values should
   // be single-cycle.
-  test.lookup_single(0x22345, is_addr_b, 0);
-  test.verify_single(0xccccc, 0xf, is_addr_b);
-  test.lookup_single(0x32345, is_addr_b, 0);
-  test.verify_single(0xddddd, 0xf, is_addr_b);
+  test.lookup_single(0x22345, is_addr_b);
+  test.lookup_single(0x32345, is_addr_b);
 
-  test.lookup_single(0x12345, is_addr_b, 1);
-  test.verify_single(0x56789, 0xf, is_addr_b);
+  test.lookup_single(0x12345, is_addr_b);
 
   // This time 0x22345 should have been evicted.
-  test.lookup_single(0x32345, is_addr_b, 0);
-  test.verify_single(0xddddd, 0xf, is_addr_b);
-  test.lookup_single(0x12345, is_addr_b, 0);
-  test.verify_single(0x56789, 0xf, is_addr_b);
+  test.lookup_single(0x32345, is_addr_b);
+  test.lookup_single(0x12345, is_addr_b);
 
   // Two consecutive misses without a hit between them--test that
   // eviction bits are set correctly on miss, not just after a hit.
-  test.lookup_single(0x42345, is_addr_b, 1);
-  test.verify_single(0xeeeee, 0xf, is_addr_b);
-  test.lookup_single(0x52345, is_addr_b, 1);
-  test.verify_single(0xfffff, 0xf, is_addr_b);
+  test.lookup_single(0x42345, is_addr_b);
+  test.lookup_single(0x52345, is_addr_b);
 
   // Neither of these should have gotten evicted.
-  test.lookup_single(0x42345, is_addr_b, 0);
-  test.verify_single(0xeeeee, 0xf, is_addr_b);
-  test.lookup_single(0x52345, is_addr_b, 0);
-  test.verify_single(0xfffff, 0xf, is_addr_b);
+  test.lookup_single(0x42345, is_addr_b);
+  test.lookup_single(0x52345, is_addr_b);
 }
-void test_cache_single(TlbTest &test) {
-  test.reset();
+void test_cache_single_a(TlbTest &test) {
   test_cache_single_part(test, false);
-  test.reset();
+}
+void test_cache_single_b(TlbTest &test) {
   test_cache_single_part(test, true);
 }
 
@@ -267,133 +202,100 @@ void test_cache_single_fill_part(TlbTest &test, bool is_addr_b) {
   }
 
   for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    test.lookup_single(i, is_addr_b, 1);
-    test.verify_single(0xfffff ^ i, 0xf, is_addr_b);
+    test.lookup_single(i, is_addr_b);
   }
   for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    test.lookup_single(0x80000 | i, is_addr_b, 1);
-    test.verify_single(0xaaaaa ^ i, 0xf, is_addr_b);
+    test.lookup_single(0x80000 | i, is_addr_b);
   }
 
   // This time around, all access should be single cycle.
   for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    test.lookup_single(i, is_addr_b, 0);
-    test.verify_single(0xfffff ^ i, 0xf, is_addr_b);
+    test.lookup_single(i, is_addr_b);
   }
   for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    test.lookup_single(0x80000 | i, is_addr_b, 0);
-    test.verify_single(0xaaaaa ^ i, 0xf, is_addr_b);
+    test.lookup_single(0x80000 | i, is_addr_b);
   }
 }
-void test_cache_single_fill(TlbTest &test) {
-  test.reset();
+void test_cache_single_fill_a(TlbTest &test) {
   test_cache_single_fill_part(test, false);
-  test.reset();
+}
+void test_cache_single_fill_b(TlbTest &test) {
   test_cache_single_fill_part(test, true);
 }
 
 void test_cache_dual_simple(TlbTest &test) {
-  test.reset();
-
   test.set_addr(0x12345, 0x56789, 0xf, 0xf);
   test.set_addr(0x22345, 0xccccc, 0xf, 0xf);
   test.set_addr(0x32345, 0xddddd, 0xf, 0xf);
   test.set_addr(0x42345, 0xeeeee, 0xf, 0xf);
   test.set_addr(0x52345, 0xfffff, 0xf, 0xf);
 
-  test.lookup(0x12345, true, 0x22345, true, 2);
-  test.verify(0x56789, 0xf, true, 0xccccc, 0xf, true);
+  test.lookup(0x12345, true, 0x22345, true);
 
   // Reading again should hit the cache
-  test.lookup(0x12345, true, 0x22345, true, 0);
-  test.verify(0x56789, 0xf, true, 0xccccc, 0xf, true);
+  test.lookup(0x12345, true, 0x22345, true);
 
   // Read on opposite channels
-  test.lookup(0x22345, true, 0x12345, true, 0);
-  test.verify(0xccccc, 0xf, true, 0x56789, 0xf, true);
+  test.lookup(0x22345, true, 0x12345, true);
 
   // Both should be evicted
-  test.lookup(0x32345, true, 0x42345, true, 2);
-  test.verify(0xddddd, 0xf, true, 0xeeeee, 0xf, true);
+  test.lookup(0x32345, true, 0x42345, true);
 
-  test.lookup(0x32345, true, 0x42345, true, 0);
-  test.verify(0xddddd, 0xf, true, 0xeeeee, 0xf, true);
+  test.lookup(0x32345, true, 0x42345, true);
 
   // The read from the first slot should update the eviction bit,
   // so the read in the second slot should evict 0x42345, not 0x32345.
-  test.lookup(0x32345, true, 0x52345, true, 1);
-  test.verify(0xddddd, 0xf, true, 0xfffff, 0xf, true);
+  test.lookup(0x32345, true, 0x52345, true);
 
-  test.lookup(0x32345, true, 0x52345, true, 0);
-  test.verify(0xddddd, 0xf, true, 0xfffff, 0xf, true);
+  test.lookup(0x32345, true, 0x52345, true);
 }
 
 void test_cache_dual_read_same(TlbTest &test) {
-  test.reset();
-
   test.set_addr(0x12345, 0x56789, 0xf, 0xf);
-  test.lookup(0x12345, true, 0x12345, true, 1);
-  test.verify(0x56789, 0xf, true, 0x56789, 0xf, true);
+  test.lookup(0x12345, true, 0x12345, true);
 
   // Same test, but from the cache
-  test.lookup(0x12345, true, 0x12345, true, 0);
-  test.verify(0x56789, 0xf, true, 0x56789, 0xf, true);
+  test.lookup(0x12345, true, 0x12345, true);
 }
 
 void test_combine_flags(TlbTest &test) {
-  test.reset();
-
   test.set_addr(0x0, 0x0, 0x9, 0x1); // Global+present flag
-  test.lookup(0x0, true, 0x0, true, 1);
-  test.verify(0x0, 0x9, true, 0x0, 0x9, true);
+  test.lookup(0x0, true, 0x0, true);
 
   test.set_addr(0x1, 0x0, 0x1, 0x9); // Global+present flag
-  test.lookup(0x1, true, 0x1, true, 1);
-  test.verify(0x0, 0x9, true, 0x0, 0x9, true);
+  test.lookup(0x1, true, 0x1, true);
 
   test.set_addr(0x2, 0x0, 0x5, 0x1); // Kernel+present flag
-  test.lookup(0x2, true, 0x2, true, 1);
-  test.verify(0x0, 0x5, true, 0x0, 0x5, true);
+  test.lookup(0x2, true, 0x2, true);
 
   test.set_addr(0x3, 0x0, 0x1, 0x5); // Kernel+present flag
-  test.lookup(0x3, true, 0x3, true, 1);
-  test.verify(0x0, 0x5, true, 0x0, 0x5, true);
+  test.lookup(0x3, true, 0x3, true);
 
   test.set_addr(0x4, 0x0, 0x3, 0x1); // Writeable+present flag
-  test.lookup(0x4, true, 0x4, true, 1);
-  test.verify(0x0, 0x1, true, 0x0, 0x1, true);
+  test.lookup(0x4, true, 0x4, true);
 
   test.set_addr(0x5, 0x0, 0x1, 0x3); // Writeable+present flag
-  test.lookup(0x5, true, 0x5, true, 1);
-  test.verify(0x0, 0x1, true, 0x0, 0x1, true);
+  test.lookup(0x5, true, 0x5, true);
 
   test.set_addr(0x6, 0x0, 0x1, 0x0); // Present flag
-  test.lookup(0x6, true, 0x6, true, 1);
-  test.verify(0x0, 0x0, true, 0x0, 0x0, true);
+  test.lookup(0x6, true, 0x6, true);
 
   test.set_addr(0x7, 0x0, 0x0, 0x1); // Present flag
-  test.lookup(0x7, true, 0x7, true, 1);
-  test.verify(0x0, 0x0, true, 0x0, 0x0, true);
+  test.lookup(0x7, true, 0x7, true);
 }
 
 void test_cache_missing(TlbTest &test) {
-  test.reset();
-
   test.set_addr(0x0, 0x10, 0xf, 0x0); // Non-present page
   test.set_addr(0x1, 0x20, 0x0, 0xf); // Non-present page
 
   // Look up the missing pages
-  test.lookup(0x0, true, 0x1, true, 2);
-  test.verify(0x10, 0xc, true, 0x20, 0xc, true);
+  test.lookup(0x0, true, 0x1, true);
 
   // We should have cached the absent pages
-  test.lookup(0x1, true, 0x0, true, 0);
-  test.verify(0x20, 0xc, true, 0x10, 0xc, true);
+  test.lookup(0x1, true, 0x0, true);
 }
 
 void test_back_to_back(TlbTest &test) {
-  test.reset();
-
   test.set_addr(0x0, 0x10, 0xf, 0xf);
   test.set_addr(0x1, 0x11, 0xf, 0xf);
   test.set_addr(0x2, 0x12, 0xf, 0xf);
@@ -401,13 +303,34 @@ void test_back_to_back(TlbTest &test) {
 
   // Look up addresses 0 and 2. Then, next cycle, change
   // the addresses to 1 and 3, keeping re lines high.
-  test.lookup_complex(0x0, true, 0x1, true, 0x2, true, 0x3, true, 2);
-  test.verify(0x10, 0xf, true, 0x12, 0xf, true);
+  test.lookup_nowait(0x0, true, 0x2, true);
 
   // Keep clocking; next time ready goes high, we should have
   // the results of addresses 1 and 3.
-  test.complete_lookup(0x1, true, 0x0, true, 0x3, true, 0x0, true, -1, 0);
-  test.verify(0x11, 0xf, true, 0x13, 0xf, true);
+  test.lookup(0x1, true, 0x3, true);
+}
+
+void test_evict_hit_and_miss(TlbTest &test) {
+  // Test various eviction edge cases.
+  test.set_addr(0x00000, 0x10, 0xf, 0xf);
+  test.set_addr(0x10000, 0x11, 0xf, 0xf);
+  test.set_addr(0x20000, 0x12, 0xf, 0xf);
+  test.set_addr(0x30000, 0x13, 0xf, 0xf);
+
+  test.lookup(0x00000, true, 0x10000, true);
+  // This will hit on B and miss on A.
+  // 0x20000 should replace 0x10000.
+  test.lookup(0x20000, true, 0x00000, true);
+
+  // 0x00000 should still be in the cache.
+  test.lookup(0x00000, true, 0, false);
+
+  // Repeat the test with slots swapped.
+  // Hit on A and miss on B.
+  test.lookup(0x20000, true, 0x30000, true);
+
+  // 0x20000 should still be in the cache.
+  test.lookup(0x20000, true, 0, false);
 }
 
 int main(int argc, char **argv, char **env) {
@@ -424,29 +347,26 @@ int main(int argc, char **argv, char **env) {
   atexit(_close_trace);
 #endif
 
-  test_cache_single(test);
-  test_cache_single_fill(test);
-  test_cache_dual_simple(test);
-  test_cache_dual_read_same(test);
-  test_combine_flags(test);
-  test_cache_missing(test);
-  test_back_to_back(test);
-
-  // Let a few clock cycles go by before we exit (it's nicer
-  // when we're looking at the .vcd file)
-  for (int i = 0; i < 128; i++) {
-    tb->eval();
-    tb->dtlb_clk = 1;
-    //walk->clk();
-    tb->eval();
-    Sim::tick();
-    TRACE;
-
-    tb->dtlb_clk = 0;
-    tb->eval();
-    Sim::tick();
-    TRACE;
-  }
+  SIM_INFO("cache single a");
+  run_test(tb, test_cache_single_a);
+  SIM_INFO("cache single b");
+  run_test(tb, test_cache_single_b);
+  SIM_INFO("cache single_fill a");
+  run_test(tb, test_cache_single_fill_a);
+  SIM_INFO("cache single_fill b");
+  run_test(tb, test_cache_single_fill_b);
+  SIM_INFO("dual simple");
+  run_test(tb, test_cache_dual_simple);
+  SIM_INFO("dual read same");
+  run_test(tb, test_cache_dual_read_same);
+  SIM_INFO("combine flags");
+  run_test(tb, test_combine_flags);
+  SIM_INFO("cache missing");
+  run_test(tb, test_cache_missing);
+  SIM_INFO("back to back");
+  run_test(tb, test_back_to_back);
+  SIM_INFO("evict");
+  run_test(tb, test_evict_hit_and_miss);
 
   Sim::finish();
 
