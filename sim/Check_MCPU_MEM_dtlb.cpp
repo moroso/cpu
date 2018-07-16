@@ -134,7 +134,8 @@ void Check_MCPU_MEM_dtlb::clk() {
 
       check_outputs();
     }
-  } else {
+  }
+  if (!active) {
     if (*ports->dtlb_re_a || *ports->dtlb_re_b) {
       active = true;
       addr_a_valid = *ports->dtlb_re_a;

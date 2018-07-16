@@ -120,13 +120,13 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
 
   testfunc(test);
   while (!test.done()) {
-    tb->dtlb_clk = 1;
+    tb->clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->dtlb_clk = 0;
+    tb->clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
@@ -134,13 +134,13 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
 
   // Wait a few cycles before starting the next test.
   for (int i = 0; i < 16; i++) {
-    tb->dtlb_clk = 1;
+    tb->clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->dtlb_clk = 0;
+    tb->clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
@@ -337,7 +337,6 @@ int main(int argc, char **argv, char **env) {
 	Sim::init(argc, argv);
 
 	VMCPU_MEM_dtlb *tb = new VMCPU_MEM_dtlb;
-  TlbTest test = TlbTest(tb);
 
 #if VM_TRACE
   Verilated::traceEverOn(true);

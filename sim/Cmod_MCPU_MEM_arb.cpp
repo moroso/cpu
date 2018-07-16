@@ -35,7 +35,7 @@ void Cmod_MCPU_MEM_arb::clk() {
   if (active) {
     remaining_cycles -= 1;
 
-    SIM_INFO("Client %d active; %d cycles remain", current_client, remaining_cycles);
+    SIM_DEBUG("Client %d active; %d cycles remain", current_client, remaining_cycles);
 
     if (remaining_cycles == 0) {
       Cmod_MCPU_MEM_arb_ports* client = clients[current_client];
@@ -43,11 +43,11 @@ void Cmod_MCPU_MEM_arb::clk() {
 
       *client->arb_stall = 0;
 
-      SIM_INFO("Opcode = %d", *client->arb_opcode);
+      SIM_DEBUG("Opcode = %d", *client->arb_opcode);
       switch (*client->arb_opcode) {
       case LTC_OPC_READ:
       case LTC_OPC_READTHROUGH: {
-          SIM_INFO("Performing read from %08x", adjusted_addr);
+          SIM_DEBUG("Performing read from %08x", adjusted_addr);
           for (int i = 0; i < DATA_BYTES / 4; i++) {
             client->arb_rdata[i] = read(adjusted_addr + i * 4);
           }
@@ -56,7 +56,7 @@ void Cmod_MCPU_MEM_arb::clk() {
         }
       case LTC_OPC_WRITE:
       case LTC_OPC_WRITETHROUGH: {
-          SIM_INFO("Performing write to %08x", adjusted_addr);
+          SIM_DEBUG("Performing write to %08x", adjusted_addr);
           // Do writes a byte at at time to make checking the mask easier.
           for (int i = 0; i < DATA_BYTES; i++) {
             if (*client->arb_wbe & (1<<i)) {
@@ -81,7 +81,7 @@ void Cmod_MCPU_MEM_arb::clk() {
     for (int i = 0; i < clients.size(); i += 1) {
       int candidate = (current_client + i) % clients.size();
       if (*clients[candidate]->arb_valid) {
-        SIM_INFO("Selected client %d", candidate);
+        SIM_DEBUG("Selected client %d", candidate);
         // Found one! Mark it as in-progress.
         current_client = candidate;
 
