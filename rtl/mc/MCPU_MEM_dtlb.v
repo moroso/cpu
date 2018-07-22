@@ -256,8 +256,10 @@ module MCPU_MEM_dtlb(
               if (dtlb_re_a_0a | dtlb_re_b_0a) begin
                  latch_inputs = 1;
                  next_state = ST_COMPARING;
-              end else
-                next_state = ST_IDLE;
+              end else begin
+                 next_state = ST_IDLE;
+                 read_addresses_imm = 0;
+              end
            end
         end
         ST_LOOKUP_A: begin

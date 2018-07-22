@@ -28,6 +28,14 @@ VerilatedVcdC* tfp;
   #define TRACE
 #endif
 
+#define RANDOM_OPS_DEFAULT 16384
+// By default, random tests can use any tag
+#define RANDOM_TAGS_DEFAULT (1<<TAG_SIZE)
+// By default, random tests can use any set
+#define RANDOM_SETS_DEFAULT (1<<SET_SIZE)
+
+#define ADDR_OF(tag, set) (((tag)<<SET_SIZE)|(set))
+
 #if VM_TRACE
 void _close_trace() {
 	if (tfp) tfp->close();
@@ -59,6 +67,10 @@ public:
     tb->eval();
     check->clk();
     tb->eval();
+  }
+
+  void enable_walker_randomness() {
+    walk->use_random = true;
   }
 };
 
@@ -333,6 +345,29 @@ void test_evict_hit_and_miss(TlbTest &test) {
   test.lookup(0x20000, true, 0, false);
 }
 
+void test_random(TlbTest &test) {
+  test.enable_walker_randomness();
+
+  int nrandoms = Sim::param_u64("DTLB_RANDOM_OPERATIONS", RANDOM_OPS_DEFAULT);
+  int ntags = Sim::param_u64("DTLB_RANDOM_TAGS", RANDOM_TAGS_DEFAULT);
+  int nsets = Sim::param_u64("DTLB_RANDOM_SETS", RANDOM_SETS_DEFAULT);
+
+  for (int i = 0; i < nrandoms; i++) {
+    bool lookup1 = Sim::random(2);
+    int tag1 = Sim::random(ntags);
+    int set1 = Sim::random(nsets);
+
+    bool lookup2 = Sim::random(2);
+    int tag2 = Sim::random(ntags);
+    int set2 = Sim::random(nsets);
+
+    test.lookup(ADDR_OF(tag1, set1), lookup1,
+                ADDR_OF(tag2, set2), lookup2);
+  }
+}
+
+
+
 int main(int argc, char **argv, char **env) {
 	Sim::init(argc, argv);
 
@@ -346,26 +381,39 @@ int main(int argc, char **argv, char **env) {
   atexit(_close_trace);
 #endif
 
-  SIM_INFO("cache single a");
-  run_test(tb, test_cache_single_a);
-  SIM_INFO("cache single b");
-  run_test(tb, test_cache_single_b);
-  SIM_INFO("cache single_fill a");
-  run_test(tb, test_cache_single_fill_a);
-  SIM_INFO("cache single_fill b");
-  run_test(tb, test_cache_single_fill_b);
-  SIM_INFO("dual simple");
-  run_test(tb, test_cache_dual_simple);
-  SIM_INFO("dual read same");
-  run_test(tb, test_cache_dual_read_same);
-  SIM_INFO("combine flags");
-  run_test(tb, test_combine_flags);
-  SIM_INFO("cache missing");
-  run_test(tb, test_cache_missing);
-  SIM_INFO("back to back");
-  run_test(tb, test_back_to_back);
-  SIM_INFO("evict");
-  run_test(tb, test_evict_hit_and_miss);
+	const char *testname;
+	testname = Sim::param_str("DTLB_TEST_NAME", "directed");
+
+  if (!strcmp(testname, "directed")) {
+    SIM_INFO("cache single a");
+    run_test(tb, test_cache_single_a);
+    SIM_INFO("cache single b");
+    run_test(tb, test_cache_single_b);
+    SIM_INFO("dual simple");
+    run_test(tb, test_cache_dual_simple);
+    SIM_INFO("dual read same");
+    run_test(tb, test_cache_dual_read_same);
+    SIM_INFO("combine flags");
+    run_test(tb, test_combine_flags);
+    SIM_INFO("cache missing");
+    run_test(tb, test_cache_missing);
+    SIM_INFO("back to back");
+    run_test(tb, test_back_to_back);
+    SIM_INFO("evict");
+    run_test(tb, test_evict_hit_and_miss);
+  } else if (!strcmp(testname, "fill")) {
+    // Fill tests are slowish, so don't include them with the
+    // basic directed tests.
+    SIM_INFO("cache single_fill a");
+    run_test(tb, test_cache_single_fill_a);
+    SIM_INFO("cache single_fill b");
+    run_test(tb, test_cache_single_fill_b);
+  } else if (!strcmp(testname, "random")) {
+    SIM_INFO("random");
+    run_test(tb, test_random);
+  } else {
+    SIM_FATAL("Unknown test name %s", testname);
+  }
 
   Sim::finish();
 

@@ -9,7 +9,8 @@ Cmod_MCPU_MEM_walk::Cmod_MCPU_MEM_walk(Cmod_MCPU_MEM_walk_ports *ports) :
   active(false),
   remaining_cycles(0),
   ports(ports),
-  accesses(0)
+  accesses(0),
+  use_random(false)
 {
 }
 
@@ -32,7 +33,15 @@ void Cmod_MCPU_MEM_walk::clk() {
       active = false;
 
       if (address_map.find(*ports->tlb2ptw_addr) == address_map.end()) {
-        SIM_ERROR("Address map does not contain %x", *ports->tlb2ptw_addr);
+        if (use_random) {
+          address_map[*ports->tlb2ptw_addr] = {
+            .phys = (uint32_t)Sim::random(1<<20),
+            .pd_flags = (uint8_t)Sim::random(1<<4),
+            .pt_flags = (uint8_t)Sim::random(1<<4),
+          };
+        } else {
+          SIM_ERROR("Address map does not contain %x", *ports->tlb2ptw_addr);
+        }
       }
       mapping_entry entry = address_map[*ports->tlb2ptw_addr];
       *ports->tlb2ptw_phys_addr = entry.phys;
