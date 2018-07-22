@@ -156,9 +156,10 @@ void Check_MCPU_MEM_dtlb::clk() {
       }
       if (addr_b_valid) {
         if (addr_b_miss) {
-          if (!(addr_a_valid && addr_a_miss && (active_addr_a == active_addr_b))) {
-            // If B is reading the same address as A and both miss, we should only
-            // do a single walk.
+          if (!(addr_a_valid && addr_a_miss &&
+                (active_addr_a == active_addr_b))) {
+            // If B is reading the same address as A and both miss, we
+            // should only do a single walk.
             walk_queue.push(active_addr_b);
           }
         } else {

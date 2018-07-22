@@ -57,6 +57,8 @@ public:
   void clear();
 
   int get_access_count() { return accesses; }
+
+  bool use_random;
 };
 
 #endif

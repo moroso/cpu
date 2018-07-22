@@ -176,5 +176,22 @@ ALL_TBS += dtlb
 TEST_dtlb_basic_tb  = dtlb
 TEST_dtlb_basic_env =
 
+TEST_dtlb_fill_tb  = dtlb
+TEST_dtlb_fill_env = DTLB_TEST_NAME=fill
+
+# Uses the full address space
+TEST_dtlb_random_full_tb  = dtlb
+TEST_dtlb_random_full_env = DTLB_TEST_NAME=random
+
+# Random tests that limit the sets and tags, to increase
+# the frequency of collisions and evictions
+TEST_dtlb_random_limited_tb  = dtlb
+TEST_dtlb_random_limited_env = DTLB_TEST_NAME=random DTLB_RANDOM_TAGS=16 DTLB_RANDOM_SETS=16
+
+TEST_dtlb_random_long_tb  = dtlb
+TEST_dtlb_random_long_env = DTLB_TEST_NAME=random DTLB_RANDOM_OPERATIONS=262144
+
 TESTPLAN_L0_tests += dtlb_basic
-ALL_TESTS += dtlb_basic
+TESTPLAN_L1_tests += dtlb_fill dtlb_random_full dtlb_random_limited
+TESTPLAN_L2_tests += dtlb_random_long
+ALL_TESTS += dtlb_basic dtlb_fill dtlb_random_full dtlb_random_limited dtlb_random_long
