@@ -22,7 +22,7 @@ module MCPU_MEM_dtlb(
 
                      // Page table walker interface
                      output reg [31:12] tlb2ptw_addr,
-                     output reg         tlb2ptw_re,
+                     output             tlb2ptw_re,
                      output [19:0]      tlb2ptw_pagedir_base,
 
                      input [31:12]      tlb2ptw_phys_addr,
