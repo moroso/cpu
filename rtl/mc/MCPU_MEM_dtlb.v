@@ -84,11 +84,11 @@ module MCPU_MEM_dtlb(
    wire [DATA_SIZE-1:0] q_data_a[WAYS-1:0];
    wire [DATA_SIZE-1:0] data_data_a;
    wire [SET_WIDTH-1:0] addr_data_a;
-   reg                  we_data_a[WAYS-1:0];
+   reg [WAYS-1:0]       we_data_a;
    wire [DATA_SIZE-1:0] q_data_b[WAYS-1:0];
    wire [DATA_SIZE-1:0] data_data_b;
    wire [SET_WIDTH-1:0] addr_data_b;
-   reg                  we_data_b[WAYS-1:0];
+   reg [WAYS-1:0]       we_data_b;
 
    // Unpacked cache entries (from the data bram outputs)
    wire [TAG_WIDTH-1:0] q_data_a_tag[WAYS-1:0];
@@ -361,10 +361,10 @@ module MCPU_MEM_dtlb(
    assign data_data_b_valid = 1;
 
    always @(*) begin
-      we_data_a[q_evict_a] = cache_update_a;
-      we_data_a[~q_evict_a] = 0;
-      we_data_b[q_evict_b] = cache_update_b;
-      we_data_b[~q_evict_b] = 0;
+      we_data_a = q_evict_a ? {{cache_update_a}, {1'b0}} :
+                  {{1'b0}, {cache_update_a}};
+      we_data_b = q_evict_b ? {{cache_update_b}, {1'b0}} :
+                  {{1'b0}, {cache_update_b}};
    end
 
    // Update state and latch inputs
