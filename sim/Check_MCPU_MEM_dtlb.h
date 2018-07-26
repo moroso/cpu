@@ -6,19 +6,15 @@
 
 #define NUM_SETS (1<<SET_WIDTH)
 
-#include <queue>
+#include <map>
 #include "MCPU_MEM_dtlb_ports.h"
 
 class Check_MCPU_MEM_dtlb {
   struct CacheEntry {
-    uint32_t addr;
     uint32_t phys_addr;
     uint8_t flags;
     bool valid;
   };
-
-  CacheEntry lines[NUM_SETS][2];
-  uint8_t next_evict[NUM_SETS];
 
   bool active;
   uint32_t active_addr_a;
@@ -37,7 +33,7 @@ class Check_MCPU_MEM_dtlb {
   void update_evict_from_miss(uint32_t addr);
   void check_outputs();
 
-  std::queue<uint32_t> walk_queue;
+  std::map<uint32_t, CacheEntry> address_map;
  public:
   Check_MCPU_MEM_dtlb(MCPU_MEM_dtlb_ports *ports);
 
