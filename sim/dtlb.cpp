@@ -17,8 +17,8 @@ VerilatedVcdC* tfp;
 // (Loose) upper bound on cycle count any operation should take.
 #define DEADLINE 128
 
-#define TAG_SIZE 7
-#define SET_SIZE 13
+#define TAG_SIZE 16
+#define SET_SIZE 4
 
 #define DATA_BRAM_SIZE (1<<SET_SIZE)
 
@@ -125,8 +125,8 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
   for (int i = 0; i < DATA_BRAM_SIZE; i++) {
     tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__0__KET____DOT__data_bram0__DOT__ram[i] = 0;
     tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__1__KET____DOT__data_bram0__DOT__ram[i] = 0;
-    tb->MCPU_MEM_dtlb__DOT__evict_bram0__DOT__ram[i] = 0;
   }
+  tb->MCPU_MEM_dtlb__DOT__evict = 0;
 
   TlbTest test(tb);
 
@@ -371,7 +371,7 @@ void test_random(TlbTest &test) {
 int main(int argc, char **argv, char **env) {
 	Sim::init(argc, argv);
 
-	VMCPU_MEM_dtlb *tb = new VMCPU_MEM_dtlb;
+	VMCPU_MEM_dtlb *tb = new VMCPU_MEM_dtlb();
 
 #if VM_TRACE
   Verilated::traceEverOn(true);

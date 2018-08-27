@@ -34,8 +34,9 @@ module MCPU_MEM_dtlb(
 
    // Number of bits in a set address and a tag. (Note: this is not the width
    // of the set itself! That's DATA_SIZE * WAYS.)
-   localparam SET_WIDTH = 13;
-   localparam TAG_WIDTH = 7;
+   localparam SET_WIDTH = 4;
+   localparam TAG_WIDTH = 16;
+   localparam NUM_SETS = 16;
 
    // Note: this is for clarify of code, not for ease of changing
    // cache parameters. Code changes would be needed if this changes!
@@ -43,11 +44,12 @@ module MCPU_MEM_dtlb(
 
    // Data entries are packed as follows:
    //  1 bit: valid bit
-   //  7 bits: tag ( = TAG_WIDTH)
+   //  16 bits: tag ( = TAG_WIDTH)
+
    //  4 bits: address flags
    //  20 bits: translated address
-   // for a total of 32 bits.
-   localparam DATA_SIZE = 32;
+   // for a total of 24 bits.
+   localparam DATA_SIZE = 24;
 
    localparam STATE_BITS = 3;
    localparam ST_IDLE = 0;
@@ -56,6 +58,9 @@ module MCPU_MEM_dtlb(
    localparam ST_LOOKUP_A = 2; // Performing a walk for address A.
    localparam ST_LOOKUP_B = 3;
    localparam ST_DELAY = 4; // A one-cycle delay before a transition to IDLE.
+
+   reg [WAYS * NUM_SETS - 1:0]  valid;
+   reg [TAG_WIDTH-1:0]  tags[NUM_SETS * WAYS - 1:0];
 
    reg [STATE_BITS-1:0] state = ST_IDLE;
    reg [STATE_BITS-1:0] next_state = ST_IDLE;
@@ -91,14 +96,14 @@ module MCPU_MEM_dtlb(
    reg [WAYS-1:0]       we_data_b;
 
    // Unpacked cache entries (from the data bram outputs)
-   wire [TAG_WIDTH-1:0] q_data_a_tag[WAYS-1:0];
+   wire [TAG_WIDTH-1:0] q_data_a_tag_0a[WAYS-1:0];
    wire [19:0]          q_data_a_addr[WAYS-1:0];
    wire [3:0]           q_data_a_flags[WAYS-1:0];
-   wire                 q_data_a_valid[WAYS-1:0];
-   wire [TAG_WIDTH-1:0] q_data_b_tag[WAYS-1:0];
+   wire                 q_data_a_valid_0a[WAYS-1:0];
+   wire [TAG_WIDTH-1:0] q_data_b_tag_0a[WAYS-1:0];
    wire [19:0]          q_data_b_addr[WAYS-1:0];
    wire [3:0]           q_data_b_flags[WAYS-1:0];
-   wire                 q_data_b_valid[WAYS-1:0];
+   wire                 q_data_b_valid_0a[WAYS-1:0];
 
    // Unpacked cache entries, for writing--these are combined to form
    // the inputs to the data brams.
@@ -112,32 +117,24 @@ module MCPU_MEM_dtlb(
    wire                 data_data_b_valid;
 
    // Data input to the data brams.
-   assign data_data_a = {{data_data_a_valid},
-                         {data_data_a_tag},
-                         {data_data_a_flags},
+   assign data_data_a = {{data_data_a_flags},
                          {data_data_a_addr}};
-   assign data_data_b = {{data_data_b_valid},
-                         {data_data_b_tag},
-                         {data_data_b_flags},
+   assign data_data_b = {{data_data_b_flags},
                          {data_data_b_addr}};
-
-   // Wires and registers for evict bram
-   wire                  q_evict_a;
-   wire                  q_evict_b;
-   reg                   data_evict_a;
-   reg                   data_evict_b;
-   wire [SET_WIDTH-1:0]  addr_evict_a;
-   wire [SET_WIDTH-1:0]  addr_evict_b;
-   reg                   we_evict_a;
-   reg                   we_evict_b;
 
    // Which ports were hits on which ways.
    // Note that these will be updated even if read enable is low for the port.
-   wire [WAYS-1:0]      hit_a_way_1a;
-   wire [WAYS-1:0]      hit_b_way_1a;
+   reg [WAYS-1:0]       hit_a_way_1a;
+   reg [WAYS-1:0]       hit_b_way_1a;
+
+   wire [WAYS-1:0]      hit_a_way_0a;
+   wire [WAYS-1:0]      hit_b_way_0a;
 
    wire                 hit_a_1a = |hit_a_way_1a;
    wire                 hit_b_1a = |hit_b_way_1a;
+
+   wire                 hit_a_0a = |hit_a_way_0a;
+   wire                 hit_b_0a = |hit_b_way_0a;
 
    wire                 dtlb_re_a_0a = dtlb_re_a;
    wire                 dtlb_re_b_0a = dtlb_re_b;
@@ -151,11 +148,6 @@ module MCPU_MEM_dtlb(
                        (state == ST_COMPARING &&
                         (~dtlb_re_a_1a | hit_a_1a) &&
                         (~dtlb_re_b_1a | hit_b_1a));
-
-   // Reads and writes to the evict bram are always from the "last" address;
-   // we never read or write on the cycle that we first see the address.
-   assign addr_evict_a = set_a_1a;
-   assign addr_evict_b = set_b_1a;
 
    // Flags are a bit annoying: we get the PD and PT flags for the
    // entry separately, and some flags (e.g. "present") must be set on
@@ -201,6 +193,9 @@ module MCPU_MEM_dtlb(
    // don't accidentally walk twice.)
    reg       start_lookup;
 
+   reg [WAYS-1:0] next_hit_a_way_1a;
+   reg [WAYS-1:0] next_hit_b_way_1a;
+
    always @(*) begin
       evict_update_a_from_hit = 0;
       evict_update_a_from_miss = 0;
@@ -222,12 +217,17 @@ module MCPU_MEM_dtlb(
 
       start_lookup = 0;
 
+      next_hit_a_way_1a = hit_a_way_1a;
+      next_hit_b_way_1a = hit_b_way_1a;
+
       case (state)
         ST_IDLE: begin
            if (dtlb_re_a_0a | dtlb_re_b_0a) begin
               read_addresses_imm = 1;
               latch_inputs = 1;
               next_state = ST_COMPARING;
+              next_hit_a_way_1a = hit_a_way_0a;
+              next_hit_b_way_1a = hit_b_way_0a;
            end
         end
         ST_COMPARING: begin
@@ -260,13 +260,17 @@ module MCPU_MEM_dtlb(
                  next_state = ST_IDLE;
                  read_addresses_imm = 0;
               end
-           end
+           end // else: !if(dtlb_re_b_1a & ~hit_b_1a)
+
+           next_hit_a_way_1a = hit_a_way_0a;
+           next_hit_b_way_1a = hit_b_way_0a;
         end
         ST_LOOKUP_A: begin
            lookup_a = 1;
            if (tlb2ptw_ready_1a) begin
               evict_update_a_from_miss = 1;
               cache_update_a = 1;
+              next_hit_a_way_1a = {{evict[set_a_1a], ~evict[set_a_1a]}};
 
               if (dtlb_re_b_1a & ~hit_b_1a) begin
                  // We need one cycle to write the new data to the
@@ -299,6 +303,8 @@ module MCPU_MEM_dtlb(
               evict_update_b_from_miss = 1;
               cache_update_b = 1;
 
+              next_hit_b_way_1a = {{evict[set_b_1a], ~evict[set_b_1a]}};
+
               next_state = ST_IDLE;
            end else
              lookup_b = 1;
@@ -308,34 +314,25 @@ module MCPU_MEM_dtlb(
    end // always @ (*)
 
    // Logic for updating eviction bits.
-   always @(*) begin
-      we_evict_a = 0;
-      data_evict_a = 1'bx;
-
+   always @(posedge clk) begin
       if (evict_update_a_from_hit | evict_update_a_from_miss) begin
-         we_evict_a = 1;
          if (evict_update_a_from_hit)
             // If the hit was on way 0, we'll next want to evict 1, and
             // if it was on way 1, we'll next want to evict 0.
-            data_evict_a = hit_a_way_1a[0];
+           evict[set_a_1a] = hit_a_way_1a[0];
          else
-            data_evict_a = ~q_evict_a;
+           evict[set_a_1a] = ~evict[set_a_1a];
       end
-   end
-   always @(*) begin
-      we_evict_b = 0;
-      data_evict_b = 1'bx;
 
       if (evict_update_b_from_hit | evict_update_b_from_miss) begin
-         we_evict_b = 1;
          if (evict_update_b_from_hit)
-           // If the hit was on way 0, we'll next want to evict 1, and
-           // if it was on way 1, we'll next want to evict 0.
-           data_evict_b = hit_b_way_1a[0];
+            // If the hit was on way 0, we'll next want to evict 1, and
+            // if it was on way 1, we'll next want to evict 0.
+           evict[set_b_1a] = hit_b_way_1a[0];
          else
-           data_evict_b = ~q_evict_b;
+           evict[set_b_1a] = ~evict[set_a_1a];
       end
-   end // always @ (evict_update_a_mode)
+   end
 
    // Update inputs to walker
    always @(*) begin
@@ -361,9 +358,9 @@ module MCPU_MEM_dtlb(
    assign data_data_b_valid = 1;
 
    always @(*) begin
-      we_data_a = q_evict_a ? {{cache_update_a}, {1'b0}} :
+      we_data_a = evict[set_a_1a] ? {{cache_update_a}, {1'b0}} :
                   {{1'b0}, {cache_update_a}};
-      we_data_b = q_evict_b ? {{cache_update_b}, {1'b0}} :
+      we_data_b = evict[set_b_1a] ? {{cache_update_b}, {1'b0}} :
                   {{1'b0}, {cache_update_b}};
    end
 
@@ -372,6 +369,9 @@ module MCPU_MEM_dtlb(
       state <= next_state;
 
       tlb2ptw_ready_1a <= tlb2ptw_ready_0a;
+
+      hit_a_way_1a <= next_hit_a_way_1a;
+      hit_b_way_1a <= next_hit_b_way_1a;
 
       if (latch_inputs) begin
          dtlb_re_a_1a <= dtlb_re_a_0a;
@@ -398,60 +398,64 @@ module MCPU_MEM_dtlb(
          // or not we're actually doing a read.
          // We have a hit on on this way if the tags match and the
          // entry is valid.
-         assign hit_a_way_1a[i] = ((q_data_a_tag[i] == tag_a_1a) &&
-                                   q_data_a_valid[i]);
-         assign hit_b_way_1a[i] = ((q_data_b_tag[i] == tag_b_1a) &&
-                                   q_data_b_valid[i]);
+         assign hit_a_way_0a[i] = ((q_data_a_tag_0a[i] == tag_a_0a) &&
+                                   q_data_a_valid_0a[i]);
+         assign hit_b_way_0a[i] = ((q_data_b_tag_0a[i] == tag_b_0a) &&
+                                   q_data_b_valid_0a[i]);
       end
    endgenerate
 
    generate
       for (i = 0; i < WAYS; i = i + 1) begin: data_bram_gen
-          dp_bram #(
-                  .DATA_WIDTH(DATA_SIZE),
-                  .ADDR_WIDTH(SET_WIDTH)
-                  ) data_bram0 (
-                                // Outputs
-                                .q_a                   (q_data_a[i]),
-                                .q_b                   (q_data_b[i]),
-                                // Inputs
-                                .data_a                (data_data_a),
-                                .data_b                (data_data_b),
-                                .addr_a                (addr_data_a),
-                                .addr_b                (addr_data_b),
-                                .we_a                  (we_data_a[i]),
-                                .we_b                  (we_data_b[i]),
-                                .clk                   (clk));
+         wire [0:0] ii = i;
+         dp_bram #(
+                   .DATA_WIDTH(DATA_SIZE),
+                   .ADDR_WIDTH(SET_WIDTH)
+                   ) data_bram0 (
+                                 // Outputs
+                                 .q_a                   (q_data_a[i]),
+                                 .q_b                   (q_data_b[i]),
+                                 // Inputs
+                                 .data_a                (data_data_a),
+                                 .data_b                (data_data_b),
+                                 .addr_a                (addr_data_a),
+                                 .addr_b                (addr_data_b),
+                                 .we_a                  (we_data_a[i]),
+                                 .we_b                  (we_data_b[i]),
+                                 .clk                   (clk));
+
+         assign q_data_a_valid_0a[i] = valid[{set_a_0a, ii}];
+         assign q_data_a_tag_0a[i] = tags[{set_a_0a, ii}];
 
          // Split the output into its components.
-         assign q_data_a_valid[i] = q_data_a[i][DATA_SIZE-1];
-         assign q_data_a_tag[i] = q_data_a[i][DATA_SIZE-2 -: TAG_WIDTH];
          assign q_data_a_flags[i] = q_data_a[i][23:20];
          assign q_data_a_addr[i] = q_data_a[i][19:0];
 
-         assign q_data_b_valid[i] = q_data_b[i][DATA_SIZE-1];
-         assign q_data_b_tag[i] = q_data_b[i][DATA_SIZE-2 -: TAG_WIDTH];
+         assign q_data_b_valid_0a[i] = valid[{set_b_0a, ii}];
+         assign q_data_b_tag_0a[i] = tags[{set_b_0a, ii}];
+
          assign q_data_b_flags[i] = q_data_b[i][23:20];
          assign q_data_b_addr[i] = q_data_b[i][19:0];
+
       end
    endgenerate
+
+   always @(posedge clk) begin
+      integer ii;
+      for (ii = 0; ii < WAYS; ii = ii + 1) begin
+          if (we_data_a[ii]) begin
+             valid[{addr_data_a, ii[0]}] <= data_data_a_valid;
+             tags[{addr_data_a, ii[0]}] <= data_data_a_tag;
+          end
+          if (we_data_b[ii]) begin
+             valid[{addr_data_b, ii[0]}] <= data_data_b_valid;
+             tags[{addr_data_b, ii[0]}] <= data_data_b_tag;
+          end
+      end
+   end
 
    // Each set has a single bit associated with it to specify which way
    // will be evicted next. (This will need to change if the associativity
    // of the cache is changed.)
-   dp_bram #(
-             .DATA_WIDTH(1),
-             .ADDR_WIDTH(SET_WIDTH)
-             ) evict_bram0 (
-                         // Outputs
-                         .q_a                   (q_evict_a),
-                         .q_b                   (q_evict_b),
-                         // Inputs
-                         .data_a                (data_evict_a),
-                         .data_b                (data_evict_b),
-                         .addr_a                (addr_evict_a),
-                         .addr_b                (addr_evict_b),
-                         .we_a                  (we_evict_a),
-                         .we_b                  (we_evict_b),
-                         .clk                   (clk));
+   reg [NUM_SETS-1:0] evict = 16'b0;
 endmodule
