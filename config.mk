@@ -8,6 +8,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_LTC_bram.sv \
 	rtl/mc/MCPU_MEM_arb.v \
 	rtl/mc/MCPU_MEM_dtlb.v \
+	rtl/mc/MCPU_MEM_il1c.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/lib/FIFO.v \
@@ -15,6 +16,7 @@ RTL_COMMON = \
 	rtl/lib/reg_2.v \
 	rtl/lib/altsyncram.v \
 	rtl/lib/dp_bram.v \
+	rtl/lib/sp_bram.v \
 	rtl/core/MCPU_core.v \
 	rtl/core/MCPU_CORE_stage_fetch.v \
 	rtl/core/MCPU_CORE_stage_fetchtlb.v \
@@ -195,3 +197,20 @@ TESTPLAN_L0_tests += dtlb_basic
 TESTPLAN_L1_tests += dtlb_fill dtlb_random_full dtlb_random_limited
 TESTPLAN_L2_tests += dtlb_random_long
 ALL_TESTS += dtlb_basic dtlb_fill dtlb_random_full dtlb_random_limited dtlb_random_long
+
+# Instruction L1C tests
+
+TB_il1c_top = MCPU_MEM_il1c
+TB_il1c_cpps = il1c.cpp Sim.cpp Cmod_MCPU_MEM_dtlb.cpp Cmod_MCPU_MEM_arb.cpp \
+    Stim_MCPU_MEM_il1c.cpp Check_MCPU_MEM_il1c.cpp
+ALL_TBS += il1c
+
+TEST_il1c_basic_tb = il1c
+TEST_il1c_basic_env =
+
+TEST_il1c_random_tb = il1c
+TEST_il1c_random_env = IL1C_TEST_NAME=random
+
+TESTPLAN_L0_TESTS += il1c_basic
+TESTPLAN_L1_TESTS += 1l1c_random
+ALL_TESTS += il1c_basic
