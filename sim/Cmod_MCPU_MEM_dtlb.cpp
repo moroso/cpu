@@ -4,9 +4,10 @@
 #define MISS_DELAY_BASE 32
 #define MISS_DELAY_RANDOM 32
 
-Cmod_MCPU_MEM_dtlb::Cmod_MCPU_MEM_dtlb(MCPU_MEM_dtlb_ports *ports) :
+Cmod_MCPU_MEM_dtlb::Cmod_MCPU_MEM_dtlb(Cmod_MCPU_MEM_dtlb_ports *ports) :
   use_random(false),
-  active(false)
+  active(false),
+  ports(ports)
 {
 }
 
@@ -17,6 +18,26 @@ void Cmod_MCPU_MEM_dtlb::clear() {
 }
 
 void Cmod_MCPU_MEM_dtlb::clk() {
+  if (!active && (*ports->dtlb_re_a || (ports->dual && *ports->dtlb_re_b))) {
+    re[0] = *ports->dtlb_re_a;
+    lookup_addr[0] = *ports->dtlb_addr_a;
+    if (ports->dual) {
+      re[1] = *ports->dtlb_re_b;
+      lookup_addr[1] = *ports->dtlb_addr_b;
+    }
+
+    active = 1;
+    *ports->dtlb_ready = 0;
+
+    if (Sim::random(2) == 0) {
+      // Half the time, simulate a cache hit and give an answer next cycle.
+      remaining_cycles = 1;
+    } else {
+      // The rest of the time, wait a random number of cycles.
+      remaining_cycles = MISS_DELAY_BASE + Sim::random(MISS_DELAY_RANDOM);
+    }
+  }
+
   if (active) {
     remaining_cycles -= 1;
     if (remaining_cycles == 0) {
@@ -38,7 +59,7 @@ void Cmod_MCPU_MEM_dtlb::clk() {
         *ports->dtlb_phys_addr_a = entry_a.phys;
         *ports->dtlb_flags_a = entry_a.flags;
       }
-      if (re[1]) {
+      if (ports->dual && re[1]) {
         dtlb_mapping_entry entry_b = address_map[lookup_addr[1]];
         *ports->dtlb_phys_addr_b = entry_b.phys;
         *ports->dtlb_flags_b = entry_b.flags;
@@ -48,26 +69,11 @@ void Cmod_MCPU_MEM_dtlb::clk() {
       // Until the ready signal is asserted, the outputs are allowed to have any
       // values and are allowed to change. So, change them!
       *ports->dtlb_phys_addr_a = Sim::random(1<<20);
-      *ports->dtlb_phys_addr_b = Sim::random(1<<20);
       *ports->dtlb_flags_a = Sim::random(1<<4);
-      *ports->dtlb_flags_b = Sim::random(1<<4);
-    }
-  }
-
-  if (*ports->dtlb_re_a || *ports->dtlb_re_b) {
-    re[0] = *ports->dtlb_re_a;
-    re[1] = *ports->dtlb_re_b;
-    lookup_addr[0] = *ports->dtlb_addr_a;
-    lookup_addr[1] = *ports->dtlb_addr_b;
-
-    active = 1;
-
-    if (Sim::random(2) == 0) {
-      // Half the time, simulate a cache hit and give an answer next cycle.
-      remaining_cycles = 1;
-    } else {
-      // The rest of the time, wait a random number of cycles.
-      remaining_cycles = MISS_DELAY_BASE + Sim::random(MISS_DELAY_RANDOM);
+      if (ports->dual) {
+        *ports->dtlb_phys_addr_b = Sim::random(1<<20);
+        *ports->dtlb_flags_b = Sim::random(1<<4);
+      }
     }
   }
 }

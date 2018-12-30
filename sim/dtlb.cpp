@@ -111,8 +111,8 @@ void TlbTest::lookup_single(uint32_t addr, bool is_addr_b) {
 }
 
 void TlbTest::set_addr(uint32_t virt, uint32_t phys,
-                       uint8_t virt_flags, uint8_t phys_flags) {
-  walk->add_mapping(virt, phys, virt_flags, phys_flags);
+                       uint8_t pd_flags, uint8_t pt_flags) {
+  walk->add_mapping(virt, phys, pd_flags, pt_flags);
 }
 
 bool TlbTest::done() {

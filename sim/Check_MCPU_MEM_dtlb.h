@@ -28,7 +28,6 @@ class Check_MCPU_MEM_dtlb {
   MCPU_MEM_dtlb_ports *ports;
 
   Check_MCPU_MEM_dtlb::CacheEntry *entry_for_addr(uint32_t addr);
-  int way_for_addr(uint32_t addr);
   void update_evict_from_hit(uint32_t addr);
   void update_evict_from_miss(uint32_t addr);
   void check_outputs();
