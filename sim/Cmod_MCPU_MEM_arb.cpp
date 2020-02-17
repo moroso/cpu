@@ -47,7 +47,10 @@ void Cmod_MCPU_MEM_arb::clk() {
   for (int i = 0; i < clients.size(); i++) {
     // Stall all clients that are trying to make requests.
     // (If we're just finishing one, we'll un-stall it below.)
-    *clients[i]->arb_stall = last[i].arb_valid;
+
+    // Note: we *don't* use last[i].arb_valid here, intentionally!
+    // We want to stall if the valid line is set *now*.
+    *clients[i]->arb_stall = *clients[i]->arb_valid;
     if (last[i].arb_valid)
       *clients[i]->arb_rvalid = 0;
   }
@@ -62,7 +65,7 @@ void Cmod_MCPU_MEM_arb::clk() {
       in_values_t *old = &last[current_client];
       int adjusted_addr = old->arb_addr << 5;
 
-      *client->arb_stall = 0;
+      //*client->arb_stall = 0;
 
       SIM_DEBUG("Opcode = %d", old->arb_opcode);
       switch (old->arb_opcode) {

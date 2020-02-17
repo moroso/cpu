@@ -7,6 +7,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_LTC_bram.sv \
 	rtl/mc/MCPU_MEM_arb.v \
+	rtl/mc/MCPU_MEM_dl1c.v \
 	rtl/mc/MCPU_MEM_dtlb.v \
 	rtl/mc/MCPU_MEM_il1c.v \
 	rtl/mc/MCPU_MEM_preload.v \
@@ -214,3 +215,20 @@ TEST_il1c_random_env = IL1C_TEST_NAME=random
 TESTPLAN_L0_TESTS += il1c_basic
 TESTPLAN_L1_TESTS += 1l1c_random
 ALL_TESTS += il1c_basic
+
+# Data L1C tests
+
+TB_dl1c_top = MCPU_MEM_dl1c
+TB_dl1c_cpps = dl1c.cpp Sim.cpp Cmod_MCPU_MEM_dtlb.cpp Cmod_MCPU_MEM_arb.cpp \
+    Stim_MCPU_MEM_dl1c.cpp Check_MCPU_MEM_dl1c.cpp
+ALL_TBS += dl1c
+
+TEST_dl1c_basic_tb = dl1c
+TEST_dl1c_basic_env =
+
+# TEST_dl1c_random_tb = dl1c
+# TEST_dl1c_random_env = DL1C_TEST_NAME=random
+
+TESTPLAN_L0_TESTS += dl1c_basic
+# TESTPLAN_L1_TESTS += dl1c_random
+ALL_TESTS += dl1c_basic
