@@ -3,14 +3,14 @@
 #include "Check_MCPU_MEM_il1c.h"
 #include "mem_common.h"
 
-#define FROM_TLB_ADDR(addr) (addr << 12)
-#define TO_TLB_ADDR(addr) (addr >> 12)
+#define FROM_TLB_ADDR(addr) ((addr) << 12)
+#define TO_TLB_ADDR(addr) ((addr) >> 12)
 
-#define FROM_ARB_ADDR(addr) (addr << 5)
-#define TO_ARB_ADDR(addr) (addr >> 5)
+#define FROM_ARB_ADDR(addr) ((addr) << 5)
+#define TO_ARB_ADDR(addr) ((addr) >> 5)
 
-#define FROM_L1C_ADDR(addr) (addr << 4)
-#define TO_L1C_ADDR(addr) (addr >> 4)
+#define FROM_L1C_ADDR(addr) ((addr) << 4)
+#define TO_L1C_ADDR(addr) ((addr) >> 4)
 
 #define SET(addr) ((TO_L1C_ADDR(addr) >> 1) & ((1<<SET_WIDTH)-1))
 #define TAG(addr) (TO_L1C_ADDR(addr) >> (SET_WIDTH + 1))
