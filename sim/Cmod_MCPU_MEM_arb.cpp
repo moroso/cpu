@@ -21,15 +21,35 @@ void Cmod_MCPU_MEM_arb::add_client(Cmod_MCPU_MEM_arb_ports *_ports) {
   *_ports->arb_rvalid = 0;
 
   clients.push_back(_ports);
+  last.push_back({});
+}
+
+void Cmod_MCPU_MEM_arb::latch() {
+  for (int i = 0; i < clients.size(); i++) {
+    last[i].arb_valid = *clients[i]->arb_valid;
+    last[i].arb_opcode = *clients[i]->arb_opcode;
+    last[i].arb_addr = *clients[i]->arb_addr;
+    for (int j = 0; j < 8; j++) {
+      last[i].arb_wdata[j] = clients[i]->arb_wdata[j];
+    }
+    last[i].arb_wbe = *clients[i]->arb_wbe;
+  }
+  last_read_time = Sim::main_time;
 }
 
 void Cmod_MCPU_MEM_arb::clk() {
-  for (Cmod_MCPU_MEM_arb_ports *client: clients) {
+  SIM_ASSERT_MSG(
+    last_read_time == Sim::main_time,
+    "Last read arguments at %d, not at %d (forgot call to latch()?)",
+    last_read_time, Sim::main_time
+  );
+
+  for (int i = 0; i < clients.size(); i++) {
     // Stall all clients that are trying to make requests.
     // (If we're just finishing one, we'll un-stall it below.)
-    *client->arb_stall = *client->arb_valid;
-    if (*client->arb_valid)
-      *client->arb_rvalid = 0;
+    *clients[i]->arb_stall = last[i].arb_valid;
+    if (last[i].arb_valid)
+      *clients[i]->arb_rvalid = 0;
   }
 
   if (active) {
@@ -39,12 +59,13 @@ void Cmod_MCPU_MEM_arb::clk() {
 
     if (remaining_cycles == 0) {
       Cmod_MCPU_MEM_arb_ports* client = clients[current_client];
-      int adjusted_addr = *client->arb_addr << 5;
+      in_values_t *old = &last[current_client];
+      int adjusted_addr = old->arb_addr << 5;
 
       *client->arb_stall = 0;
 
-      SIM_DEBUG("Opcode = %d", *client->arb_opcode);
-      switch (*client->arb_opcode) {
+      SIM_DEBUG("Opcode = %d", old->arb_opcode);
+      switch (old->arb_opcode) {
       case LTC_OPC_READ:
       case LTC_OPC_READTHROUGH: {
           SIM_DEBUG("Performing read from %08x", adjusted_addr);
@@ -59,8 +80,8 @@ void Cmod_MCPU_MEM_arb::clk() {
           SIM_DEBUG("Performing write to %08x", adjusted_addr);
           // Do writes a byte at at time to make checking the mask easier.
           for (int i = 0; i < DATA_BYTES; i++) {
-            if (*client->arb_wbe & (1<<i)) {
-              write_b(adjusted_addr + i, client->arb_wdata[i/4] >> ((i%4) * 8));
+            if (old->arb_wbe & (1<<i)) {
+              write_b(adjusted_addr + i, old->arb_wdata[i/4] >> ((i%4) * 8));
             }
           }
           break;
@@ -80,7 +101,7 @@ void Cmod_MCPU_MEM_arb::clk() {
 
     for (int i = 0; i < clients.size(); i += 1) {
       int candidate = (current_client + i) % clients.size();
-      if (*clients[candidate]->arb_valid) {
+      if (last[candidate].arb_valid) {
         SIM_DEBUG("Selected client %d", candidate);
         // Found one! Mark it as in-progress.
         current_client = candidate;

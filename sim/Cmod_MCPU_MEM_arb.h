@@ -34,12 +34,24 @@ struct Cmod_MCPU_MEM_arb_ports {
 	} while(0)
 
 class Cmod_MCPU_MEM_arb {
+  struct in_values_t {
+    CData arb_valid;
+    CData arb_opcode;
+    IData arb_addr;
+    WData arb_wdata[8];
+    IData arb_wbe;
+  };
+
   std::vector<Cmod_MCPU_MEM_arb_ports*> clients;
   int current_client;
   bool active;
   int remaining_cycles;
 
 	uint8_t memory[Cmod_MCPU_MEM_arb_MEMSZ];
+
+  // Latched values
+  std::vector<in_values_t> last;
+  vluint64_t last_read_time;
 
 public:
   Cmod_MCPU_MEM_arb();
@@ -51,6 +63,7 @@ public:
   uint32_t read(uint32_t addr);
 
   void clk();
+  void latch();
 };
 
 #endif
