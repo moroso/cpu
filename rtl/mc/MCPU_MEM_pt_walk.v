@@ -31,12 +31,14 @@ module MCPU_MEM_pt_walk(
 
 `include "MCPU_MEM_ltc.vh"
 
-   parameter STATE_BITS = 2;
+   parameter STATE_BITS = 3;
 
    // State machine states
    parameter ST_IDLE = 0; // Waiting for a requests
-   parameter ST_READ_DIR = 1; // Reading the page directory entry
-   parameter ST_READ_TAB = 2; // Reading the page table entry
+   parameter ST_BEGIN_READ_DIR = 1; // About to read page directory entry
+   parameter ST_READ_DIR = 2; // Reading the page directory entry
+   parameter ST_BEGIN_READ_TAB = 3;
+   parameter ST_READ_TAB = 4; // Reading the page table entry
 
    reg [STATE_BITS-1:0]   state = ST_IDLE;
    reg [STATE_BITS-1:0]   next_state = ST_IDLE;
@@ -92,16 +94,22 @@ module MCPU_MEM_pt_walk(
       case (state)
         ST_IDLE:
           if (tlb2ptw_re) begin
-             next_state = ST_READ_DIR;
+             if (~ptw2arb_stall)
+               next_state = ST_BEGIN_READ_DIR;
              next_ptw2arb_addr = {{tlb2ptw_pagedir_base}, {dir_offs[9:3]}};
              next_ptw2arb_valid = 1;
           end else begin
              next_state = ST_IDLE;
           end
+        ST_BEGIN_READ_DIR: begin
+           next_state = ST_READ_DIR;
+           next_ptw2arb_addr = ptw2arb_addr;
+           next_ptw2arb_valid = 1;
+        end
         ST_READ_DIR:
           if (ptw2arb_rvalid) begin
              if (arb_rdata_pd_present) begin
-                next_state = ST_READ_TAB;
+                next_state = ST_BEGIN_READ_TAB;
                 // We haven't yet stored the page *table* address in pagetab_base,
                 // so for this cylce we get it from the atom we just read from the ltc.
                 next_ptw2arb_addr = {{arb_rdata_pd_addr}, {pt_offs[9:3]}};
@@ -112,8 +120,13 @@ module MCPU_MEM_pt_walk(
                next_state = ST_IDLE;
           end else begin
              next_ptw2arb_addr = {{tlb2ptw_pagedir_base}, {dir_offs[9:3]}};
-             next_ptw2arb_valid = 1;
-          end
+              //next_ptw2arb_valid = 1;
+           end // else: !if(ptw2arb_rvalid)
+        ST_BEGIN_READ_TAB: begin
+           next_state = ST_READ_TAB;
+           next_ptw2arb_addr = ptw2arb_addr;
+           next_ptw2arb_valid = 1;
+        end
         ST_READ_TAB:
           if (ptw2arb_rvalid) begin
              next_state = ST_IDLE;

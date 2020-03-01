@@ -1,3 +1,5 @@
+// TODO: rewrite this in terms of stim/check classes.
+
 #include <stdlib.h>
 
 #include "Sim.h"
@@ -67,6 +69,7 @@ WalkTest::WalkTest(VMCPU_MEM_pt_walk *tb)
 
   arb->add_client(arb_ports);
 
+  arb->latch();
   tb->tlb2ptw_clk = 0;
   tb->tlb2ptw_addr = 0;
   tb->tlb2ptw_re = 0;
@@ -88,6 +91,7 @@ WalkTest::~WalkTest() {
 void WalkTest::do_lookup(uint32_t addr) {
   int cycles = 0;
 
+  arb->latch();
   tb->tlb2ptw_clk = 1;
   tb->eval();
   tb->tlb2ptw_re = 1;
@@ -104,13 +108,14 @@ void WalkTest::do_lookup(uint32_t addr) {
     Sim::tick();
     TRACE;
 
+    arb->latch();
     tb->tlb2ptw_clk = 1;
-    tb->eval();
     tb->tlb2ptw_re = 0;
+    tb->eval();
     arb->clk();
     tb->eval();
 
-    if (tb->tlb2ptw_ready) { return; }
+    if (cycles > 2 && tb->tlb2ptw_ready) { return; }
     Sim::tick();
     TRACE;
   }
