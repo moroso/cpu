@@ -63,7 +63,7 @@ void Check_MCPU_MEM_dtlb::clk() {
     }
 
     if (walk_active) {
-      SIM_CHECK(*ports->tlb2ptw_addr == walk_addr);
+      SIM_CHECK_EQ(*ports->tlb2ptw_addr, walk_addr);
     } else {
       if (*ports->tlb2ptw_re) {
         // Beginning a walk. Make sure we were expecting it.

@@ -25,31 +25,43 @@ void Cmod_MCPU_MEM_walk::add_mapping(uint32_t virt,
   };
 }
 
+void Cmod_MCPU_MEM_walk::latch() {
+  last_tlb2ptw_addr = *ports->tlb2ptw_addr;
+  last_tlb2ptw_re = *ports->tlb2ptw_re;
+  last_read_time = Sim::main_time;
+}
+
 void Cmod_MCPU_MEM_walk::clk() {
+  SIM_ASSERT_MSG(
+    last_read_time == Sim::main_time,
+    "Last read arguments at %d, not at %d (forgot call to latch()?)",
+    last_read_time, Sim::main_time
+  );
+
   if (active) {
     remaining_cycles -= 1;
 
     if (remaining_cycles == 0) {
       active = false;
 
-      if (address_map.find(*ports->tlb2ptw_addr) == address_map.end()) {
+      if (address_map.find(last_tlb2ptw_addr) == address_map.end()) {
         if (use_random) {
-          address_map[*ports->tlb2ptw_addr] = {
+          address_map[last_tlb2ptw_addr] = {
             .phys = (uint32_t)Sim::random(1<<20),
             .pd_flags = (uint8_t)Sim::random(1<<4),
             .pt_flags = (uint8_t)Sim::random(1<<4),
           };
         } else {
-          SIM_ERROR("Address map does not contain %x", *ports->tlb2ptw_addr);
+          SIM_ERROR("Address map does not contain %x", last_tlb2ptw_addr);
         }
       }
-      mapping_entry entry = address_map[*ports->tlb2ptw_addr];
+      mapping_entry entry = address_map[last_tlb2ptw_addr];
       *ports->tlb2ptw_phys_addr = entry.phys;
       *ports->tlb2ptw_pagedir_flags = entry.pd_flags;
       *ports->tlb2ptw_pagetab_flags = entry.pt_flags;
       *ports->tlb2ptw_ready = 1;
     }
-  } else if (*ports->tlb2ptw_re) {
+  } else if (last_tlb2ptw_re) {
     accesses += 1;
     active = true;
     *ports->tlb2ptw_ready = 0;

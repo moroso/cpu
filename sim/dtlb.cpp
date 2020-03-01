@@ -60,10 +60,14 @@ public:
   void set_addr(uint32_t virt, uint32_t phys, uint8_t virt_flags, uint8_t phys_flags);
   bool done();
 
+  void latch() {
+    walk->latch();
+  }
+
   void clk() {
-    walk->clk();
     tb->eval();
     stim->clk();
+    walk->clk();
     tb->eval();
     check->clk();
     tb->eval();
@@ -132,6 +136,7 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
 
   testfunc(test);
   while (!test.done()) {
+    test.latch();
     tb->clk = 1;
     test.clk();
     tb->eval();
@@ -146,6 +151,7 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
 
   // Wait a few cycles before starting the next test.
   for (int i = 0; i < 16; i++) {
+    test.latch();
     tb->clk = 1;
     test.clk();
     tb->eval();

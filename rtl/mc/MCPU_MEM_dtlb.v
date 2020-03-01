@@ -141,7 +141,6 @@ module MCPU_MEM_dtlb(
    reg                  dtlb_re_a_1a = 0;
    reg                  dtlb_re_b_1a = 0;
 
-   wire                 tlb2ptw_ready_0a = tlb2ptw_ready;
    reg                  tlb2ptw_ready_1a;
 
    assign dtlb_ready = state == ST_IDLE ||
@@ -267,7 +266,7 @@ module MCPU_MEM_dtlb(
         end
         ST_LOOKUP_A: begin
            lookup_a = 1;
-           if (tlb2ptw_ready_1a) begin
+           if (tlb2ptw_ready) begin
               evict_update_a_from_miss = 1;
               cache_update_a = 1;
               next_hit_a_way_1a = {{evict[set_a_1a], ~evict[set_a_1a]}};
@@ -299,7 +298,7 @@ module MCPU_MEM_dtlb(
            end
         end
         ST_LOOKUP_B: begin
-           if (tlb2ptw_ready_1a) begin
+           if (tlb2ptw_ready) begin
               evict_update_b_from_miss = 1;
               cache_update_b = 1;
 
@@ -367,8 +366,6 @@ module MCPU_MEM_dtlb(
    // Update state and latch inputs
    always @(posedge clk) begin
       state <= next_state;
-
-      tlb2ptw_ready_1a <= tlb2ptw_ready_0a;
 
       hit_a_way_1a <= next_hit_a_way_1a;
       hit_b_way_1a <= next_hit_b_way_1a;

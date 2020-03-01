@@ -46,12 +46,17 @@ class Cmod_MCPU_MEM_walk {
 
   Cmod_MCPU_MEM_walk_ports *ports;
 
+  IData last_tlb2ptw_addr;
+  CData last_tlb2ptw_re;
+  vluint64_t last_read_time;
+
   std::map<uint32_t, mapping_entry> address_map;
 public:
   Cmod_MCPU_MEM_walk(Cmod_MCPU_MEM_walk_ports *ports);
 
   void add_mapping(uint32_t virt, uint32_t phys, uint8_t pd_flags, uint8_t pt_flags);
 
+  void latch();
   void clk();
 
   void clear();
