@@ -261,8 +261,10 @@ module MCPU_MEM_dtlb(
               end
            end // else: !if(dtlb_re_b_1a & ~hit_b_1a)
 
-           next_hit_a_way_1a = hit_a_way_0a;
-           next_hit_b_way_1a = hit_b_way_0a;
+           if (dtlb_re_a_0a | dtlb_re_b_0a) begin
+              next_hit_a_way_1a = hit_a_way_0a;
+              next_hit_b_way_1a = hit_b_way_0a;
+           end
         end
         ST_LOOKUP_A: begin
            lookup_a = 1;
@@ -280,6 +282,7 @@ module MCPU_MEM_dtlb(
                     // If we're doing a lookup of the same address twice,
                     // don't walk twice.
                     lookup_a = 0;
+                    next_hit_b_way_1a = next_hit_a_way_1a;
                     next_state = ST_DELAY;
                  end else begin
                     lookup_a = 0;

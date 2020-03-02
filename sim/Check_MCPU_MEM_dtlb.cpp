@@ -32,7 +32,7 @@ void Check_MCPU_MEM_dtlb::check_outputs() {
       SIM_CHECK_MSG(entry->phys_addr == *ports->dtlb_phys_addr_a,
                     "Addr A: expected %x, got %x",
                     entry->phys_addr, *ports->dtlb_phys_addr_a);
-      SIM_CHECK(entry->flags == *ports->dtlb_flags_a);
+      SIM_CHECK_EQ(entry->flags, *ports->dtlb_flags_a);
     }
   }
   if (addr_b_valid) {
@@ -42,7 +42,7 @@ void Check_MCPU_MEM_dtlb::check_outputs() {
       SIM_CHECK_MSG(entry->phys_addr == *ports->dtlb_phys_addr_b,
                     "Addr B: expected %x, got %x",
                     entry->phys_addr, *ports->dtlb_phys_addr_b);
-      SIM_CHECK(entry->flags == *ports->dtlb_flags_b);
+      SIM_CHECK_EQ(entry->flags, *ports->dtlb_flags_b);
     }
   }
 }
