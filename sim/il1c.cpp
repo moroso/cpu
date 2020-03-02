@@ -60,19 +60,23 @@ public:
   Il1cTest(VMCPU_MEM_il1c *tb);
   ~Il1cTest();
 
+  void latch() {
+    arb->latch();
+    dtlb->latch();
+  }
+
   void clk() {
-    dtlb->clk();
-    tb->eval();
-    arb->clk();
     tb->eval();
     stim->clk();
     tb->eval();
-    check->clk();
+    dtlb->clk();
+    arb->clk();
     tb->eval();
+    check->clk();
   }
 
   bool done() {
-    return stim->done();
+    return stim->done() && check->done();
   }
 
   void read(uint32_t addr) {
@@ -131,6 +135,7 @@ void run_test(VMCPU_MEM_il1c *tb, void (*testfunc)(Il1cTest &test)) {
 
   testfunc(test);
   while (!test.done()) {
+    test.latch();
     tb->clk = 1;
     test.clk();
     tb->eval();
@@ -145,6 +150,7 @@ void run_test(VMCPU_MEM_il1c *tb, void (*testfunc)(Il1cTest &test)) {
 
   // Wait a few cycles before starting the next test.
   for (int i = 0; i < 16; i++) {
+    test.latch();
     tb->clk = 1;
     test.clk();
     tb->eval();

@@ -46,9 +46,6 @@ void Check_MCPU_MEM_il1c::clk() {
         SIM_CHECK((*ports->il1c2arb_valid && !*ports->il1c2tlb_re) ||
                   *ports->il1c_ready);
         // TODO: check other signals to the tlb
-      } else {
-        // Make sure the address we're giving the tlb hasn't changed.
-        SIM_CHECK(TO_TLB_ADDR(lookup_addr) == *ports->il1c2tlb_addr);
       }
     }
 
@@ -81,8 +78,9 @@ void Check_MCPU_MEM_il1c::clk() {
       int set = SET(lookup_result);
       int tag = TAG(lookup_result);
 
-      SIM_CHECK(!address_map[set].valid ||
-                address_map[set].tag != tag);
+      SIM_CHECK_MSG(!address_map[set].valid ||
+                    address_map[set].tag != tag,
+                    "Set %d already in cache", set);
     }
 
     if (lookup_active || fetch_active) {

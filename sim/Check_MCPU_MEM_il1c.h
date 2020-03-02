@@ -43,6 +43,10 @@ class Check_MCPU_MEM_il1c {
 
   void clk();
   void reset();
+
+  bool done() {
+    return !active;
+  }
 };
 
 #endif

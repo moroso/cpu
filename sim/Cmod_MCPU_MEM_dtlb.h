@@ -74,11 +74,20 @@ class Cmod_MCPU_MEM_dtlb {
   bool re[2];
 
   std::map<uint32_t, dtlb_mapping_entry> address_map;
+
+  IData last_dtlb_addr_a;
+  IData last_dtlb_addr_b;
+  CData last_dtlb_re_a;
+  CData last_dtlb_re_b;
+  vluint64_t last_read_time;
+
 public:
+
   Cmod_MCPU_MEM_dtlb(Cmod_MCPU_MEM_dtlb_ports *ports);
 
   void add_mapping(uint32_t virt, uint32_t phys, uint8_t flags);
 
+  void latch();
   void clk();
 
   void clear();

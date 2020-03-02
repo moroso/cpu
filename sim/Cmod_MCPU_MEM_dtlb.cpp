@@ -17,13 +17,29 @@ void Cmod_MCPU_MEM_dtlb::clear() {
   active = false;
 }
 
+void Cmod_MCPU_MEM_dtlb::latch() {
+  last_dtlb_addr_a = *ports->dtlb_addr_a;
+  last_dtlb_re_a = *ports->dtlb_re_a;
+  if (ports->dual) {
+    last_dtlb_addr_b = *ports->dtlb_addr_b;
+    last_dtlb_re_b = *ports->dtlb_re_b;
+  }
+  last_read_time = Sim::main_time;
+}
+
 void Cmod_MCPU_MEM_dtlb::clk() {
-  if (!active && (*ports->dtlb_re_a || (ports->dual && *ports->dtlb_re_b))) {
-    re[0] = *ports->dtlb_re_a;
-    lookup_addr[0] = *ports->dtlb_addr_a;
+  SIM_ASSERT_MSG(
+    last_read_time == Sim::main_time,
+    "Last read arguments at %d, not at %d (forgot call to latch()?)",
+    last_read_time, Sim::main_time
+  );
+
+  if (!active && (last_dtlb_re_a || (ports->dual && last_dtlb_re_b))) {
+    re[0] = last_dtlb_re_a;
+    lookup_addr[0] = last_dtlb_addr_a;
     if (ports->dual) {
-      re[1] = *ports->dtlb_re_b;
-      lookup_addr[1] = *ports->dtlb_addr_b;
+      re[1] = last_dtlb_re_b;
+      lookup_addr[1] = last_dtlb_addr_b;
     }
 
     active = 1;
