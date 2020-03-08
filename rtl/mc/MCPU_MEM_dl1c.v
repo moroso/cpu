@@ -97,10 +97,10 @@ module MCPU_MEM_dl1c(
    // out, wait until we're not getting different ones out anymore!
    // (This can happen when we're writing on one port, and reading from
    // the same address on the other port.)
-   wire                 same_addr_kludge = ((set_a_1a != set_b_1a) || (q_data_a == q_data_b));
+   wire                 same_addr_kludge = ((set_a_1a != set_b_1a) || (q_data_a == q_data_b && q_tag_a == q_tag_b));
 
-   wire                 hit_a_1a = |hit_a_way_1a & same_addr_kludge;
-   wire                 hit_b_1a = |hit_b_way_1a & same_addr_kludge;
+   wire                 hit_a_1a = |hit_a_way_1a;
+   wire                 hit_b_1a = |hit_b_way_1a;
 
    // If hit_*_1a is set, this will give us the index of the way that hits.
    // (This will always be the same as whether way 1 hit.)
@@ -138,6 +138,11 @@ module MCPU_MEM_dl1c(
    reg                  next_write_a_remaining;
    reg                  next_write_b_remaining;
 
+   reg                  read_a_remaining;
+   reg                  read_b_remaining;
+   reg                  next_read_a_remaining;
+   reg                  next_read_b_remaining;
+
 
    wire [31:0] bit_mask_a = {{dl1c_we_a_1a[3] ? 8'hff : 8'h00},
                              {dl1c_we_a_1a[2] ? 8'hff : 8'h00},
@@ -173,10 +178,12 @@ module MCPU_MEM_dl1c(
 
       ready = 0;
 
-      if (dl1c_req_a_1a & ~hit_a_1a) begin
-         read_a = 1;
+      if (~same_addr_kludge) begin
+         // We're waiting for the bram to settle; don't do anything.
+      end else if (dl1c_req_a_1a & ~hit_a_1a) begin
+         if (~dl1c2arb_stall) read_a = 1;
       end else if (dl1c_req_b_1a & ~hit_b_1a) begin
-         read_b = 1;
+         if (~dl1c2arb_stall) read_b = 1;
       end else begin
          // At this point, everything we need has been loaded into the cache.
          // TODO: coalesce writes to the same line
@@ -208,6 +215,8 @@ module MCPU_MEM_dl1c(
 
       next_write_a_remaining = write_a_remaining;
       next_write_b_remaining = write_b_remaining;
+      next_read_a_remaining = read_a_remaining;
+      next_read_b_remaining = read_b_remaining;
 
       l2c_valid = 0;
       l2c_opcode = 3'bxxx;
@@ -216,16 +225,19 @@ module MCPU_MEM_dl1c(
       if (ready) begin
          next_write_a_remaining = 1;
          next_write_b_remaining = 1;
+         next_read_a_remaining = 1;
+         next_read_b_remaining = 1;
       end else if (read_a | read_b) begin
          // Note: these are not the l2c lines themselves; there is other logic
          // to shift these values to the l2c if the stall signal is deasserted.
          l2c_opcode = LTC_OPC_READ;
          l2c_addr = read_a ? addr_a_1a[31:5] : addr_b_1a[31:5];
-         l2c_valid = 1;
+         l2c_valid = read_a ? read_a_remaining : read_b_remaining;
 
-         if (dl1c2arb_addr == l2c_addr) begin
-            l2c_valid = 0;
+         if (read_a) next_read_a_remaining = 0;
+         if (read_b) next_read_b_remaining = 0;
 
+         if (~(read_a & read_a_remaining | read_b & read_b_remaining)) begin
             // The read of our address finished. Store it.
             if (dl1c2arb_rvalid & ~dl1c2arb_stall) begin
                if (read_a)
@@ -338,6 +350,8 @@ module MCPU_MEM_dl1c(
 
       write_a_remaining <= next_write_a_remaining;
       write_b_remaining <= next_write_b_remaining;
+      read_a_remaining <= next_read_a_remaining;
+      read_b_remaining <= next_read_b_remaining;
    end // always @ (posedge clk)
 
    wire [LINE_SIZE-1:0] q_data_a[WAYS-1:0];

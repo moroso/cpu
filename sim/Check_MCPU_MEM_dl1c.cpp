@@ -29,7 +29,6 @@ Check_MCPU_MEM_dl1c::CacheEntry *Check_MCPU_MEM_dl1c::entry_for_addr(uint32_t ad
   uint32_t tag = TAG(addr);
   for (int way = 0; way < NUM_WAYS; way++) {
     if (address_map[set][way].tag == tag && address_map[set][way].valid) {
-      address_map[set][way].last_access = Sim::main_time;
       return &address_map[set][way];
     }
   }
@@ -47,8 +46,13 @@ void Check_MCPU_MEM_dl1c::store(uint32_t addr, uint32_t line[LINE_SIZE_WORDS]) {
     uint32_t way;
     if (!address_map[set][0].valid) {
       way = 0;
-    } else if (address_map[set][1].valid && address_map[set][0].last_access <= address_map[set][1].last_access) {
-      // Note: in the event of a tie, we evict from way 0.
+    } else if (address_map[set][1].valid &&
+               address_map[set][0].last_access <= address_map[set][1].last_access) {
+      uint32_t last_access_0 = address_map[set][0].last_access;
+      uint32_t last_access_1 = address_map[set][1].last_access;
+      SIM_CHECK_MSG(last_access_0 != last_access_1,
+                    "Ambiguous eviction: %d==%d for set %d",
+                    last_access_0, last_access_1, set);
       way = 0;
     } else {
       way = 1;
@@ -58,7 +62,7 @@ void Check_MCPU_MEM_dl1c::store(uint32_t addr, uint32_t line[LINE_SIZE_WORDS]) {
   }
 
   ent->valid = 1;
-  ent->last_access = Sim::main_time;
+  ent->last_access = Sim::main_time * 4 + 0;
   ent->tag = tag;
   for (int i = 0; i < LINE_SIZE_WORDS; i++) {
     ent->line[i] = line[i];
@@ -89,11 +93,16 @@ uint32_t mask(uint32_t origval, uint32_t newval, uint8_t bytemask) {
   return res;
 }
 
-void Check_MCPU_MEM_dl1c::finish_op(CacheRequest &op, uint32_t outval) {
+void Check_MCPU_MEM_dl1c::finish_op(CacheRequest &op, uint32_t outval, bool is_port_b) {
   if (op.op != NONE) {
     uint32_t offs = TO_L1C_ADDR(op.addr) & 0x7;
     CacheEntry *ent = entry_for_addr(op.addr);
-    SIM_CHECK(ent);
+    if (!ent) {
+      dump_state();
+      SIM_FATAL("No entry for %x", op.addr);
+    }
+
+    ent->last_access = Sim::main_time * 4 + is_port_b;
 
     if (op.op == WRITE) {
       ent->line[offs] = mask(ent->line[offs], op.data, op.wmask);
@@ -116,11 +125,28 @@ void Check_MCPU_MEM_dl1c::verify_arb_inputs() {
   }
 }
 
+void Check_MCPU_MEM_dl1c::dump_state() {
+  for (int set = 0; set < NUM_SETS; set++) {
+    SIM_INFO("Set %d", set);
+    int evict_way;
+    if (address_map[set][0].last_access <= address_map[set][1].last_access) {
+      evict_way = 0;
+    } else {
+      evict_way = 1;
+    }
+    for (int way = 0; way < NUM_WAYS; way++) {
+      SIM_INFO("   Way %d%c: v:%d t:%05x", way,
+               evict_way == way ? '*' : ' ',
+               address_map[set][way].valid,
+               address_map[set][way].tag);
+    }
+  }
+}
+
 void Check_MCPU_MEM_dl1c::clk() {
   if (fetch_active || write_active) {
-    verify_arb_inputs();
     if (fetch_active && *ports->dl1c2arb_rvalid) {
-      SIM_INFO("Finished fetch. Read ...%x from %x", *ports->dl1c2arb_rdata, ltc_addr);
+      SIM_DEBUG("Finished fetch. Read ...%x from %x", *ports->dl1c2arb_rdata, ltc_addr);
       fetch_active = false;
 
       store(ltc_addr, ports->dl1c2arb_rdata);
@@ -132,8 +158,11 @@ void Check_MCPU_MEM_dl1c::clk() {
       }
     }
     if (write_active && !*ports->dl1c2arb_stall) {
-      SIM_INFO("Finished write");
+      SIM_DEBUG("Finished write");
       write_active = false;
+    }
+    if (fetch_active || write_active) {
+      verify_arb_inputs();
     }
   } else {
     if (*ports->dl1c2arb_valid) {
@@ -142,21 +171,24 @@ void Check_MCPU_MEM_dl1c::clk() {
         int read_addr_0 = *ports->dl1c2arb_addr == TO_ARB_ADDR(op0.addr);
         int read_addr_1 = *ports->dl1c2arb_addr == TO_ARB_ADDR(op1.addr);
         if (expect_read_0) {
-          SIM_INFO("Reading for 0");
+          SIM_DEBUG("Reading for 0");
           if (read_addr_1 && !read_addr_0) {
             SIM_ERROR("Read for slot 1, but expecting slot 0");
           }
           SIM_CHECK_EQ(*ports->dl1c2arb_addr, TO_ARB_ADDR(op0.addr));
         } else {
-          SIM_INFO("Reading for 1");
+          SIM_DEBUG("Reading for 1");
           SIM_CHECK(expect_read_1);
+          if (!expect_read_1) {
+            dump_state();
+          }
           if (read_addr_0 && !read_addr_1) {
             SIM_ERROR("Read for slot 0, but expecting slot 1");
           }
           SIM_CHECK_EQ(*ports->dl1c2arb_addr, TO_ARB_ADDR(op1.addr));
         }
         fetch_active = true;
-        SIM_INFO("Start fetch of addr %x (arb addr %x)", ltc_addr, TO_ARB_ADDR(ltc_addr));
+        SIM_DEBUG("Start fetch of addr %x (arb addr %x)", ltc_addr, TO_ARB_ADDR(ltc_addr));
       } else {
         // TODO: verify that the parameters are correct
         SIM_CHECK(*ports->dl1c2arb_opcode == LTC_OPC_WRITE);
@@ -172,7 +204,7 @@ void Check_MCPU_MEM_dl1c::clk() {
           expect_write_1 = false;
         }
 
-        SIM_INFO("Start write of ...%x to addr %x (arb addr %x)", ltc_val, ltc_addr, TO_ARB_ADDR(ltc_addr));
+        SIM_DEBUG("Start write of ...%x to addr %x (arb addr %x)", ltc_val, ltc_addr, TO_ARB_ADDR(ltc_addr));
         write_active = true;
       }
     }
@@ -180,22 +212,22 @@ void Check_MCPU_MEM_dl1c::clk() {
 
   if (active) {
     if (*ports->dl1c_ready) {
-      SIM_INFO("Inactive.");
+      SIM_DEBUG("Inactive.");
       active = false;
       SIM_CHECK(!expect_read_0);
       SIM_CHECK(!expect_write_0);
       SIM_CHECK(!expect_read_1);
       SIM_CHECK(!expect_write_1);
 
-      finish_op(op0, *ports->dl1c_out_a);
-      finish_op(op1, *ports->dl1c_out_b);
+      finish_op(op0, *ports->dl1c_out_a, false);
+      finish_op(op1, *ports->dl1c_out_b, true);
     }
   }
 
   if (!active) {
     if (*ports->dl1c_re_a || *ports->dl1c_re_b ||
         *ports->dl1c_we_a || *ports->dl1c_we_b) {
-      SIM_INFO("Became active");
+      SIM_DEBUG("Became active");
       active = true;
 
       op0.reset();
@@ -214,6 +246,9 @@ void Check_MCPU_MEM_dl1c::clk() {
 
       if (op0.op != NONE) {
         ent0 = entry_for_addr(op0.addr);
+        if (ent0) {
+          ent0->last_access = Sim::main_time * 4 + 2;
+        }
         expect_read_0 = (ent0 == NULL);
         expect_write_0 = (op0.op == WRITE);
       } else {
@@ -223,6 +258,9 @@ void Check_MCPU_MEM_dl1c::clk() {
 
       if (op1.op != NONE) {
         ent1 = entry_for_addr(op1.addr);
+        if (ent1) {
+          ent1->last_access = Sim::main_time * 4 + 3;
+        }
         expect_read_1 = (ent1 == NULL) && (
           // If the addresses are the same, we don't expect a read on port 1.
           !expect_read_0 || (TO_ARB_ADDR(op0.addr) != TO_ARB_ADDR(op1.addr))
@@ -233,12 +271,12 @@ void Check_MCPU_MEM_dl1c::clk() {
         expect_write_1 = false;
       }
 
-      SIM_INFO(
+      SIM_DEBUG(
         "r0:%d r1:%d w0:%d w1:%d",
         expect_read_0, expect_read_1,
         expect_write_0, expect_write_1
       );
-      SIM_INFO("set a: %x, tag a: %x", SET(op0.addr), TAG(op0.addr));
+      SIM_DEBUG("set a: %x, tag a: %x", SET(op0.addr), TAG(op0.addr));
     }
   }
 }

@@ -117,13 +117,9 @@ public:
   void perform(Dl1c_Op op0, Dl1c_Op op1) {
     stim->perform(op0, op1);
   }
-/*
-  void read_nowait(uint32_t addr) {
-    stim->read_nowait(addr);
-  }
-*/
-  void pause() {
-    //stim->pause();
+
+  void perform_nowait(Dl1c_Op op0, Dl1c_Op op1) {
+    stim->perform_nowait(op0, op1);
   }
 
   void mem_write(uint32_t addr, uint32_t val) {
@@ -152,33 +148,31 @@ Dl1cTest::~Dl1cTest() {
 }
 
 void test_basic(Dl1cTest &test) {
-  for (int i = 0; i < 0x1000; i++) {
-    test.mem_write(i * 4, i | 0xcc0000);
-  }
-
   test.perform(Op_Read(0x100), Op_Read(0x110));
 }
 
-void test_directed(Dl1cTest &test) {
-  for (int i = 0; i < 0x10000; i++) {
-    test.mem_write(i * 4, i | 0xcc0000);
-  }
-
+void test_reads(Dl1cTest &test) {
   // Various reads, from the same line
   test.perform(Op_Read(0x104), Op_Read(0x104));
   test.perform(Op_Read(0x108), Op_Read(0x10c));
   test.perform(Op_Read(0x10c), Op_Read(0x100));
+}
 
+void test_write_read(Dl1cTest &test) {
   // Write + read
   test.perform(Op_Write(0x20c, 0x00dd083), Op_Read(0x100));
   test.perform(Op_Read(0x20c), Op_Read(0x100));
+}
 
+void test_write_write(Dl1cTest &test) {
   // Two writes
   test.perform(Op_Write(0x30c, 0x00dd0c3), Op_Write(0x308, 0x00dd0c2));
   test.perform(Op_Read(0x308), Op_Read(0x30c));
   test.perform(Op_Read(0x300), Op_Read(0x304));
   test.perform(Op_Read(0x30c), Op_Read(0x308));
+}
 
+void test_evict_basic(Dl1cTest &test) {
   // Test of eviction
   test.perform(Op_Read(0x300c), Op_Read(0x3008));
   test.perform(Op_Read(0x400c), Op_Read(0x4008));
@@ -186,11 +180,15 @@ void test_directed(Dl1cTest &test) {
   test.perform(Op_Read(0x400c), Op_Read(0x4008));
   test.perform(Op_Read(0x300c), Op_Read(0x3008));
   test.perform(Op_Read(0x500c), Op_Read(0x5008));
+}
 
+void test_write_read_same(Dl1cTest &test) {
   // Write, and read on the same line
   test.perform(Op_Write(0x28c, 0x00dd087), Op_Read(0x288));
   test.perform(Op_Read(0x288), Op_Read(0x28c));
+}
 
+void test_write_bytes(Dl1cTest &test) {
   // Byte writes
   test.perform(Op_Write_Mask(0x38c, 0x00dd0e3, 0x1), Op_Noop());
   test.perform(Op_Write_Mask(0x38c, 0x00dd0e3, 0x2), Op_Noop());
@@ -203,8 +201,45 @@ void test_directed(Dl1cTest &test) {
   test.perform(Op_Read(0x48c), Op_Read(0x488));
 }
 
+void test_no_delay(Dl1cTest &test) {
+  test.perform_nowait(Op_Read(0x100), Op_Read(0x130));
+  test.perform(Op_Read(0x200), Op_Read(0x230));
+  test.perform(Op_Read(0x200), Op_Read(0x230));
+}
+
+Dl1c_Op random_op(uint32_t max_tag, uint32_t max_set) {
+  switch(Sim::random(3)) {
+  case 0: return Op_Noop();
+  case 1: return Op_Read(ADDR_OF(Sim::random(max_tag), Sim::random(max_set)));
+  case 2: return Op_Write(ADDR_OF(Sim::random(max_tag), Sim::random(max_set)),
+                          Sim::random(-1));
+  default: SIM_FATAL("This can't happen.");
+  }
+}
+
+void test_random_general(Dl1cTest &test, uint32_t max_tag, uint32_t max_set) {
+  int nrandoms = Sim::param_u64("DL1C_RANDOM_OPERATIONS", RANDOM_OPS_DEFAULT);
+
+  for (int i = 0; i < nrandoms; i++) {
+    test.perform(random_op(max_tag, max_set),
+                 random_op(max_tag, max_set));
+  }
+}
+
+void test_random_full(Dl1cTest &test) {
+  test_random_general(test, RANDOM_TAGS_DEFAULT, RANDOM_SETS_DEFAULT);
+}
+
+void test_random_limited(Dl1cTest &test) {
+  test_random_general(test, 1<<6, 4);
+}
+
 void run_test(VMCPU_MEM_dl1c *tb, void (*testfunc)(Dl1cTest &test)) {
   Dl1cTest test(tb);
+
+  for (int i = 0; i < 0x10000; i++) {
+    test.mem_write(i * 4, i | 0xcc0000);
+  }
 
   testfunc(test);
 
@@ -232,11 +267,40 @@ int main(int argc, char **argv, char **env) {
   atexit(_close_trace);
 #endif
 
-  SIM_INFO("basic");
+	const char *testname;
+	testname = Sim::param_str("DL1C_TEST_NAME", "directed");
 
-  run_test(tb, test_basic);
-  run_test(tb, test_directed);
+  if (!strcmp(testname, "directed")) {
+    SIM_INFO("basic");
+    run_test(tb, test_basic);
 
+    SIM_INFO("reads");
+    run_test(tb, test_reads);
+
+    SIM_INFO("write read");
+    run_test(tb, test_write_read);
+
+    SIM_INFO("write write");
+    run_test(tb, test_write_write);
+
+    SIM_INFO("evict");
+    run_test(tb, test_evict_basic);
+
+    SIM_INFO("write read same");
+    run_test(tb, test_write_read_same);
+
+    SIM_INFO("write bytes");
+    run_test(tb, test_write_bytes);
+
+    SIM_INFO("no delay");
+    run_test(tb, test_no_delay);
+  } else if (!strcmp(testname, "random")) {
+    SIM_INFO("random full");
+    run_test(tb, test_random_full);
+
+    SIM_INFO("random_limited");
+    run_test(tb, test_random_limited);
+  }
   Sim::finish();
 
   return 0;

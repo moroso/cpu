@@ -23,6 +23,9 @@ class Check_MCPU_MEM_dl1c {
   struct CacheEntry {
     uint32_t line[LINE_SIZE_WORDS];
     uint32_t tag;
+    // Note: "last_access" is a bit weird. The actual cycle time is shifted
+    // left by two, and the last two bits are used to disambiguate things
+    // that happen in the same cycle in the simulator.
     uint32_t last_access;
     bool valid;
   };
@@ -69,7 +72,8 @@ class Check_MCPU_MEM_dl1c {
   Check_MCPU_MEM_dl1c::CacheEntry *entry_for_addr(uint32_t addr);
   void store(uint32_t addr, uint32_t line[LINE_SIZE_WORDS]);
   void verify_arb_inputs();
-  void finish_op(CacheRequest &op, uint32_t outval);
+  void finish_op(CacheRequest &op, uint32_t outval, bool is_port_b);
+  void dump_state();
 
   CacheEntry address_map[NUM_SETS][NUM_WAYS];
  public:

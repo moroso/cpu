@@ -226,9 +226,9 @@ ALL_TBS += dl1c
 TEST_dl1c_basic_tb = dl1c
 TEST_dl1c_basic_env =
 
-# TEST_dl1c_random_tb = dl1c
-# TEST_dl1c_random_env = DL1C_TEST_NAME=random
+TEST_dl1c_random_tb = dl1c
+TEST_dl1c_random_env = DL1C_TEST_NAME=random
 
 TESTPLAN_L0_TESTS += dl1c_basic
-# TESTPLAN_L1_TESTS += dl1c_random
-ALL_TESTS += dl1c_basic
+TESTPLAN_L1_TESTS += dl1c_random
+ALL_TESTS += dl1c_basic dl1c_random
