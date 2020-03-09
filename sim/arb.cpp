@@ -64,8 +64,18 @@ int main(int argc, char **argv, char **env) {
 	
 	const char *testname;
 	testname = Sim::param_str("ARB_DIRECTED_TEST_NAME", "basic");
-	
-	if (!strcmp(testname, "basic")) {
+
+  if (!strcmp(testname, "single")) {
+		GENBUF( 0); WRITE(0, 0x1000);
+		READ(0, 0x2000);
+		GENBUF( 1); WRITE(0, 0x2000);
+		GENBUF( 2); WRITE(0, 0x3000);
+		GENBUF( 3); WRITE(0, 0x4000);
+
+		READ(0, 0x1000);
+		READ(0, 0x3000);
+		READ(0, 0x4000);
+  } else if (!strcmp(testname, "basic")) {
 		/* Basic read-write test */
 		GENBUF( 0); WRITE(0, 0x0000);
 		GENBUF( 1); WRITE(0, 0x1000);

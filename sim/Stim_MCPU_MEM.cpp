@@ -68,11 +68,14 @@ void Stim_MCPU_MEM::clk() {
 		for (int i = 0; i < 8; i++)
 			ports->wdata[i] = next_wdata[i];
 		*ports->wbe = next_wbe;
-	}
+	} else {
+    /* Do nothing on a clock if stalled. */
+    stall_1a = *ports->stall;
+    return;
+  }
 	stall_1a = *ports->stall;
-	
-	/* Do nothing on a clock if stalled. */
-	if (*ports->stall || !ports->clkrst_mem_rst_n)
+
+	if (!ports->clkrst_mem_rst_n)
 		return;
 
 	/* Sometimes, generate a bubble. */

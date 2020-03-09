@@ -120,6 +120,9 @@ TB_arb_top  = TB_MCPU_MEM_arb
 TB_arb_cpps = arb.cpp Sim.cpp Stim_MCPU_MEM.cpp Check_MCPU_MEM.cpp Cmod_MCPU_MEM_mc.cpp
 ALL_TBS += arb
 
+TEST_arb_single_tb  = arb
+TEST_arb_single_env = ARB_DIRECTED_TEST_NAME=single
+
 TEST_arb_basic_tb  = arb
 TEST_arb_basic_env =
 
@@ -129,10 +132,10 @@ TEST_arb_random_0_env = ARB_DIRECTED_TEST_NAME=random SIM_RANDOM_SEED=0 ARB_RAND
 TEST_arb_random_long_tb  = arb
 TEST_arb_random_long_env = ARB_DIRECTED_TEST_NAME=random ARB_RANDOM_OPERATIONS=262144
 
-TESTPLAN_L0_tests += arb_basic
+TESTPLAN_L0_tests += arb_single arb_basic
 TESTPLAN_L1_tests += arb_random_0
 TESTPLAN_L9_tests += arb_random_long
-ALL_TESTS += arb_basic arb_random_0 arb_random_long
+ALL_TESTS += arb_single arb_basic arb_random_0 arb_random_long
 
 # Preloader tests
 
