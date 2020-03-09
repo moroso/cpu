@@ -147,6 +147,7 @@ TEST_pre_basic_tb = pre
 TEST_pre_basic_env =
 TEST_pre_basic_rom = sim/rom/bytes.hex
 ALL_TESTS += pre_basic
+TESTPLAN_L0_tests += pre_basic
 
 TB_int_top = MCPU_int
 TB_int_cpps =
