@@ -48,7 +48,6 @@ void Check_MCPU_MEM_dtlb::check_outputs() {
 }
 
 void Check_MCPU_MEM_dtlb::clk() {
-  SIM_CHECK(*ports->dtlb_pagedir_base == *ports->tlb2ptw_pagedir_base);
   if (active) {
     if (walk_active && *ports->tlb2ptw_ready) {
       // Just finished walking; store the result.

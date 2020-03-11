@@ -46,7 +46,7 @@ public:
   }
 
   void set_base(uint32_t base) {
-    tb->tlb2ptw_pagedir_base = base >> 12;
+    tb->ptw_pagedir_base = base >> 12;
   }
 
   void do_lookup(uint32_t addr);
@@ -73,7 +73,7 @@ WalkTest::WalkTest(VMCPU_MEM_pt_walk *tb)
   tb->tlb2ptw_clk = 0;
   tb->tlb2ptw_addr = 0;
   tb->tlb2ptw_re = 0;
-  tb->tlb2ptw_pagedir_base = 0;
+  tb->ptw_pagedir_base = 0;
   tb->eval();
   arb->clk();
   tb->eval();

@@ -10,9 +10,6 @@ module MCPU_MEM_dtlb(
                      input [31:12]      dtlb_addr_b,
                      input              dtlb_re_a,
                      input              dtlb_re_b,
-                     // 20 bits, since page directories are aligned to pages.
-                     // Base address is common to both ports.
-                     input [19:0]       dtlb_pagedir_base,
 
                      output [31:12]     dtlb_phys_addr_a,
                      output [31:12]     dtlb_phys_addr_b,
@@ -23,7 +20,6 @@ module MCPU_MEM_dtlb(
                      // Page table walker interface
                      output reg [31:12] tlb2ptw_addr,
                      output             tlb2ptw_re,
-                     output [19:0]      tlb2ptw_pagedir_base,
 
                      input [31:12]      tlb2ptw_phys_addr,
                      input              tlb2ptw_ready,
@@ -82,8 +78,6 @@ module MCPU_MEM_dtlb(
    wire [SET_WIDTH-1:0]  set_a_1a = dtlb_addr_a_1a[31 - TAG_WIDTH -: SET_WIDTH];
    wire [TAG_WIDTH-1:0]  tag_b_1a = dtlb_addr_b_1a[31 -: TAG_WIDTH];
    wire [SET_WIDTH-1:0]  set_b_1a = dtlb_addr_b_1a[31 - TAG_WIDTH -: SET_WIDTH];
-
-   assign tlb2ptw_pagedir_base = dtlb_pagedir_base;
 
    // Wires and registers for data brams
    wire [DATA_SIZE-1:0] q_data_a[WAYS-1:0];
@@ -440,8 +434,8 @@ module MCPU_MEM_dtlb(
       end
    endgenerate
 
+   integer          ii;
    always @(posedge clk) begin
-      integer ii;
       for (ii = 0; ii < WAYS; ii = ii + 1) begin
           if (we_data_a[ii]) begin
              valid[{addr_data_a, ii[0]}] <= data_data_a_valid;

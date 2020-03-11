@@ -7,7 +7,7 @@ module MCPU_MEM_pt_walk(
                         input [31:12]     tlb2ptw_addr,
                         input             tlb2ptw_re,
                         // 20 bits, since page directories are aligned to pages.
-                        input [19:0]      tlb2ptw_pagedir_base,
+                        input [19:0]      ptw_pagedir_base,
 
                         output [31:12]    tlb2ptw_phys_addr,
                         output            tlb2ptw_ready,
@@ -96,7 +96,7 @@ module MCPU_MEM_pt_walk(
           if (tlb2ptw_re) begin
              if (~ptw2arb_stall)
                next_state = ST_BEGIN_READ_DIR;
-             next_ptw2arb_addr = {{tlb2ptw_pagedir_base}, {dir_offs[9:3]}};
+             next_ptw2arb_addr = {{ptw_pagedir_base}, {dir_offs[9:3]}};
              next_ptw2arb_valid = 1;
           end else begin
              next_state = ST_IDLE;
@@ -119,7 +119,7 @@ module MCPU_MEM_pt_walk(
              end else
                next_state = ST_IDLE;
           end else begin
-             next_ptw2arb_addr = {{tlb2ptw_pagedir_base}, {dir_offs[9:3]}};
+             next_ptw2arb_addr = {{ptw_pagedir_base}, {dir_offs[9:3]}};
               //next_ptw2arb_valid = 1;
            end // else: !if(ptw2arb_rvalid)
         ST_BEGIN_READ_TAB: begin

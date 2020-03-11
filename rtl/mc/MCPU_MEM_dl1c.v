@@ -1,44 +1,44 @@
 module MCPU_MEM_dl1c(
-                     input          clk,
+                     input              clk,
 
                      // Control interface
                      // Addresses are word-aligned (4 byte), and all reads
                      // will give an (aligned) word of data.
-                     input [31:2]   dl1c_addr_a,
-                     input [31:2]   dl1c_addr_b,
-                     input          dl1c_re_a,
-                     input          dl1c_re_b,
-                     input [3:0]    dl1c_we_a,
-                     input [3:0]    dl1c_we_b,
-                     input [31:0]   dl1c_in_a,
-                     input [31:0]   dl1c_in_b,
-                     input          dl1c_reset,
-                     output [31:0]  dl1c_out_a,
-                     output [31:0]  dl1c_out_b,
-                     output         dl1c_ready,
+                     input [31:2]       dl1c_addr_a,
+                     input [31:2]       dl1c_addr_b,
+                     input              dl1c_re_a,
+                     input              dl1c_re_b,
+                     input [3:0]        dl1c_we_a,
+                     input [3:0]        dl1c_we_b,
+                     input [31:0]       dl1c_in_a,
+                     input [31:0]       dl1c_in_b,
+                     input              dl1c_reset,
+                     output [31:0]      dl1c_out_a,
+                     output [31:0]      dl1c_out_b,
+                     output             dl1c_ready,
 
                      // Peripheral interface
-                     output [31:2]  dl1c2periph_addr,
-                     output         dl1c2periph_re,
-                     output [3:0]   dl1c2periph_we,
-                     output [31:0]  dl1c2periph_data_out,
-                     input [31:0]   dl1c2periph_data_in,
+                     output [31:2]      dl1c2periph_addr,
+                     output             dl1c2periph_re,
+                     output [3:0]       dl1c2periph_we,
+                     output [31:0]      dl1c2periph_data_out,
+                     input [31:0]       dl1c2periph_data_in,
                      // TODO: stall signal for periph interface?
                      // Seems like it might not be necessary; all periph
                      // register reads/writes should be doable in a single
                      // cycle.
 
                      // Atom interface to arb
-                     output reg     dl1c2arb_valid,
-                     output [2:0]   dl1c2arb_opcode,
-                     output [31:5]  dl1c2arb_addr,
+                     output reg         dl1c2arb_valid,
+                     output reg [2:0]   dl1c2arb_opcode,
+                     output reg [31:5]  dl1c2arb_addr,
 
-                     output [255:0] dl1c2arb_wdata,
-                     output [31:0]  dl1c2arb_wbe,
+                     output reg [255:0] dl1c2arb_wdata,
+                     output reg [31:0]  dl1c2arb_wbe,
 
-                     input [255:0]  dl1c2arb_rdata,
-                     input          dl1c2arb_rvalid,
-                     input          dl1c2arb_stall
+                     input [255:0]      dl1c2arb_rdata,
+                     input              dl1c2arb_rvalid,
+                     input              dl1c2arb_stall
 
                      );
 
@@ -97,7 +97,10 @@ module MCPU_MEM_dl1c(
    // out, wait until we're not getting different ones out anymore!
    // (This can happen when we're writing on one port, and reading from
    // the same address on the other port.)
-   wire                 same_addr_kludge = ((set_a_1a != set_b_1a) || (q_data_a == q_data_b && q_tag_a == q_tag_b));
+   wire                 same_addr_kludge = ((set_a_1a != set_b_1a) || (q_data_a[0] == q_data_b[0]
+                                                                       && q_data_a[1] == q_data_b[1]
+                                                                       && q_tag_a[0] == q_tag_b[0]
+                                                                       && q_tag_a[1] == q_tag_b[1]));
 
    wire                 hit_a_1a = |hit_a_way_1a;
    wire                 hit_b_1a = |hit_b_way_1a;
