@@ -18,13 +18,13 @@ module MCPU_MEM_LTC_bram(/*AUTOARG*/
 	input [DEPTH_BITS-1:0] raddr;
 	output reg [WIDTH_BYTES*8-1:0] rdata;
 
-	reg [WIDTH_BYTES-1:0][7:0] ram [DEPTH-1:0];
+	reg [WIDTH_BYTES*8-1:0] ram [DEPTH-1:0];
 	
 	genvar ii;
 	generate for (ii = 0; ii < WIDTH_BYTES; ii = ii + 1) begin: wbes
 		always @(posedge clkrst_mem_clk)
 			if (wbe[ii])
-				ram[waddr][ii] <= wdata[(ii+1)*8-1:ii*8];
+				ram[waddr][ii * 8 +: 8] <= wdata[(ii+1)*8-1:ii*8];
 	end endgenerate
 	
 	always @(posedge clkrst_mem_clk) begin
