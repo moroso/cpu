@@ -216,9 +216,9 @@ TEST_il1c_basic_env =
 TEST_il1c_random_tb = il1c
 TEST_il1c_random_env = IL1C_TEST_NAME=random
 
-TESTPLAN_L0_TESTS += il1c_basic
-TESTPLAN_L1_TESTS += 1l1c_random
-ALL_TESTS += il1c_basic
+TESTPLAN_L0_tests += il1c_basic
+TESTPLAN_L1_tests += il1c_random
+ALL_TESTS += il1c_basic il1c_random
 
 # Data L1C tests
 
@@ -233,6 +233,6 @@ TEST_dl1c_basic_env =
 TEST_dl1c_random_tb = dl1c
 TEST_dl1c_random_env = DL1C_TEST_NAME=random
 
-TESTPLAN_L0_TESTS += dl1c_basic
-TESTPLAN_L1_TESTS += dl1c_random
+TESTPLAN_L0_tests += dl1c_basic
+TESTPLAN_L1_tests += dl1c_random
 ALL_TESTS += dl1c_basic dl1c_random
