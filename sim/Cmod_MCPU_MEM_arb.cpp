@@ -6,7 +6,8 @@
 // Requests will be delayed by anywhere from
 // DELAY_CYCLES_BASE to DELAY_CYCLES_BASE + DELAY_CYCLES_RAND
 // cycles.
-#define DELAY_CYCLES_BASE 0
+// TODO: right now things can break with 0-cycle delays.
+#define DELAY_CYCLES_BASE 2
 #define DELAY_CYCLES_RAND 16
 
 Cmod_MCPU_MEM_arb::Cmod_MCPU_MEM_arb() :
@@ -65,7 +66,7 @@ void Cmod_MCPU_MEM_arb::clk() {
       in_values_t *old = &last[current_client];
       int adjusted_addr = old->arb_addr << 5;
 
-      *client->arb_stall = 0;
+      // We don't need to deassert stall here; it happened above.
 
       SIM_DEBUG("Opcode = %d", old->arb_opcode);
       switch (old->arb_opcode) {
