@@ -3,7 +3,8 @@
 // TODO: have a way to flush the cache.
 
 module MCPU_MEM_dtlb(
-                     input              clk,
+                     input              clkrst_mem_clk,
+                     input              clkrst_mem_rst_n,
 
                      // Control interface
                      input [31:12]      dtlb_addr_a,
@@ -58,8 +59,8 @@ module MCPU_MEM_dtlb(
    reg [WAYS * NUM_SETS - 1:0]  valid;
    reg [TAG_WIDTH-1:0]  tags[NUM_SETS * WAYS - 1:0];
 
-   reg [STATE_BITS-1:0] state = ST_IDLE;
-   reg [STATE_BITS-1:0] next_state = ST_IDLE;
+   reg [STATE_BITS-1:0] state;
+   reg [STATE_BITS-1:0] next_state;
 
    wire [31:12]         dtlb_addr_a_0a = dtlb_addr_a;
    wire [31:12]         dtlb_addr_b_0a = dtlb_addr_b;
@@ -192,7 +193,7 @@ module MCPU_MEM_dtlb(
    // Each set has a single bit associated with it to specify which way
    // will be evicted next. (This will need to change if the associativity
    // of the cache is changed.)
-   reg [NUM_SETS-1:0] evict = 16'b0;
+   reg [NUM_SETS-1:0] evict;
 
    always @(*) begin
       evict_update_a_from_hit = 0;
@@ -315,23 +316,27 @@ module MCPU_MEM_dtlb(
    end // always @ (*)
 
    // Logic for updating eviction bits.
-   always @(posedge clk) begin
-      if (evict_update_a_from_hit | evict_update_a_from_miss) begin
-         if (evict_update_a_from_hit)
-            // If the hit was on way 0, we'll next want to evict 1, and
-            // if it was on way 1, we'll next want to evict 0.
-           evict[set_a_1a] = hit_a_way_1a[0];
-         else
-           evict[set_a_1a] = ~evict[set_a_1a];
-      end
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         evict <= 0;
+      end else begin
+         if (evict_update_a_from_hit | evict_update_a_from_miss) begin
+            if (evict_update_a_from_hit)
+               // If the hit was on way 0, we'll next want to evict 1, and
+               // if it was on way 1, we'll next want to evict 0.
+              evict[set_a_1a] <= hit_a_way_1a[0];
+            else
+              evict[set_a_1a] <= ~evict[set_a_1a];
+         end
 
-      if (evict_update_b_from_hit | evict_update_b_from_miss) begin
-         if (evict_update_b_from_hit)
-            // If the hit was on way 0, we'll next want to evict 1, and
-            // if it was on way 1, we'll next want to evict 0.
-           evict[set_b_1a] = hit_b_way_1a[0];
-         else
-           evict[set_b_1a] = ~evict[set_a_1a];
+         if (evict_update_b_from_hit | evict_update_b_from_miss) begin
+            if (evict_update_b_from_hit)
+               // If the hit was on way 0, we'll next want to evict 1, and
+               // if it was on way 1, we'll next want to evict 0.
+              evict[set_b_1a] <= hit_b_way_1a[0];
+            else
+              evict[set_b_1a] <= ~evict[set_a_1a];
+         end
       end
    end
 
@@ -366,19 +371,23 @@ module MCPU_MEM_dtlb(
    end
 
    // Update state and latch inputs
-   always @(posedge clk) begin
-      state <= next_state;
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         state <= ST_IDLE;
+      end else begin
+         state <= next_state;
 
-      hit_a_way_1a <= next_hit_a_way_1a;
-      hit_b_way_1a <= next_hit_b_way_1a;
+         hit_a_way_1a <= next_hit_a_way_1a;
+         hit_b_way_1a <= next_hit_b_way_1a;
 
-      if (latch_inputs) begin
-         dtlb_re_a_1a <= dtlb_re_a_0a;
-         dtlb_re_b_1a <= dtlb_re_b_0a;
-         dtlb_addr_a_1a <= dtlb_addr_a_0a;
-         dtlb_addr_b_1a <= dtlb_addr_b_0a;
+         if (latch_inputs) begin
+            dtlb_re_a_1a <= dtlb_re_a_0a;
+            dtlb_re_b_1a <= dtlb_re_b_0a;
+            dtlb_addr_a_1a <= dtlb_addr_a_0a;
+            dtlb_addr_b_1a <= dtlb_addr_b_0a;
+         end
       end
-   end // always @ (posedge clk)
+   end // always @ (posedge clkrst_mem_clk)
 
    // Outputs always come from the cache. On a miss, the values will be
    // valid after the cache is updated.
@@ -421,7 +430,7 @@ module MCPU_MEM_dtlb(
                                  .addr_b                (addr_data_b),
                                  .we_a                  (we_data_a[i]),
                                  .we_b                  (we_data_b[i]),
-                                 .clk                   (clk));
+                                 .clk                   (clkrst_mem_clk));
 
          assign q_data_a_valid_0a[i] = valid[{set_a_0a, ii}];
          assign q_data_a_tag_0a[i] = tags[{set_a_0a, ii}];
@@ -440,16 +449,20 @@ module MCPU_MEM_dtlb(
    endgenerate
 
    integer          ii;
-   always @(posedge clk) begin
-      for (ii = 0; ii < WAYS; ii = ii + 1) begin
-          if (we_data_a[ii]) begin
-             valid[{addr_data_a, ii[0]}] <= data_data_a_valid;
-             tags[{addr_data_a, ii[0]}] <= data_data_a_tag;
-          end
-          if (we_data_b[ii]) begin
-             valid[{addr_data_b, ii[0]}] <= data_data_b_valid;
-             tags[{addr_data_b, ii[0]}] <= data_data_b_tag;
-          end
-      end
-   end
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         valid <= 0;
+      end else begin
+         for (ii = 0; ii < WAYS; ii = ii + 1) begin
+             if (we_data_a[ii]) begin
+                valid[{addr_data_a, ii[0]}] <= data_data_a_valid;
+                tags[{addr_data_a, ii[0]}] <= data_data_a_tag;
+             end
+             if (we_data_b[ii]) begin
+                valid[{addr_data_b, ii[0]}] <= data_data_b_valid;
+                tags[{addr_data_b, ii[0]}] <= data_data_b_tag;
+             end
+         end
+      end // else: !if(~clkrst_mem_rst_n)
+   end // always @ (posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 endmodule

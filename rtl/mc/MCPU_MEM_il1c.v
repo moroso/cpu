@@ -4,7 +4,8 @@
  */
 
 module MCPU_MEM_il1c(
-                     input          clk,
+                     input          clkrst_mem_clk,
+                     input          clkrst_mem_rst_n,
 
                      // Control interface
                      // Addresses are packet-aligned (16 byte).
@@ -64,10 +65,10 @@ module MCPU_MEM_il1c(
 
    reg                  stall;
    wire [22:0]          q_tag;
-   reg [NUM_SETS - 1:0] valid = 16'b0;
+   reg [NUM_SETS - 1:0] valid;
 
-   reg [STATE_BITS-1:0] state = 0;
-   reg [STATE_BITS-1:0] nextstate = 0;
+   reg [STATE_BITS-1:0] state;
+   reg [STATE_BITS-1:0] nextstate;
 
    // TLB reads are always for the same address as the cache read (since
    // the TLB access starts on the first cycle of a request).
@@ -159,18 +160,23 @@ module MCPU_MEM_il1c(
       endcase
    end // always @ (*)
 
-   always @(posedge clk) begin
-      if (~stall) begin
-         // Latch new values
-         addr_1a <= addr_0a;
-         re_1a <= re_0a;
-      end
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         valid <= 0;
+         state <= STATE_DEFAULT;
+      end else begin
+         if (~stall) begin
+            // Latch new values
+            addr_1a <= addr_0a;
+            re_1a <= re_0a;
+         end
 
-      if (update_cache) begin
-         valid[set_1a] <= 1;
-      end
+         if (update_cache) begin
+            valid[set_1a] <= 1;
+         end
 
-      state <= nextstate;
+         state <= nextstate;
+      end
    end
 
    sp_bram #(
@@ -184,7 +190,7 @@ module MCPU_MEM_il1c(
                           .data                  (il1c2arb_rdata),
                           .addr                  (data_addr),
                           .we                    (update_cache),
-                          .clk                   (clk));
+                          .clk                   (clkrst_mem_clk));
 
    sp_bram #(
              .DATA_WIDTH(TAG_WIDTH),
@@ -195,6 +201,6 @@ module MCPU_MEM_il1c(
                          .data                (tag_1a),
                          .addr                (data_addr),
                          .we                  (update_cache),
-                         .clk                 (clk));
+                         .clk                 (clkrst_mem_clk));
 
 endmodule

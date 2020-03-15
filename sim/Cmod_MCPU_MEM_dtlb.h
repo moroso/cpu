@@ -12,9 +12,12 @@
 // treated as a hit (giving a result next cycle) or a miss
 // (with a longer delay).
 
+// TODO: simulate the reset signal
+
 struct Cmod_MCPU_MEM_dtlb_ports {
   /* Inputs */
-  CData *clk;                           /* 0:0 */
+  CData *clkrst_mem_clk;                /* 0:0 */
+  CData *clkrst_mem_rst_n;              /* 0:0 */
   IData *dtlb_addr_a;                   /* 31:12 */
   IData *dtlb_addr_b;                   /* 31:12 */
   CData *dtlb_re_a;                     /* 0:0 */
@@ -33,7 +36,8 @@ struct Cmod_MCPU_MEM_dtlb_ports {
 
 #define Cmod_MCPU_MEM_dtlb_CONNECT(str, cla, pfx) \
   do { \
-    (str)->clk = &((cla)->clk); \
+    (str)->clkrst_mem_clk = &((cla)->clkrst_mem_clk); \
+    (str)->clkrst_mem_rst_n = &((cla)->clkrst_mem_rst_n); \
     (str)->dtlb_addr_a = &((cla)->pfx##addr_a); \
     (str)->dtlb_addr_b = &((cla)->pfx##addr_b); \
     (str)->dtlb_re_a = &((cla)->pfx##re_a); \
@@ -49,7 +53,8 @@ struct Cmod_MCPU_MEM_dtlb_ports {
 
 #define Cmod_MCPU_MEM_dtlb_CONNECT_SINGLE(str, cla, pfx) \
   do { \
-    (str)->clk = &((cla)->clk); \
+    (str)->clkrst_mem_clk = &((cla)->clkrst_mem_clk); \
+    (str)->clkrst_mem_rst_n = &((cla)->clkrst_mem_rst_n); \
     (str)->dtlb_addr_a = &((cla)->pfx##addr); \
     (str)->dtlb_re_a = &((cla)->pfx##re); \
     \

@@ -1,9 +1,10 @@
-#ifndef _MCPU_MEM_il1c_ports_H
-#define _MCPU_MEM_il1c_ports_H
+#ifndef __MCPU_MEM_il1c_ports_H
+#define __MCPU_MEM_il1c_ports_H
 
 struct MCPU_MEM_il1c_ports {
   /* Inputs */
-  CData *clk;                           /* 0:0 */
+  CData *clkrst_mem_clk;                /* 0:0 */
+  CData *clkrst_mem_rst_n;              /* 0:0 */
   WData *il1c2arb_rdata;                /* 255:0 */
   CData *il1c2arb_rvalid;               /* 0:0 */
   CData *il1c2arb_stall;                /* 0:0 */
@@ -27,7 +28,8 @@ struct MCPU_MEM_il1c_ports {
 
 #define MCPU_MEM_il1c_CONNECT(str, cla) \
   do { \
-    (str)->clk = &((cla)->clk); \
+    (str)->clkrst_mem_clk = &((cla)->clkrst_mem_clk); \
+    (str)->clkrst_mem_rst_n = &((cla)->clkrst_mem_rst_n); \
     (str)->il1c2arb_rdata = ((cla)->il1c2arb_rdata); \
     (str)->il1c2arb_rvalid = &((cla)->il1c2arb_rvalid); \
     (str)->il1c2arb_stall = &((cla)->il1c2arb_stall); \

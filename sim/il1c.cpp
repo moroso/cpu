@@ -127,22 +127,31 @@ Il1cTest::~Il1cTest() {
 }
 
 void run_test(VMCPU_MEM_il1c *tb, void (*testfunc)(Il1cTest &test)) {
-  // Clear cache state, in case we're running multiple tests.
-  // TODO: the cache needs a reset signal.
-  tb->MCPU_MEM_il1c__DOT__valid = 0;
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+  tb->clkrst_mem_rst_n = 0;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
 
   Il1cTest test(tb);
 
   testfunc(test);
   while (!test.done()) {
     test.latch();
-    tb->clk = 1;
+    tb->clkrst_mem_clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
@@ -151,13 +160,13 @@ void run_test(VMCPU_MEM_il1c *tb, void (*testfunc)(Il1cTest &test)) {
   // Wait a few cycles before starting the next test.
   for (int i = 0; i < 16; i++) {
     test.latch();
-    tb->clk = 1;
+    tb->clkrst_mem_clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;

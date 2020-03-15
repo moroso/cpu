@@ -125,25 +125,31 @@ bool TlbTest::done() {
 
 void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
   // Clear cache state, in case we're running multiple tests.
-  // TODO: the cache needs a reset signal.
-  for (int i = 0; i < DATA_BRAM_SIZE; i++) {
-    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__0__KET____DOT__data_bram0__DOT__ram[i] = 0;
-    tb->MCPU_MEM_dtlb__DOT__data_bram_gen__BRA__1__KET____DOT__data_bram0__DOT__ram[i] = 0;
-  }
-  tb->MCPU_MEM_dtlb__DOT__evict = 0;
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+  tb->clkrst_mem_rst_n = 0;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
 
   TlbTest test(tb);
 
   testfunc(test);
   while (!test.done()) {
     test.latch();
-    tb->clk = 1;
+    tb->clkrst_mem_clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
@@ -152,13 +158,13 @@ void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
   // Wait a few cycles before starting the next test.
   for (int i = 0; i < 16; i++) {
     test.latch();
-    tb->clk = 1;
+    tb->clkrst_mem_clk = 1;
     test.clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
