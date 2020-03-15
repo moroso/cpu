@@ -41,6 +41,10 @@ def port_str(port):
         port.range_lower,
     )
 
+print("#ifndef __{}_ports_H".format(mod.name))
+print("#define __{}_ports_H".format(mod.name))
+print("")
+
 print("struct {}_ports {{".format(base))
 print("  /* Inputs */")
 for port in inputs:
@@ -67,3 +71,5 @@ print("    \\")
 for port in outputs:
     print(connect_str(port))
 print("  } while(0)")
+print("")
+print("#endif")
