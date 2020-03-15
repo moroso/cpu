@@ -59,6 +59,7 @@ public:
   }
 
   void clk() {
+    tb->clkrst_mem_rst_n = 1;
     tb->eval();
     stim->clk();
     arb->clk();
@@ -69,41 +70,41 @@ public:
 
   void cycle() {
     latch();
-    tb->clk = 1;
+    tb->clkrst_mem_clk = 1;
     clk();
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
   }
 
   void reset() {
-    tb->dl1c_reset = 1;
+    tb->clkrst_mem_rst_n = 0;
     for (int i = 0; i < 2; i++) {
-      tb->clk = 1;
+      tb->clkrst_mem_clk = 1;
       tb->eval();
       Sim::tick();
       TRACE;
 
-      tb->clk = 0;
+      tb->clkrst_mem_clk = 0;
       tb->eval();
       Sim::tick();
       TRACE;
     }
 
-    tb->dl1c_reset = 0;
+    tb->clkrst_mem_rst_n = 1;
 
     for (int i = 0; i < 2; i++) {
-      tb->clk = 1;
+      tb->clkrst_mem_clk = 1;
       tb->eval();
       Sim::tick();
       TRACE;
 
-      tb->clk = 0;
+      tb->clkrst_mem_clk = 0;
       tb->eval();
       Sim::tick();
       TRACE;

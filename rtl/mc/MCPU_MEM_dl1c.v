@@ -1,5 +1,6 @@
 module MCPU_MEM_dl1c(
-                     input              clk,
+                     input              clkrst_mem_clk,
+                     input              clkrst_mem_rst_n,
 
                      // Control interface
                      // Addresses are word-aligned (4 byte), and all reads
@@ -12,7 +13,6 @@ module MCPU_MEM_dl1c(
                      input [3:0]        dl1c_we_b,
                      input [31:0]       dl1c_in_a,
                      input [31:0]       dl1c_in_b,
-                     input              dl1c_reset,
                      output [31:0]      dl1c_out_a,
                      output [31:0]      dl1c_out_b,
                      output             dl1c_ready,
@@ -326,11 +326,6 @@ module MCPU_MEM_dl1c(
          // Valid bit doesn't need to be updated.
          data_data_b = wdata_b;
       end
-
-      if (dl1c_reset) begin
-         next_valid[0] = 0;
-         next_valid[1] = 0;
-      end
    end // always @ (*)
 
    always @(*) begin
@@ -342,43 +337,44 @@ module MCPU_MEM_dl1c(
         next_evict[set_a_1a] = ~hit_idx_a_1a;
       if (dl1c_req_b_1a & hit_b_1a)
         next_evict[set_b_1a] = ~hit_idx_b_1a;
-
-      if (dl1c_reset)
-        next_evict = 0;
    end
 
-   always @(posedge clk) begin
-      if (latch_inputs) begin
-         dl1c_re_a_1a <= dl1c_re_a_0a;
-         dl1c_re_b_1a <= dl1c_re_b_0a;
-         dl1c_we_a_1a <= dl1c_we_a_0a;
-         dl1c_we_b_1a <= dl1c_we_b_0a;
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         for (i = 0; i < WAYS; i = i + 1)
+           valid[i] <= 0;
+         evict <= 0;
+         dl1c2arb_valid <= 0;
+      end else begin
+         if (latch_inputs) begin
+            dl1c_re_a_1a <= dl1c_re_a_0a;
+            dl1c_re_b_1a <= dl1c_re_b_0a;
+            dl1c_we_a_1a <= dl1c_we_a_0a;
+            dl1c_we_b_1a <= dl1c_we_b_0a;
 
-         addr_a_1a <= addr_a_0a;
-         addr_b_1a <= addr_b_0a;
+            addr_a_1a <= addr_a_0a;
+            addr_b_1a <= addr_b_0a;
+         end
+
+         if (~dl1c2arb_stall) begin
+            dl1c2arb_valid <= l2c_valid;
+            dl1c2arb_opcode <= l2c_opcode;
+            dl1c2arb_addr <= l2c_addr;
+
+            dl1c2arb_wdata <= l2c_wdata;
+            dl1c2arb_wbe <= l2c_wbe;
+         end
+
+         evict <= next_evict;
+         valid[0] <= next_valid[0];
+         valid[1] <= next_valid[1];
+
+         write_a_remaining <= next_write_a_remaining;
+         write_b_remaining <= next_write_b_remaining;
+         read_a_remaining <= next_read_a_remaining;
+         read_b_remaining <= next_read_b_remaining;
       end
-
-      if (~dl1c2arb_stall) begin
-         dl1c2arb_valid <= l2c_valid;
-         dl1c2arb_opcode <= l2c_opcode;
-         dl1c2arb_addr <= l2c_addr;
-
-         dl1c2arb_wdata <= l2c_wdata;
-         dl1c2arb_wbe <= l2c_wbe;
-      end
-
-      evict <= next_evict;
-      valid[0] <= next_valid[0];
-      valid[1] <= next_valid[1];
-
-      write_a_remaining <= next_write_a_remaining;
-      write_b_remaining <= next_write_b_remaining;
-      read_a_remaining <= next_read_a_remaining;
-      read_b_remaining <= next_read_b_remaining;
-   end // always @ (posedge clk)
-
-   initial
-     for (i = 0; i < WAYS; i = i + 1) valid[i] = 0;
+   end // always @ (posedge clkrst_mem_clk)
 
    genvar                   ii;
    generate
@@ -399,7 +395,7 @@ module MCPU_MEM_dl1c(
                                 .addr_b                (bram_addr_b),
                                 .we_a                  (bram_we_a[ii]),
                                 .we_b                  (bram_we_b[ii]),
-                                .clk                   (clk));
+                                .clk                   (clkrst_mem_clk));
 
          dp_bram #(
                    .DATA_WIDTH(TAG_WIDTH),
@@ -415,8 +411,13 @@ module MCPU_MEM_dl1c(
                                .addr_b                (bram_addr_b),
                                .we_a                  (bram_we_a[ii]),
                                .we_b                  (bram_we_b[ii]),
-                               .clk                   (clk));
+                               .clk                   (clkrst_mem_clk));
 
       end // block: data_bram_gen
    endgenerate
+
+   // for the sake of iverilog.
+   wire [NUM_SETS-1:0] valid0 = valid[0];
+   wire [NUM_SETS-1:0] valid1 = valid[1];
+
 endmodule // MCPU_MEM_dl1c

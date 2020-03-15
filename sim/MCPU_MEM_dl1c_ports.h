@@ -1,11 +1,10 @@
-#ifndef _MCPU_MEM_dl1c_ports_H
-#define _MCPU_MEM_dl1c_ports_H
-
-#include "verilated.h"
+#ifndef __MCPU_MEM_dl1c_ports_H
+#define __MCPU_MEM_dl1c_ports_H
 
 struct MCPU_MEM_dl1c_ports {
   /* Inputs */
-  CData *clk;                           /* 0:0 */
+  CData *clkrst_mem_clk;                /* 0:0 */
+  CData *clkrst_mem_rst_n;              /* 0:0 */
   WData *dl1c2arb_rdata;                /* 255:0 */
   CData *dl1c2arb_rvalid;               /* 0:0 */
   CData *dl1c2arb_stall;                /* 0:0 */
@@ -18,7 +17,6 @@ struct MCPU_MEM_dl1c_ports {
   CData *dl1c_re_b;                     /* 0:0 */
   CData *dl1c_we_a;                     /* 3:0 */
   CData *dl1c_we_b;                     /* 3:0 */
-  CData *dl1c_reset;                    /* 0:0 */
 
   /* Outputs */
   IData *dl1c2arb_addr;                 /* 31:5 */
@@ -37,7 +35,8 @@ struct MCPU_MEM_dl1c_ports {
 
 #define MCPU_MEM_dl1c_CONNECT(str, cla) \
   do { \
-    (str)->clk = &((cla)->clk); \
+    (str)->clkrst_mem_clk = &((cla)->clkrst_mem_clk); \
+    (str)->clkrst_mem_rst_n = &((cla)->clkrst_mem_rst_n); \
     (str)->dl1c2arb_rdata = ((cla)->dl1c2arb_rdata); \
     (str)->dl1c2arb_rvalid = &((cla)->dl1c2arb_rvalid); \
     (str)->dl1c2arb_stall = &((cla)->dl1c2arb_stall); \
@@ -50,7 +49,6 @@ struct MCPU_MEM_dl1c_ports {
     (str)->dl1c_re_b = &((cla)->dl1c_re_b); \
     (str)->dl1c_we_a = &((cla)->dl1c_we_a); \
     (str)->dl1c_we_b = &((cla)->dl1c_we_b); \
-    (str)->dl1c_reset = &((cla)->dl1c_reset); \
     \
     (str)->dl1c2arb_addr = &((cla)->dl1c2arb_addr); \
     (str)->dl1c2arb_opcode = &((cla)->dl1c2arb_opcode); \
