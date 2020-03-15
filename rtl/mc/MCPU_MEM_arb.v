@@ -63,8 +63,8 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	
 	/** Flops and wires **/
 	
-	reg [CLIENTS-1:0] cur_client;
-	reg [CLIENTS_BITS-1:0] cur_client_num;
+	reg [CLIENTS-1:0] cur_client = 0;
+	reg [CLIENTS_BITS-1:0] cur_client_num = 0;
 	reg [CLIENTS_BITS:0] cur_client_num_next;
 	reg [CREDITS_BITS-1:0] credits_left;
 	reg [CREDITS_BITS-1:0] cli_credits [CLIENTS-1:0];
@@ -163,7 +163,7 @@ module MCPU_MEM_arb(/*AUTOARG*/
 	assign rdfifo_wdata = cur_client_num;
 	
 	assign rdfifo_pop   = arb2ltc_rvalid;
-	
+
 `ifndef BROKEN_ASSERTS
 	always @(posedge clkrst_mem_clk)
 		assert (!(rdfifo_pop && rdfifo_empty)) else $error("LTC returned more results than we have entries in FIFO");

@@ -138,17 +138,17 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	input           clkrst_mem_clk;
 	input           clkrst_mem_rst_n;
 
-	/* Avalon interface */
-	output [24:0]	ltc2mc_avl_addr_0;
-	output [15:0]	ltc2mc_avl_be_0;
-	output		ltc2mc_avl_burstbegin_0;
-	output		ltc2mc_avl_read_req_0;
-	output [4:0]	ltc2mc_avl_size_0;
-	output [127:0]	ltc2mc_avl_wdata_0;
-	output		ltc2mc_avl_write_req_0;
-	input [127:0]	ltc2mc_avl_rdata_0;
-	input		ltc2mc_avl_rdata_valid_0;
-	input		ltc2mc_avl_ready_0;
+	 /* Avalon interface */
+	 output [24:0]  ltc2mc_avl_addr_0;
+	 output [15:0]  ltc2mc_avl_be_0;
+	 output         ltc2mc_avl_burstbegin_0;
+	 output         ltc2mc_avl_read_req_0;
+	 output [4:0]   ltc2mc_avl_size_0;
+	 output [127:0] ltc2mc_avl_wdata_0;
+	 output         ltc2mc_avl_write_req_0;
+	 input [127:0]  ltc2mc_avl_rdata_0;
+	 input          ltc2mc_avl_rdata_valid_0;
+	 input          ltc2mc_avl_ready_0;
 	
 	/* Atom interface */
 	/* XXX: Add LTC streams */
@@ -530,7 +530,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			read_filling <= (read_filling | read_filling_set) & ~read_filling_clr;
 			if (resp_data_lo_latch)
 				resp_data_lo <= ltc2mc_avl_rdata_0;
-			
+
 `ifndef BROKEN_ASSERTS
 			assert (!(ltc2mc_avl_rdata_valid_0 && !(read_filling | read_filling_set))) else $error("ltc2mc avl response without filling?");
 `endif

@@ -51,6 +51,24 @@ module MCPU_MEM_il1c(
    localparam NUM_SETS = 16;
    localparam TAG_WIDTH = LINE_ADDR_SIZE - SET_WIDTH;
 
+
+   localparam STATE_BITS = 3; // TODO
+
+   localparam STATE_DEFAULT = 0;
+   localparam STATE_READ = 1;
+   localparam STATE_WAIT_UPDATE = 2;
+
+
+   wire [31:4]                      addr_0a = il1c_addr;
+   reg [31:4]                       addr_1a;
+
+   reg                  stall;
+   wire [22:0]          q_tag;
+   reg [NUM_SETS - 1:0] valid = 16'b0;
+
+   reg [STATE_BITS-1:0] state = 0;
+   reg [STATE_BITS-1:0] nextstate = 0;
+
    // TLB reads are always for the same address as the cache read (since
    // the TLB access starts on the first cycle of a request).
    assign il1c2tlb_addr = addr_0a[31:12];
@@ -60,9 +78,6 @@ module MCPU_MEM_il1c(
 
    // Always doing reads from the arb, if anything.
    assign il1c2arb_opcode = 0; // TODO
-
-   wire [31:4] addr_0a = il1c_addr;
-   reg [31:4]  addr_1a;
 
    wire        re_0a = il1c_re;
    reg         re_1a;
@@ -92,16 +107,6 @@ module MCPU_MEM_il1c(
    // If we've stalled, keep reading from the old address; otherwise, read
    // from a new one.
    wire [SET_WIDTH-1:0] data_addr = stall ? set_1a : set_0a;
-
-   reg                  stall;
-   localparam STATE_BITS = 3; // TODO
-
-   localparam STATE_DEFAULT = 0;
-   localparam STATE_READ = 1;
-   localparam STATE_WAIT_UPDATE = 2;
-
-   reg [STATE_BITS-1:0] state = 0;
-   reg [STATE_BITS-1:0] nextstate = 0;
 
    reg                  update_cache;
 
@@ -181,7 +186,6 @@ module MCPU_MEM_il1c(
                           .we                    (update_cache),
                           .clk                   (clk));
 
-   wire [22:0] q_tag;
    sp_bram #(
              .DATA_WIDTH(TAG_WIDTH),
              .ADDR_WIDTH(SET_WIDTH)
@@ -193,5 +197,4 @@ module MCPU_MEM_il1c(
                          .we                  (update_cache),
                          .clk                 (clk));
 
-   reg [NUM_SETS - 1:0]                valid = 16'b0;
 endmodule

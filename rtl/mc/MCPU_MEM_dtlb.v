@@ -189,6 +189,11 @@ module MCPU_MEM_dtlb(
    reg [WAYS-1:0] next_hit_a_way_1a;
    reg [WAYS-1:0] next_hit_b_way_1a;
 
+   // Each set has a single bit associated with it to specify which way
+   // will be evicted next. (This will need to change if the associativity
+   // of the cache is changed.)
+   reg [NUM_SETS-1:0] evict = 16'b0;
+
    always @(*) begin
       evict_update_a_from_hit = 0;
       evict_update_a_from_miss = 0;
@@ -447,9 +452,4 @@ module MCPU_MEM_dtlb(
           end
       end
    end
-
-   // Each set has a single bit associated with it to specify which way
-   // will be evicted next. (This will need to change if the associativity
-   // of the cache is changed.)
-   reg [NUM_SETS-1:0] evict = 16'b0;
 endmodule

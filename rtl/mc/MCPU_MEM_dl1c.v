@@ -87,20 +87,30 @@ module MCPU_MEM_dl1c(
    reg                  latch_inputs;
    reg                  read_addr_imm;
 
+   wire [LINE_SIZE-1:0] q_data_a[WAYS-1:0];
+   wire [LINE_SIZE-1:0] q_data_b[WAYS-1:0];
+   wire [TAG_WIDTH-1:0] q_tag_a[WAYS-1:0];
+   wire [TAG_WIDTH-1:0] q_tag_b[WAYS-1:0];
+
+   reg [WAYS-1:0]   bram_we_a;
+   reg [WAYS-1:0]   bram_we_b;
+
+   wire [SET_WIDTH-1:0] bram_addr_a = read_addr_imm ? set_a_0a : set_a_1a;
+   wire [SET_WIDTH-1:0] bram_addr_b = read_addr_imm ? set_b_0a : set_b_1a;
+   reg [LINE_SIZE-1:0]  data_data_a;
+   reg [LINE_SIZE-1:0]  data_data_b;
+   wire [TAG_WIDTH-1:0] data_tag_a = tag_a_1a;
+   wire [TAG_WIDTH-1:0] data_tag_b = tag_b_1a;
+
+   reg [NUM_SETS-1:0]   valid[WAYS-1:0];
+   reg [NUM_SETS-1:0]   next_valid[WAYS-1:0];
+   reg [NUM_SETS-1:0]   evict = 0;
+   reg [NUM_SETS-1:0]   next_evict = 0;
+
    wire [1:0]           hit_a_way_1a = {{(q_tag_a[1] == tag_a_1a) & valid[1][set_a_1a],
                                          (q_tag_a[0] == tag_a_1a) & valid[0][set_a_1a]}};
    wire [1:0]           hit_b_way_1a = {{(q_tag_b[1] == tag_b_1a) & valid[1][set_b_1a],
                                          (q_tag_b[0] == tag_b_1a) & valid[0][set_b_1a]}};
-
-   // Wait for bram reads from the same address to settle, if necessary.
-   // So: if we were putting the same address in but getting different values
-   // out, wait until we're not getting different ones out anymore!
-   // (This can happen when we're writing on one port, and reading from
-   // the same address on the other port.)
-   wire                 same_addr_kludge = ((set_a_1a != set_b_1a) || (q_data_a[0] == q_data_b[0]
-                                                                       && q_data_a[1] == q_data_b[1]
-                                                                       && q_tag_a[0] == q_tag_b[0]
-                                                                       && q_tag_a[1] == q_tag_b[1]));
 
    wire                 hit_a_1a = |hit_a_way_1a;
    wire                 hit_b_1a = |hit_b_way_1a;
@@ -115,16 +125,10 @@ module MCPU_MEM_dl1c(
    wire [3:0]           dl1c_we_a_0a = dl1c_we_a;
    wire [3:0]           dl1c_we_b_0a = dl1c_we_b;
 
-   reg                  dl1c_re_a_1a;
-   reg                  dl1c_re_b_1a;
-   reg [3:0]            dl1c_we_a_1a;
-   reg [3:0]            dl1c_we_b_1a;
-
-   assign dl1c_out_a = q_data_a[hit_idx_a_1a][offs_a_1a * 32 +: 32];
-   assign dl1c_out_b = q_data_b[hit_idx_b_1a][offs_b_1a * 32 +: 32];
-
-   reg                  ready;
-   assign dl1c_ready = ready;
+   reg                  dl1c_re_a_1a = 0;
+   reg                  dl1c_re_b_1a = 0;
+   reg [3:0]            dl1c_we_a_1a = 0;
+   reg [3:0]            dl1c_we_b_1a = 0;
 
    reg                  read_a;
    reg                  read_b;
@@ -145,6 +149,22 @@ module MCPU_MEM_dl1c(
    reg                  read_b_remaining;
    reg                  next_read_a_remaining;
    reg                  next_read_b_remaining;
+
+   // Wait for bram reads from the same address to settle, if necessary.
+   // So: if we were putting the same address in but getting different values
+   // out, wait until we're not getting different ones out anymore!
+   // (This can happen when we're writing on one port, and reading from
+   // the same address on the other port.)
+   wire                 same_addr_kludge = ~dl1c_req_1a || ((set_a_1a != set_b_1a) || (q_data_a[0] == q_data_b[0]
+                                                                                       && q_data_a[1] == q_data_b[1]
+                                                                                       && q_tag_a[0] == q_tag_b[0]
+                                                                                       && q_tag_a[1] == q_tag_b[1]));
+
+   assign dl1c_out_a = q_data_a[hit_idx_a_1a][offs_a_1a * 32 +: 32];
+   assign dl1c_out_b = q_data_b[hit_idx_b_1a][offs_b_1a * 32 +: 32];
+
+   reg                  ready;
+   assign dl1c_ready = ready;
 
 
    wire [31:0] bit_mask_a = {{dl1c_we_a_1a[3] ? 8'hff : 8'h00},
@@ -356,26 +376,6 @@ module MCPU_MEM_dl1c(
       read_a_remaining <= next_read_a_remaining;
       read_b_remaining <= next_read_b_remaining;
    end // always @ (posedge clk)
-
-   wire [LINE_SIZE-1:0] q_data_a[WAYS-1:0];
-   wire [LINE_SIZE-1:0] q_data_b[WAYS-1:0];
-   wire [TAG_WIDTH-1:0] q_tag_a[WAYS-1:0];
-   wire [TAG_WIDTH-1:0] q_tag_b[WAYS-1:0];
-
-   reg [WAYS-1:0]   bram_we_a;
-   reg [WAYS-1:0]   bram_we_b;
-
-   wire [SET_WIDTH-1:0] bram_addr_a = read_addr_imm ? set_a_0a : set_a_1a;
-   wire [SET_WIDTH-1:0] bram_addr_b = read_addr_imm ? set_b_0a : set_b_1a;
-   reg [LINE_SIZE-1:0]  data_data_a;
-   reg [LINE_SIZE-1:0]  data_data_b;
-   wire [TAG_WIDTH-1:0] data_tag_a = tag_a_1a;
-   wire [TAG_WIDTH-1:0] data_tag_b = tag_b_1a;
-
-   reg [NUM_SETS-1:0]   valid[WAYS-1:0];
-   reg [NUM_SETS-1:0]   next_valid[WAYS-1:0];
-   reg [NUM_SETS-1:0]   evict = 0;
-   reg [NUM_SETS-1:0]   next_evict = 0;
 
    initial
      for (i = 0; i < WAYS; i = i + 1) valid[i] = 0;
