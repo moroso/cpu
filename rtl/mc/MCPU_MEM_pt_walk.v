@@ -1,7 +1,8 @@
 `timescale 1 ns / 1 ps
 
 module MCPU_MEM_pt_walk(
-                        input             tlb2ptw_clk,
+                        input             clkrst_mem_clk,
+                        input             clkrst_mem_rst_n,
 
                         // Control interface
                         input [31:12]     tlb2ptw_addr,
@@ -138,25 +139,30 @@ module MCPU_MEM_pt_walk(
       endcase
    end
 
-   always @(posedge tlb2ptw_clk) begin
-      state <= next_state;
+   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+      if (~clkrst_mem_rst_n) begin
+         state <= ST_IDLE;
+         ptw2arb_valid <= 0;
+      end else begin
+         state <= next_state;
 
-      if (~ptw2arb_stall) begin
-         ptw2arb_addr <= next_ptw2arb_addr;
-         ptw2arb_valid <= next_ptw2arb_valid;
-      end
+         if (~ptw2arb_stall) begin
+            ptw2arb_addr <= next_ptw2arb_addr;
+            ptw2arb_valid <= next_ptw2arb_valid;
+         end
 
-      if (latch_pd) begin
-         // arb_rdata contains the page directory entry we want; save
-         // that in pagetab_base, along with flags from the pagedir
-         // entry.
-         latched_arb_rdata_pd_entry <= arb_rdata_pd_entry;
-         // For now, treat the page table entry as 0. If the page directory is
-         // present and we do a read of the page table entry, this will be overwritten
-         // below.
-         latched_arb_rdata_pt_entry <= 32'h0;
-      end else if (latch_pt) begin
-         latched_arb_rdata_pt_entry <= arb_rdata_pt_entry;
+         if (latch_pd) begin
+            // arb_rdata contains the page directory entry we want; save
+            // that in pagetab_base, along with flags from the pagedir
+            // entry.
+            latched_arb_rdata_pd_entry <= arb_rdata_pd_entry;
+            // For now, treat the page table entry as 0. If the page directory is
+            // present and we do a read of the page table entry, this will be overwritten
+            // below.
+            latched_arb_rdata_pt_entry <= 32'h0;
+         end else if (latch_pt) begin
+            latched_arb_rdata_pt_entry <= arb_rdata_pt_entry;
+         end
       end
    end
 

@@ -70,7 +70,7 @@ WalkTest::WalkTest(VMCPU_MEM_pt_walk *tb)
   arb->add_client(arb_ports);
 
   arb->latch();
-  tb->tlb2ptw_clk = 0;
+  tb->clkrst_mem_clk = 0;
   tb->tlb2ptw_addr = 0;
   tb->tlb2ptw_re = 0;
   tb->ptw_pagedir_base = 0;
@@ -92,7 +92,7 @@ void WalkTest::do_lookup(uint32_t addr) {
   int cycles = 0;
 
   arb->latch();
-  tb->tlb2ptw_clk = 1;
+  tb->clkrst_mem_clk = 1;
   tb->eval();
   tb->tlb2ptw_re = 1;
   tb->tlb2ptw_addr = addr;
@@ -103,13 +103,13 @@ void WalkTest::do_lookup(uint32_t addr) {
   TRACE;
 
   while (cycles++ < DEADLINE) {
-    tb->tlb2ptw_clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
 
     arb->latch();
-    tb->tlb2ptw_clk = 1;
+    tb->clkrst_mem_clk = 1;
     tb->tlb2ptw_re = 0;
     tb->eval();
     arb->clk();
@@ -184,6 +184,21 @@ int main(int argc, char **argv, char **env) {
   atexit(_close_trace);
 #endif
 
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+
+  tb->clkrst_mem_rst_n = 0;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+
+  tb->clkrst_mem_rst_n = 1;
+  tb->eval();
+  Sim::tick();
+  TRACE;
+
   WalkTest test = WalkTest(tb);
   uint32_t pagedir_base = 0x4000;
   test.set_base(pagedir_base);
@@ -221,12 +236,12 @@ int main(int argc, char **argv, char **env) {
   // Let a few clock cycles go by before we exit (it's nicer
   // when we're looking at the .vcd file)
   for (int i = 0; i < 16; i++) {
-    tb->tlb2ptw_clk = 0;
+    tb->clkrst_mem_clk = 0;
     tb->eval();
     Sim::tick();
     TRACE;
 
-    tb->tlb2ptw_clk = 1;
+    tb->clkrst_mem_clk = 1;
     tb->eval();
     Sim::tick();
     TRACE;
