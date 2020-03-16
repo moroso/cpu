@@ -306,7 +306,8 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			
 			/* Way and RAM select logic */
 			assign set_valid_0a[set] = |(ways_match_0a & way_valid_0a);
-			always @(*) begin
+			always @(/*AUTOSENSE*/resp_override_0a or way_evicting_0a
+			         or way_valid_0a or ways_match_0a) begin
 				way_active_0a = {WAYS_BITS{1'bx}};
 				for (i = 0; i < WAYS; i = i + 1)
 					if (ways_match_0a[i] && way_valid_0a[i])
@@ -520,6 +521,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			mcsm_ofs <= 3'd0;
 			resp_ofs <= 3'd0;
 			resp_data_lo <= {128{1'b0}};
+			read_filling <= 0;
 		end else begin
 			if (ltc2mc_avl_ready_0) begin
 				mcsm <= mcsm_next;
