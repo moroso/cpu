@@ -125,12 +125,12 @@ module TB_MCPU_core(/*AUTOARG*/
 		       .mem2dc_write1	(mem2dc_write1[3:0]),
 		       .mem2dc_valid1	(mem2dc_valid1),
 		       .mem2dc_data_out1(mem2dc_data_out1[31:0]),
+		       .dispatch	(dispatch),
 		       .ft2itlb_valid	(ft2itlb_valid),
 		       .ft2itlb_virtpage(ft2itlb_virtpage[19:0]),
 		       .f2ic_paddr	(f2ic_paddr[27:0]),
 		       .f2ic_valid	(f2ic_valid),
 		       .r0		(r0[31:0]),
-               .dispatch(dispatch),
 		       // Inputs
 		       .clkrst_core_clk	(clkrst_core_clk),
 		       .clkrst_core_rst_n(clkrst_core_rst_n),
