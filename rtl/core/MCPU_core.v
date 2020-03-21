@@ -1,16 +1,14 @@
 
 module MCPU_core(/*AUTOARG*/
-   // Outputs
-   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-   mem2dc_data_out1, dispatch, ft2itlb_valid, ft2itlb_virtpage,
-   f2ic_paddr, f2ic_valid, r0,
-   // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-   ft2itlb_ready, ft2itlb_physpage, ft2itlb_pagefault, ic2d_packet,
-   ic2f_ready, r31
-   );
+  // Outputs
+  int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
+  mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+  mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, r0,
+  // Inputs
+  clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
+  mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+  f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, r31
+  );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;
@@ -37,18 +35,13 @@ module MCPU_core(/*AUTOARG*/
   output [31:0] mem2dc_data_out1;
   output dispatch;
 
-  /* ITLB interface */
-  output ft2itlb_valid;
-  output [19:0] ft2itlb_virtpage;
-  input ft2itlb_ready;
-  input [19:0] ft2itlb_physpage;
-  input ft2itlb_pagefault;
-
   /* I$ interface */
-  output [27:0] f2ic_paddr;
+  output [27:0] f2ic_vaddr;
+  input [27:0] 	f2ic_paddr;
   output f2ic_valid;
   input [127:0] ic2d_packet;
-  input ic2f_ready;
+  input 	ic2f_pf;
+  input 	ic2f_ready;
 
   output [31:0] r0;
   input [31:0] r31;
@@ -124,8 +117,6 @@ module MCPU_core(/*AUTOARG*/
   wire			dtlb_re0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_re1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
-  wire			ft2f_out_inst_pf;	// From ft of MCPU_CORE_stage_fetchtlb.v
-  wire [19:0]		ft2f_out_physpage;	// From ft of MCPU_CORE_stage_fetchtlb.v
   wire			interrupts_enabled;	// From coproc of MCPU_CORE_coproc.v
   wire [11:0]		lsu_offset2;		// From d2 of MCPU_CORE_decode.v
   wire [11:0]		lsu_offset3;		// From d3 of MCPU_CORE_decode.v
@@ -160,10 +151,6 @@ module MCPU_core(/*AUTOARG*/
   // End of automatics
 
   // wires that get missed because they're not module outputs :/
-  wire [27:0] ft2f_out_virtpc /* verilator public */;  // From ft of stage_fetchtlb.v
-  wire [19:0] ft2f_in_physpage /* verilator public */;
-  wire [27:0] ft2f_in_virtpc /* verilator public */;
-  wire ft2f_in_inst_pf;
   wire [127:0] f2d_in_packet /* verilator public */;
   wire [27:0] f2d_in_virtpc;
   wire f2d_in_inst_pf;
@@ -197,9 +184,9 @@ module MCPU_core(/*AUTOARG*/
   wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */;
   wire mem_valid0 /* verilator public */, mem_valid1 /* verilator public */;
   wire wb_valid0 /* verilator public */, wb_valid1 /* verilator public */, wb_valid23 /* verilator public */;
-  wire ft2f_readyout, ft2f_readyin, f2d_readyout, f2d_readyin;
+  wire ft2f_readyin, f2d_readyout, f2d_readyin;
   wire d2pc_readyout, d2pc_readyin;
-  wire ft2f_progress, f2d_progress, d2pc_progress;
+  wire f2d_progress, d2pc_progress;
 
   wire pc2wb_readyout0, pc2wb_readyout1, pc2mem_readyout0, pc2mem_readyout1;
   wire pc_readyout;
@@ -208,16 +195,12 @@ module MCPU_core(/*AUTOARG*/
   wire pc2wb_progress0, pc2wb_progress1, pc2mem_progress0, pc2mem_progress1;
   wire mem2wb_progress0, mem2wb_progress1;
 
-  wire ft2f_done, f2d_done;
+  wire f2d_done;
   wire pipe_flush, exception /* verilator public */, paging_on;
-  wire [27:0] pc2ft_newpc;
+  wire [27:0] pc2f_newpc;
   
   `include "oper_type.vh"
 
-
-  assign ft2f_readyin = ~f_valid | f2d_progress;
-  assign ft2f_readyout = ft2f_done;
-  assign ft2f_progress = ft2f_readyin & ft2f_readyout;
 
   wire dcd_depstall;
 
@@ -271,7 +254,7 @@ module MCPU_core(/*AUTOARG*/
 
   wire [27:0] branch_newpc = d2pc_in_sop0[27:0] +
               (d2pc_in_branchreg ? d2pc_in_rs_data0[31:4] : d2pc_in_virtpc);
-  assign pc2ft_newpc = coproc_branch ? coproc_branchaddr : branch_newpc;
+  assign pc2f_newpc = coproc_branch ? coproc_branchaddr : branch_newpc;
 
 
 
@@ -353,54 +336,29 @@ module MCPU_core(/*AUTOARG*/
 			  .pipe_flush		(pipe_flush));
 
   /* Pipeline! */
-  MCPU_CORE_stage_fetchtlb ft(/*AUTOINST*/
-			      // Outputs
-			      .ft2f_done	(ft2f_done),
-			      .ft2f_out_physpage(ft2f_out_physpage[19:0]),
-			      .ft2f_out_virtpc	(ft2f_out_virtpc[27:0]),
-			      .ft2f_out_inst_pf	(ft2f_out_inst_pf),
-			      .ft2itlb_valid	(ft2itlb_valid),
-			      .ft2itlb_virtpage	(ft2itlb_virtpage[19:0]),
-			      // Inputs
-			      .clkrst_core_clk	(clkrst_core_clk),
-			      .clkrst_core_rst_n(clkrst_core_rst_n),
-			      .ft2f_progress	(ft2f_progress),
-			      .pipe_flush	(pipe_flush),
-			      .pc2ft_newpc	(pc2ft_newpc[27:0]),
-			      .paging_on	(paging_on),
-			      .ft2itlb_ready	(ft2itlb_ready),
-			      .ft2itlb_physpage	(ft2itlb_physpage[19:0]),
-			      .ft2itlb_pagefault(ft2itlb_pagefault));
 
-  register #(.WIDTH(50), .RESET_VAL(50'd0))
-           ft2f_reg(.D({ft2f_out_physpage, ft2f_out_virtpc, ft2f_progress & ~pipe_flush, ft2f_out_inst_pf}),
-                    .Q({ft2f_in_physpage, ft2f_in_virtpc, f_valid, ft2f_in_inst_pf}),
-                    .en(ft2f_progress | pipe_flush),
-                    /*AUTOINST*/
-		    // Inputs
-		    .clkrst_core_clk	(clkrst_core_clk),
-		    .clkrst_core_rst_n	(clkrst_core_rst_n));
+  assign f_valid = ~pipe_flush;
 
   MCPU_CORE_stage_fetch f(/*AUTOINST*/
 			  // Outputs
 			  .f2d_done		(f2d_done),
 			  .f2d_out_virtpc	(f2d_out_virtpc[27:0]),
-			  .f2ic_paddr		(f2ic_paddr[27:0]),
+			  .f2d_in_inst_pf	(f2d_in_inst_pf),
+			  .f2ic_vaddr		(f2ic_vaddr[27:0]),
 			  .f2ic_valid		(f2ic_valid),
 			  // Inputs
 			  .clkrst_core_clk	(clkrst_core_clk),
 			  .clkrst_core_rst_n	(clkrst_core_rst_n),
 			  .f_valid		(f_valid),
-			  .ft2f_progress	(ft2f_progress),
-			  .ft2f_in_physpage	(ft2f_in_physpage[19:0]),
-			  .ft2f_in_virtpc	(ft2f_in_virtpc[27:0]),
+			  .pc2f_newpc		(pc2f_newpc[27:0]),
 			  .f2d_progress		(f2d_progress),
 			  .pipe_flush		(pipe_flush),
+			  .f2ic_paddr		(f2ic_paddr[27:0]),
 			  .ic2f_ready		(ic2f_ready));
 
   register #(.WIDTH(30), .RESET_VAL(30'd0))
-           f2d_reg(.D({f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush, ft2f_in_inst_pf}),
-                   .Q({f2d_in_virtpc, dcd_valid, f2d_in_inst_pf}),
+           f2d_reg(.D({f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush}),
+                   .Q({f2d_in_virtpc, dcd_valid}),
                    .en(f2d_progress | pipe_flush),
                    /*AUTOINST*/
 		   // Inputs

@@ -1,13 +1,16 @@
 module TB_MCPU_core(/*AUTOARG*/
-   // Outputs
-   uart_tx, uart_status, memoutput,
-   // Inputs
-   r31, clkrst_core_rst_n, clkrst_core_clk, uart_rx, meminput
-   );
+  // Outputs
+  uart_tx, uart_status, memoutput,
+  // Inputs
+  r31, ic2f_pf, f2ic_paddr, clkrst_core_rst_n, clkrst_core_clk,
+  uart_rx, meminput
+  );
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
 	input		clkrst_core_clk;	// To core of MCPU_core.v
 	input		clkrst_core_rst_n;	// To core of MCPU_core.v
+	input [27:0]	f2ic_paddr;		// To core of MCPU_core.v
+	input		ic2f_pf;		// To core of MCPU_core.v
 	input [31:0]	r31;			// To core of MCPU_core.v
 	// End of automatics
 	input uart_rx;
@@ -16,13 +19,8 @@ module TB_MCPU_core(/*AUTOARG*/
 	
 	/*AUTOWIRE*/
 	// Beginning of automatic wires (for undeclared instantiated-module outputs)
-	wire [27:0]	f2ic_paddr;		// From core of MCPU_core.v
+	wire [27:0]	f2ic_vaddr;		// From core of MCPU_core.v
 	wire		f2ic_valid;		// From core of MCPU_core.v
-	wire		ft2itlb_pagefault;	// From tlb of MCPU_CACHE_tlb_dummy.v
-	wire [19:0]	ft2itlb_physpage;	// From tlb of MCPU_CACHE_tlb_dummy.v
-	wire		ft2itlb_ready;		// From tlb of MCPU_CACHE_tlb_dummy.v
-	wire		ft2itlb_valid;		// From core of MCPU_core.v
-	wire [19:0]	ft2itlb_virtpage;	// From core of MCPU_core.v
 	// End of automatics
 	input [31:0] meminput;
 	output [31:0] memoutput;
@@ -68,7 +66,9 @@ module TB_MCPU_core(/*AUTOARG*/
 	
 	assign mem2dc_data_in0 = mem2dc_paddr0[29] ? periph_q : q_a;
 	assign mem2dc_data_in1 = mem2dc_paddr1[29] ? periph_q : q_a;
-	
+
+  assign ic2f_ready = 1;
+
     reg [22:0] ctr;
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n)
         if(~clkrst_core_rst_n) ctr <= 0;
@@ -89,7 +89,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		.wren_b(1'b0),
 		.data_a(data_a),
 		.address_a(addr_a[13:0]),
-		.address_b(f2ic_paddr[11:0]),
+		.address_b(f2ic_vaddr[11:0]),
 		.clock0(clkrst_core_clk),
 		.clock1(clkrst_core_clk),
 		.byteena_a(byteen),
@@ -126,9 +126,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		       .mem2dc_valid1	(mem2dc_valid1),
 		       .mem2dc_data_out1(mem2dc_data_out1[31:0]),
 		       .dispatch	(dispatch),
-		       .ft2itlb_valid	(ft2itlb_valid),
-		       .ft2itlb_virtpage(ft2itlb_virtpage[19:0]),
-		       .f2ic_paddr	(f2ic_paddr[27:0]),
+		       .f2ic_vaddr	(f2ic_vaddr[27:0]),
 		       .f2ic_valid	(f2ic_valid),
 		       .r0		(r0[31:0]),
 		       // Inputs
@@ -140,30 +138,12 @@ module TB_MCPU_core(/*AUTOARG*/
 		       .mem2dc_data_in0	(mem2dc_data_in0[31:0]),
 		       .mem2dc_done1	(mem2dc_done1),
 		       .mem2dc_data_in1	(mem2dc_data_in1[31:0]),
-		       .ft2itlb_ready	(ft2itlb_ready),
-		       .ft2itlb_physpage(ft2itlb_physpage[19:0]),
-		       .ft2itlb_pagefault(ft2itlb_pagefault),
+		       .f2ic_paddr	(f2ic_paddr[27:0]),
 		       .ic2d_packet	(ic2d_packet[127:0]),
+		       .ic2f_pf		(ic2f_pf),
 		       .ic2f_ready	(ic2f_ready),
 		       .r31		(r31[31:0]));
 
-//	MCPU_CACHE_ic_dummy ic(/*AUTOINST*/
-//			       // Outputs
-//			       .ic2f_ready	(ic2f_ready),
-//			       .ic2f_packet	(ic2f_packet[127:0]),
-//			       // Inputs
-//			       .f2ic_valid	(f2ic_valid),
-//			       .f2ic_paddr	(f2ic_paddr[27:0]));
-assign ic2f_ready = f2ic_valid;
-
-	MCPU_CACHE_tlb_dummy tlb(/*AUTOINST*/
-				 // Outputs
-				 .ft2itlb_pagefault	(ft2itlb_pagefault),
-				 .ft2itlb_physpage	(ft2itlb_physpage[19:0]),
-				 .ft2itlb_ready		(ft2itlb_ready),
-				 // Inputs
-				 .ft2itlb_valid		(ft2itlb_valid),
-				 .ft2itlb_virtpage	(ft2itlb_virtpage[19:0]));
 endmodule
 
 // Local Variables:
