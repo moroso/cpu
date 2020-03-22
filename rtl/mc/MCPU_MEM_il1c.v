@@ -107,7 +107,7 @@ module MCPU_MEM_il1c(
 
    // If we've stalled, keep reading from the old address; otherwise, read
    // from a new one.
-   wire [SET_WIDTH-1:0] data_addr = stall ? set_1a : set_0a;
+   wire [SET_WIDTH-1:0] data_addr = (stall | ~re_0a) ? set_1a : set_0a;
 
    reg                  update_cache;
 
@@ -165,7 +165,7 @@ module MCPU_MEM_il1c(
          valid <= 0;
          state <= STATE_DEFAULT;
       end else begin
-         if (~stall) begin
+         if (~stall & re_0a) begin
             // Latch new values
             addr_1a <= addr_0a;
             re_1a <= re_0a;

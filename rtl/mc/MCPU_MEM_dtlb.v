@@ -12,7 +12,7 @@ module MCPU_MEM_dtlb(
                      input 		dtlb_re_a,
                      input 		dtlb_re_b,
 
-		     input 		paging_enabled,
+		     input 		paging_on,
 
                      output [31:12] 	dtlb_phys_addr_a,
                      output [31:12] 	dtlb_phys_addr_b,
@@ -223,7 +223,7 @@ module MCPU_MEM_dtlb(
 
       case (state)
         ST_IDLE: begin
-           if (paging_enabled & (dtlb_re_a_0a | dtlb_re_b_0a)) begin
+           if (paging_on & (dtlb_re_a_0a | dtlb_re_b_0a)) begin
               read_addresses_imm = 1;
               latch_inputs = 1;
               next_state = ST_COMPARING;
@@ -382,7 +382,7 @@ module MCPU_MEM_dtlb(
          hit_a_way_1a <= next_hit_a_way_1a;
          hit_b_way_1a <= next_hit_b_way_1a;
 
-         if (latch_inputs | ~paging_enabled) begin
+         if (latch_inputs | ~paging_on) begin
             dtlb_re_a_1a <= dtlb_re_a_0a;
             dtlb_re_b_1a <= dtlb_re_b_0a;
             dtlb_addr_a_1a <= dtlb_addr_a_0a;
@@ -393,10 +393,10 @@ module MCPU_MEM_dtlb(
 
    // Outputs always come from the cache. On a miss, the values will be
    // valid after the cache is updated.
-   assign dtlb_phys_addr_a = paging_enabled ? q_data_a_addr[hit_a_way_1a[1]] : dtlb_addr_a_1a;
-   assign dtlb_flags_a = paging_enabled ? q_data_a_flags[hit_a_way_1a[1]] : 4'b0011;
-   assign dtlb_phys_addr_b = paging_enabled ? q_data_b_addr[hit_b_way_1a[1]] : dtlb_addr_b_1a;
-   assign dtlb_flags_b = paging_enabled ? q_data_b_flags[hit_b_way_1a[1]] : 4'b0011;
+   assign dtlb_phys_addr_a = paging_on ? q_data_a_addr[hit_a_way_1a[1]] : dtlb_addr_a_1a;
+   assign dtlb_flags_a = paging_on ? q_data_a_flags[hit_a_way_1a[1]] : 4'b0011;
+   assign dtlb_phys_addr_b = paging_on ? q_data_b_addr[hit_b_way_1a[1]] : dtlb_addr_b_1a;
+   assign dtlb_flags_b = paging_on ? q_data_b_flags[hit_b_way_1a[1]] : 4'b0011;
 
    assign addr_data_a = read_addresses_imm ? set_a_0a : set_a_1a;
    assign addr_data_b = read_addresses_imm ? set_b_0a : set_b_1a;

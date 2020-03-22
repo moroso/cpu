@@ -40,22 +40,19 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
      * Propagate an exception signal down the pipeline, give it priority in PC phase
      * when determining exception cause
      */
-    else if(ic2f_ready) begin
-      if(pipe_flush) begin
-        f2d_out_virtpc <= pc2f_newpc;
-      end
-      else if(f2d_progress) begin
-        // if / when we add branch prediction the front half goes here
-        f2d_out_virtpc <= f2d_out_virtpc + 28'd1;
-      end
+    else if(pipe_flush) begin
+      f2d_out_virtpc <= pc2f_newpc;
+    end else if(f2d_progress) begin
+      // if / when we add branch prediction the front half goes here
+      f2d_out_virtpc <= f2d_out_virtpc + 28'd1;
     end
-  end
+  end // always @ (posedge clkrst_core_clk, negedge clkrst_core_rst_n)
 
   assign f2d_in_inst_pf = 0; // TODO!!!
 
-  assign f2ic_valid = f_valid & f2d_progress;
+  assign f2ic_valid = f_valid & f2d_progress & clkrst_core_rst_n;
   assign f2ic_vaddr = f2d_out_virtpc;
-  assign f2d_done = f2ic_valid & ic2f_ready;
+  assign f2d_done = ic2f_ready;
 
 
 endmodule

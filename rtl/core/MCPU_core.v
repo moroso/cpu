@@ -3,7 +3,7 @@ module MCPU_core(/*AUTOARG*/
    // Outputs
    int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
    mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, r0,
+   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, paging_on, r0,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
@@ -42,6 +42,8 @@ module MCPU_core(/*AUTOARG*/
   input [127:0] ic2d_packet;
   input 	ic2f_pf;
   input 	ic2f_ready;
+
+  output 	paging_on;
 
   output [31:0] r0;
   input [31:0] r31;
@@ -196,7 +198,7 @@ module MCPU_core(/*AUTOARG*/
   wire mem2wb_progress0, mem2wb_progress1;
 
   wire f2d_done;
-  wire pipe_flush, exception /* verilator public */, paging_on;
+  wire pipe_flush, exception /* verilator public */;
   wire [27:0] pc2f_newpc;
   
   `include "oper_type.vh"
@@ -205,7 +207,7 @@ module MCPU_core(/*AUTOARG*/
   wire dcd_depstall;
 
   assign f2d_readyin = ~dcd_valid | (d2pc_progress & ~dcd_depstall);
-  assign f2d_readyout = 1; //~f_valid | f2d_done;
+  assign f2d_readyout = ~f_valid | f2d_done;
   assign f2d_progress = f2d_readyout & f2d_readyin;
 
   assign d2pc_readyin = ~pc_valid | pc_out_progress;

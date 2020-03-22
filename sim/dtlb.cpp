@@ -125,7 +125,7 @@ bool TlbTest::done() {
 
 void run_test(VMCPU_MEM_dtlb *tb, void (*testfunc)(TlbTest &test)) {
   // TODO: we really should have at least one test with paging disabled...
-  tb->paging_enabled = 1;
+  tb->paging_on = 1;
   // Clear cache state, in case we're running multiple tests.
   tb->clkrst_mem_rst_n = 1;
   tb->eval();

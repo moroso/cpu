@@ -21,7 +21,7 @@ module MCPU_mem(
 		input [127:0]	ltc2mc_avl_rdata_0,	// To ltc of MCPU_MEM_ltc.v
 		input		ltc2mc_avl_rdata_valid_0,// To ltc of MCPU_MEM_ltc.v
 		input		ltc2mc_avl_ready_0,	// To ltc of MCPU_MEM_ltc.v
-		input		paging_enabled,		// To dtlb of MCPU_MEM_dtlb.v, ...
+		input		paging_on,		// To dtlb of MCPU_MEM_dtlb.v, ...
 		input [19:0]	ptw_pagedir_base,	// To dtlb_walk of MCPU_MEM_pt_walk.v, ...
 		// End of automatics
                 // Beginning of automatic outputs (from unused autoinst outputs)
@@ -239,7 +239,7 @@ module MCPU_mem(
 		      .dtlb_addr_b	(dtlb_addr_b[31:12]),
 		      .dtlb_re_a	(dtlb_re_a),
 		      .dtlb_re_b	(dtlb_re_b),
-		      .paging_enabled	(paging_enabled),
+		      .paging_on	(paging_on),
 		      .tlb2ptw_phys_addr(dtlb2dptw_phys_addr[31:12]), // Templated
 		      .tlb2ptw_ready	(dtlb2dptw_ready),	 // Templated
 		      .tlb2ptw_pagetab_flags(dtlb2dptw_pagetab_flags[3:0]), // Templated
@@ -294,7 +294,7 @@ module MCPU_mem(
 		      .dtlb_addr_b	(),			 // Templated
 		      .dtlb_re_a	(il1c2itlb_re),		 // Templated
 		      .dtlb_re_b	(1'b0),			 // Templated
-		      .paging_enabled	(paging_enabled),
+		      .paging_on	(paging_on),
 		      .tlb2ptw_phys_addr(itlb2iptw_phys_addr[31:12]), // Templated
 		      .tlb2ptw_ready	(itlb2iptw_ready),	 // Templated
 		      .tlb2ptw_pagetab_flags(itlb2iptw_pagetab_flags[3:0]), // Templated
