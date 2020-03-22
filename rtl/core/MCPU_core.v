@@ -1,14 +1,14 @@
 
 module MCPU_core(/*AUTOARG*/
-  // Outputs
-  int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-  mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-  mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, r0,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-  mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-  f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, r31
-  );
+   // Outputs
+   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
+   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, r0,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
+   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+   f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, r31
+   );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;

@@ -1,11 +1,11 @@
 
 module MCPU_CORE_stage_fetch(/*AUTOARG*/
-  // Outputs
-  f2d_done, f2d_out_virtpc, f2d_in_inst_pf, f2ic_vaddr, f2ic_valid,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, f_valid, pc2f_newpc,
-  f2d_progress, pipe_flush, f2ic_paddr, ic2f_ready
-  );
+   // Outputs
+   f2d_done, f2d_out_virtpc, f2d_in_inst_pf, f2ic_vaddr, f2ic_valid,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, f_valid, pc2f_newpc,
+   f2d_progress, pipe_flush, f2ic_paddr, ic2f_ready
+   );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;

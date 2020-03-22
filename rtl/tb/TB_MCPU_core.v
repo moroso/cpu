@@ -1,10 +1,10 @@
 module TB_MCPU_core(/*AUTOARG*/
-  // Outputs
-  uart_tx, uart_status, memoutput,
-  // Inputs
-  r31, ic2f_pf, f2ic_paddr, clkrst_core_rst_n, clkrst_core_clk,
-  uart_rx, meminput
-  );
+   // Outputs
+   uart_tx, uart_status, memoutput,
+   // Inputs
+   r31, ic2f_pf, f2ic_paddr, clkrst_core_rst_n, clkrst_core_clk,
+   uart_rx, meminput
+   );
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
 	input		clkrst_core_clk;	// To core of MCPU_core.v

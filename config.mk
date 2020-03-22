@@ -4,9 +4,11 @@
 RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/MCPU_int.v \
+	rtl/mc/MCPU_mem.v \
 	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_LTC_bram.v \
 	rtl/mc/MCPU_MEM_arb.v \
+	rtl/mc/MCPU_MEM_il1c.v \
 	rtl/mc/MCPU_MEM_dl1c.v \
 	rtl/mc/MCPU_MEM_dtlb.v \
 	rtl/mc/MCPU_MEM_il1c.v \
@@ -25,8 +27,6 @@ RTL_COMMON = \
 	rtl/core/MCPU_CORE_alu.v \
 	rtl/core/MCPU_CORE_regfile.v \
 	rtl/core/MCPU_CORE_scoreboard.v \
-	rtl/core/cache/MCPU_CACHE_ic_dummy.v \
-	rtl/core/cache/MCPU_CACHE_tlb_dummy.v \
 	rtl/core/MCPU_CORE_coproc.v \
 	rtl/core/MCPU_CORE_exn_encode.v \
 	rtl/core/MCPU_CORE_stage_mem.v \

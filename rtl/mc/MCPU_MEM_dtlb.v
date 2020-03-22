@@ -3,29 +3,31 @@
 // TODO: have a way to flush the cache.
 
 module MCPU_MEM_dtlb(
-                     input              clkrst_mem_clk,
-                     input              clkrst_mem_rst_n,
+                     input 		clkrst_mem_clk,
+                     input 		clkrst_mem_rst_n,
 
                      // Control interface
-                     input [31:12]      dtlb_addr_a,
-                     input [31:12]      dtlb_addr_b,
-                     input              dtlb_re_a,
-                     input              dtlb_re_b,
+                     input [31:12] 	dtlb_addr_a,
+                     input [31:12] 	dtlb_addr_b,
+                     input 		dtlb_re_a,
+                     input 		dtlb_re_b,
 
-                     output [31:12]     dtlb_phys_addr_a,
-                     output [31:12]     dtlb_phys_addr_b,
-                     output [3:0]       dtlb_flags_a,
-                     output [3:0]       dtlb_flags_b,
-                     output             dtlb_ready,
+		     input 		paging_enabled,
+
+                     output [31:12] 	dtlb_phys_addr_a,
+                     output [31:12] 	dtlb_phys_addr_b,
+                     output [3:0] 	dtlb_flags_a,
+                     output [3:0] 	dtlb_flags_b,
+                     output 		dtlb_ready,
 
                      // Page table walker interface
                      output reg [31:12] tlb2ptw_addr,
-                     output             tlb2ptw_re,
+                     output 		tlb2ptw_re,
 
-                     input [31:12]      tlb2ptw_phys_addr,
-                     input              tlb2ptw_ready,
-                     input [3:0]        tlb2ptw_pagetab_flags,
-                     input [3:0]        tlb2ptw_pagedir_flags);
+                     input [31:12] 	tlb2ptw_phys_addr,
+                     input 		tlb2ptw_ready,
+                     input [3:0] 	tlb2ptw_pagetab_flags,
+                     input [3:0] 	tlb2ptw_pagedir_flags);
 
 `include "MCPU_MEM_pt.vh"
 
@@ -221,7 +223,7 @@ module MCPU_MEM_dtlb(
 
       case (state)
         ST_IDLE: begin
-           if (dtlb_re_a_0a | dtlb_re_b_0a) begin
+           if (paging_enabled & (dtlb_re_a_0a | dtlb_re_b_0a)) begin
               read_addresses_imm = 1;
               latch_inputs = 1;
               next_state = ST_COMPARING;
@@ -380,7 +382,7 @@ module MCPU_MEM_dtlb(
          hit_a_way_1a <= next_hit_a_way_1a;
          hit_b_way_1a <= next_hit_b_way_1a;
 
-         if (latch_inputs) begin
+         if (latch_inputs | ~paging_enabled) begin
             dtlb_re_a_1a <= dtlb_re_a_0a;
             dtlb_re_b_1a <= dtlb_re_b_0a;
             dtlb_addr_a_1a <= dtlb_addr_a_0a;
@@ -391,10 +393,10 @@ module MCPU_MEM_dtlb(
 
    // Outputs always come from the cache. On a miss, the values will be
    // valid after the cache is updated.
-   assign dtlb_phys_addr_a = q_data_a_addr[hit_a_way_1a[1]];
-   assign dtlb_flags_a = q_data_a_flags[hit_a_way_1a[1]];
-   assign dtlb_phys_addr_b = q_data_b_addr[hit_b_way_1a[1]];
-   assign dtlb_flags_b = q_data_b_flags[hit_b_way_1a[1]];
+   assign dtlb_phys_addr_a = paging_enabled ? q_data_a_addr[hit_a_way_1a[1]] : dtlb_addr_a_1a;
+   assign dtlb_flags_a = paging_enabled ? q_data_a_flags[hit_a_way_1a[1]] : 4'b0011;
+   assign dtlb_phys_addr_b = paging_enabled ? q_data_b_addr[hit_b_way_1a[1]] : dtlb_addr_b_1a;
+   assign dtlb_flags_b = paging_enabled ? q_data_b_flags[hit_b_way_1a[1]] : 4'b0011;
 
    assign addr_data_a = read_addresses_imm ? set_a_0a : set_a_1a;
    assign addr_data_b = read_addresses_imm ? set_b_0a : set_b_1a;

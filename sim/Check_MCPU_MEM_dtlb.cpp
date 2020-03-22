@@ -26,8 +26,8 @@ void Check_MCPU_MEM_dtlb::reset() {
 
 void Check_MCPU_MEM_dtlb::check_outputs() {
   if (addr_a_valid) {
+    SIM_ASSERT(address_map.count(active_addr_a) > 0);
     CacheEntry *entry = &address_map[active_addr_a];
-    SIM_ASSERT(entry);
     if (entry->flags & (1<<PT_BIT_PRESENT)) {
       SIM_CHECK_MSG(entry->phys_addr == *ports->dtlb_phys_addr_a,
                     "Addr A: expected %x, got %x",
@@ -36,6 +36,7 @@ void Check_MCPU_MEM_dtlb::check_outputs() {
     }
   }
   if (addr_b_valid) {
+    SIM_ASSERT(address_map.count(active_addr_b) > 0);
     CacheEntry *entry = &address_map[active_addr_b];
     SIM_ASSERT(entry);
     if (entry->flags & (1<<PT_BIT_PRESENT)) {
