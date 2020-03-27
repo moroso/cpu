@@ -34,7 +34,10 @@ module MCPU_CORE_regfile(/*AUTOARG*/
     reg [31:0] mem[0:31] /* verilator public */;
     integer i;
 
-	 assign r0 = mem[0];
+  assign r0 = mem[0];
+  wire [31:0] r1 = mem[1];
+  wire [31:0] r2 = mem[2];
+  wire [31:0] r3 = mem[3];
 	 
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
         if(~clkrst_core_rst_n) begin

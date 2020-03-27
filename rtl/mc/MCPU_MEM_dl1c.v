@@ -124,6 +124,8 @@ module MCPU_MEM_dl1c(
    wire                 dl1c_re_b_0a = dl1c_re_b;
    wire [3:0]           dl1c_we_a_0a = dl1c_we_a;
    wire [3:0]           dl1c_we_b_0a = dl1c_we_b;
+  wire [31:0] 		dl1c_in_a_0a = dl1c_in_a;
+  wire [31:0] 		dl1c_in_b_0a = dl1c_in_b;
 
    reg                  dl1c_re_a_1a = 0;
    reg                  dl1c_re_b_1a = 0;
@@ -167,22 +169,24 @@ module MCPU_MEM_dl1c(
    assign dl1c_ready = ready;
 
 
-   wire [31:0] bit_mask_a = {{dl1c_we_a_1a[3] ? 8'hff : 8'h00},
-                             {dl1c_we_a_1a[2] ? 8'hff : 8'h00},
-                             {dl1c_we_a_1a[1] ? 8'hff : 8'h00},
-                             {dl1c_we_a_1a[0] ? 8'hff : 8'h00}};
-   wire [31:0] bit_mask_b = {{dl1c_we_b_1a[3] ? 8'hff : 8'h00},
-                             {dl1c_we_b_1a[2] ? 8'hff : 8'h00},
-                             {dl1c_we_b_1a[1] ? 8'hff : 8'h00},
-                             {dl1c_we_b_1a[0] ? 8'hff : 8'h00}};
+   wire [31:0] bit_mask_a_1a = {{dl1c_we_a_1a[3] ? 8'hff : 8'h00},
+				{dl1c_we_a_1a[2] ? 8'hff : 8'h00},
+				{dl1c_we_a_1a[1] ? 8'hff : 8'h00},
+				{dl1c_we_a_1a[0] ? 8'hff : 8'h00}};
+   wire [31:0] bit_mask_b_1a = {{dl1c_we_b_1a[3] ? 8'hff : 8'h00},
+				{dl1c_we_b_1a[2] ? 8'hff : 8'h00},
+				{dl1c_we_b_1a[1] ? 8'hff : 8'h00},
+				{dl1c_we_b_1a[0] ? 8'hff : 8'h00}};
+  reg [31:0]   dl1c_in_a_1a;
+  reg [31:0]   dl1c_in_b_1a;
    wire [LINE_SIZE-1:0] wdata_a =
                         // Mask out the bits being overwritten
-                        q_data_a[hit_idx_a_1a] & ~({{224'h0, bit_mask_a}} << (32 * offs_a_1a))
-                        | {{224'h0, dl1c_in_a & bit_mask_a}} << (32 * offs_a_1a);
+                        q_data_a[hit_idx_a_1a] & ~({{224'h0, bit_mask_a_1a}} << (32 * offs_a_1a))
+                        | {{224'h0, dl1c_in_a_1a & bit_mask_a_1a}} << (32 * offs_a_1a);
    wire [LINE_SIZE-1:0] wdata_b =
                         // Mask out the bits being overwritten
-                        q_data_b[hit_idx_b_1a] & ~({{224'h0, bit_mask_b}} << (32 * offs_b_1a))
-                        | {{224'h0, dl1c_in_b & bit_mask_b}} << (32 * offs_b_1a);
+                        q_data_b[hit_idx_b_1a] & ~({{224'h0, bit_mask_b_1a}} << (32 * offs_b_1a))
+                        | {{224'h0, dl1c_in_b_1a & bit_mask_b_1a}} << (32 * offs_b_1a);
    // Byte enable signals for the l2 cache
    wire [LINE_SIZE_BYTES-1:0] wbe_a = {{28'h0, dl1c_we_a_1a}} << (4 * offs_a_1a);
    wire [LINE_SIZE_BYTES-1:0] wbe_b = {{28'h0, dl1c_we_b_1a}} << (4 * offs_b_1a);
@@ -351,6 +355,9 @@ module MCPU_MEM_dl1c(
             dl1c_re_b_1a <= dl1c_re_b_0a;
             dl1c_we_a_1a <= dl1c_we_a_0a;
             dl1c_we_b_1a <= dl1c_we_b_0a;
+
+	    dl1c_in_a_1a <= dl1c_in_a_0a;
+	    dl1c_in_b_1a <= dl1c_in_b_0a;
 
             addr_a_1a <= addr_a_0a;
             addr_b_1a <= addr_b_0a;

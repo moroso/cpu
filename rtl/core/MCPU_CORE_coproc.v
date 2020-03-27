@@ -1,14 +1,14 @@
 module MCPU_CORE_coproc(/*AUTOARG*/
-   // Outputs
-   coproc_reg_result, coproc_rd_we, user_mode, paging_on,
-   interrupts_enabled, coproc_branchaddr, coproc_branch,
-   // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
-   d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
-   coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
-   combined_ec3, int_type, exception, d2pc_in_virtpc, mem_vaddr0,
-   mem_vaddr1
-   );
+  // Outputs
+  coproc_reg_result, coproc_rd_we, user_mode, paging_on,
+  interrupts_enabled, coproc_branchaddr, coproc_branch, pagedir_base,
+  // Inputs
+  clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
+  d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
+  coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
+  combined_ec3, int_type, exception, d2pc_in_virtpc, mem_vaddr0,
+  mem_vaddr1
+  );
 
     input clkrst_core_clk, clkrst_core_rst_n;
 
@@ -34,6 +34,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     input [31:0] mem_vaddr0, mem_vaddr1;
     output [27:0] coproc_branchaddr;
     output coproc_branch;
+  output [19:0] pagedir_base;
 
     reg [31:0] scratchpad[3:0];
     reg [31:0] coproc_regs[9:0];
@@ -42,6 +43,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     assign interrupts_enabled = coproc_regs[0][0];
     assign coproc_reg_result = d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
                                                   : coproc_regs[d2pc_in_rs_num0[3:0]];
+  assign pagedir_base = coproc_regs[1][31:12];
 
     wire coproc_rd_we = coproc_instruction & d2pc_in_execute_opcode0[8:5] == 4'b0110;
 
