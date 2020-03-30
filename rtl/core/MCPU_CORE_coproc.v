@@ -1,14 +1,14 @@
 module MCPU_CORE_coproc(/*AUTOARG*/
-  // Outputs
-  coproc_reg_result, coproc_rd_we, user_mode, paging_on,
-  interrupts_enabled, coproc_branchaddr, coproc_branch, pagedir_base,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
-  d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
-  coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
-  combined_ec3, int_type, exception, d2pc_in_virtpc, mem_vaddr0,
-  mem_vaddr1
-  );
+   // Outputs
+   coproc_reg_result, coproc_rd_we, user_mode, paging_on,
+   interrupts_enabled, coproc_branchaddr, coproc_branch, pagedir_base,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
+   d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
+   coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
+   combined_ec3, int_type, exception, d2pc_in_virtpc, mem_vaddr0,
+   mem_vaddr1
+   );
 
     input clkrst_core_clk, clkrst_core_rst_n;
 

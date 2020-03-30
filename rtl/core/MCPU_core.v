@@ -1,16 +1,44 @@
+/*
+ Let's say we have a pipeline stage S, and that the previous stage is P
+ and the next stage is N. Then we'll have these signals:
+
+ S_valid_in: whether the S_*_in signals are valid (if not, this cycle
+             is just a bubble).
+ S_ready_in: whether S is ready for its next data. The inputs to S must
+             not change when readyin is low, and readyin must always be
+             high when valid_in is high.
+ S_valid_out: whether the output from this stage is valid, and ready to
+              be passed on to the next stage. For stages occuring entirely
+              between two clock edges (rather than spanning one), this
+              will be the same as S_valid_in. For other stages (e.g.
+              memory) which span a clock edge, this will generally be a
+              combination of the previous valid_in signal and the cache's
+              readyout signal (and will be wired directly to N_valid_in).
+ S_ready_out: whether outputs for this stage have settled with the current
+              inputs (that is, the stage is not busy.)
+ S_out_ok: Whether the stage *after* S is ready to receive data (N_ready_in).
+
+ For stages (like decode) that happen between clocks, there's a register between
+ it and the next stage, clocked on ready_in.
+
+ For things like memory stages, some values will go through a register clocked
+ on ready_in, but other values (cache result, cache ready) will be combined into
+ the ready_out signal, and *not* go through the register. The cache's read/write
+ enable signal will depend in the next stage's ready_in.
+ */
 
 module MCPU_core(/*AUTOARG*/
-  // Outputs
-  int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-  mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-  mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
-  dtlb_addr1, dtlb_re0, dtlb_re1, paging_on, pagedir_base, r0,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-  mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-  f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
-  dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready, r31
-  );
+   // Outputs
+   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
+   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
+   dtlb_addr1, dtlb_re0, dtlb_re1, paging_on, pagedir_base, r0,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
+   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+   f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
+   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready, r31
+   );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;
@@ -126,7 +154,15 @@ module MCPU_core(/*AUTOARG*/
   wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
   wire			dtlb2pc_pf0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
   wire			dtlb2pc_pf1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_ready_in0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_ready_in1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_ready_out0;	// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_ready_out1;	// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_valid_out0;	// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
+  wire			dtlb_valid_out1;	// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
   wire [27:0]		f2d_out_virtpc;		// From f of MCPU_CORE_stage_fetch.v
+  wire			f_ready_out;		// From f of MCPU_CORE_stage_fetch.v
+  wire			f_valid_out;		// From f of MCPU_CORE_stage_fetch.v
   wire			interrupts_enabled;	// From coproc of MCPU_CORE_coproc.v
   wire [11:0]		lsu_offset2;		// From d2 of MCPU_CORE_decode.v
   wire [11:0]		lsu_offset3;		// From d3 of MCPU_CORE_decode.v
@@ -136,10 +172,12 @@ module MCPU_core(/*AUTOARG*/
   wire [4:0]		mem2wb_out_rd_num1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire			mem2wb_out_rd_we0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
   wire			mem2wb_out_rd_we1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
-  wire			mem2wb_readyout0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
-  wire			mem2wb_readyout1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
-  wire			pc2mem_readyin0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
-  wire			pc2mem_readyin1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			mem_ready_in0;		// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			mem_ready_in1;		// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			mem_ready_out0;		// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			mem_ready_out1;		// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			mem_valid_out0;		// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			mem_valid_out1;		// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire [31:0]		pc2wb_out_result2;	// From alu2 of MCPU_CORE_alu.v
   wire [31:0]		pc2wb_out_result3;	// From alu3 of MCPU_CORE_alu.v
   wire			pc_alu_invalid0;	// From alu0 of MCPU_CORE_alu.v
@@ -191,77 +229,73 @@ module MCPU_core(/*AUTOARG*/
   wire wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0 /* verilator public */;
 
   //stage status signals
-  wire f_valid /* verilator public */, dcd_valid /* verilator public */, pc_valid /* verilator public */;
-  wire mem_valid0 /* verilator public */, mem_valid1 /* verilator public */;
+  wire f_valid_in /* verilator public */, d_valid_in /* verilator public */, pc_valid_in /* verilator public */;
   wire wb_valid0 /* verilator public */, wb_valid1 /* verilator public */, wb_valid23 /* verilator public */;
-  wire ft2f_readyin, f2d_readyout, f2d_readyin;
-  wire d2pc_readyout, d2pc_readyin;
-  wire f2d_progress, d2pc_progress;
 
-  wire pc2wb_readyout0, pc2wb_readyout1, pc2mem_readyout0, pc2mem_readyout1;
-  wire pc_readyout;
   wire pc2wb_readyin0, pc2wb_readyin1;
   wire pc_out_progress;
-  wire pc2wb_progress0, pc2wb_progress1, pc2mem_progress0, pc2mem_progress1;
   wire mem2wb_progress0, mem2wb_progress1;
 
-  wire f2d_done;
   wire pipe_flush, exception /* verilator public */;
   wire [27:0] pc2f_newpc;
 
-  wire 	      dtlb_in_valid0, dtlb_in_valid1, dtlb_out_valid0, dtlb_out_valid1;
-  wire 	      dtlb_readyin0, dtlb_readyin1, dtlb_readyout0, dtlb_readyout1;
+  wire 	      f_out_ok, d_ready_out, d_out_ok, dtlb_out_ok, dtlb_valid_out;
+  wire 	      pc_ready_in, pc_ready_out, pc_valid_out;
+  wire 	      pc_valid_out_alu0, pc_valid_out_alu1, pc_valid_out_alu23;
+  wire 	      pc_valid_out_mem0, pc_valid_out_mem1;
+  wire 	      wb_ready_in, pc_out_ok;
+  wire 	      mem_ready_in, mem_out_ok0, mem_out_ok1;
+  wire 	      dtlb_valid_in, d2pc_valid_in, pc_valid;
+  wire 	      mem_valid_in0, mem_valid_in1;
 
   `include "oper_type.vh"
 
 
   wire dcd_depstall;
+  wire d_ready_in;
 
-  assign f2d_readyin = ~dcd_valid | (d2pc_progress & ~dcd_depstall);
-  assign f2d_readyout = ~f_valid | f2d_done;
-  assign f2d_progress = f2d_readyout & f2d_readyin;
+  // The decoder, as well as both data TLBs, must be ready for the next
+  // data before the fetch stage is allowed to provide it.
+  assign f_out_ok = d_ready_in & dtlb_ready_in0 & dtlb_ready_in1;
 
-  // The data TLB also lies between the decode and precommit stages.
-  assign dtlb_in_valid0 = d2dtlb_oper_type0 == OPER_TYPE_LSU;
-  assign dtlb_in_valid1 = d2dtlb_oper_type1 == OPER_TYPE_LSU;
-  assign dtlb_out_valid0 = d2pc_in_oper_type0 == OPER_TYPE_LSU;
-  assign dtlb_out_valid1 = d2pc_in_oper_type1 == OPER_TYPE_LSU;
-  assign dtlb_readyin0 = ~dtlb_in_valid0 | dtlb_ready;
-  assign dtlb_readyin1 = ~dtlb_in_valid1 | dtlb_ready;
-  assign dtlb_readyout0 = dtlb_ready;
-  assign dtlb_readyout1 = dtlb_ready;
+  // During the decode stage, we have the decoder as well as the TLB lookup.
+  assign d_ready_in = ~d_valid_in | (pc_ready_in & ~dcd_depstall & d_ready_out);
+  assign d_ready_out = dtlb_ready_out0 & dtlb_ready_out1; // The decoder itself is always ready.
+  assign d_out_ok = pc_ready_in;
+  assign dtlb_out_ok = pc_ready_in;
+  assign d_valid_out = d_valid_in;
+  assign dtlb_valid_out = dtlb_valid_out0 & dtlb_valid_out1;
 
-  assign d2pc_readyin = ~pc_valid | pc_out_progress;
-  assign d2pc_readyout = ~dcd_valid | (dtlb_readyout0 & dtlb_readyout1);
-  assign d2pc_progress = d2pc_readyin & d2pc_readyout & dtlb_readyin0 & dtlb_readyin1;
+  //assign pc_ready_in = ~pc_valid_in | (pc_ready_out & pc_out_ok);
+  assign pc_ready_in = 1;
+  assign pc_ready_out = 1; // Post-commit stage is between cycles.
+  assign pc_valid_out = pc_valid_in & ~exception;
 
-  assign pc_readyout = (pc2mem_readyout0 | pc2wb_readyout0) & (pc2mem_readyout1 | pc2wb_readyout1);
+  assign pc_valid_out_alu0 = pc_valid_out & (d2pc_in_oper_type0 != OPER_TYPE_LSU);
+  assign pc_valid_out_alu1 = pc_valid_out & (d2pc_in_oper_type1 != OPER_TYPE_LSU);
+  assign pc_valid_out_alu23 = pc_valid_out;
+  assign pc_valid_out_mem0 = pc_valid_out & (d2pc_in_oper_type0 == OPER_TYPE_LSU);
+  assign pc_valid_out_mem1 = pc_valid_out & (d2pc_in_oper_type1 == OPER_TYPE_LSU);
 
-  assign pc2mem_readyout0 = pc_valid & (d2pc_in_oper_type0 == OPER_TYPE_LSU); //todo TLB done
-  assign pc2mem_readyout1 = pc_valid & (d2pc_in_oper_type1 == OPER_TYPE_LSU);
+  // TODO: we need to block in certain cases.
+  assign wb_ready_in = 1;
+  assign pc_out_ok = wb_ready_in & mem_ready_in;
+  // The two memory ports must be used in lockstep; they're not truly independent.
+  // That's why this isn't (~pc_valid_out_mem0 | mem_ready_in0) & ...
+  assign mem_ready_in = (~pc_valid_out_mem0 & ~pc_valid_out_mem1) | (mem_ready_in0 & mem_ready_in1);
 
-  assign pc2wb_readyout0 = (d2pc_in_oper_type0 != OPER_TYPE_LSU); //todo MUL/DIV stalling?
-  assign pc2wb_readyout1 = (d2pc_in_oper_type1 != OPER_TYPE_LSU);
-
-  // lanes 2 and 3 are never not ready to progress - always straight from ALU to writeback.
-  // so we commit a packet if lanes 0 and 1 are both complete and downstream isn't blocked.
-  assign pc_out_progress = ((pc2wb_readyout0 & pc2wb_readyin0) | (pc2mem_readyout0 & pc2mem_readyin0)) &
-                           ((pc2wb_readyout1 & pc2wb_readyin1) | (pc2mem_readyout1 & pc2mem_readyin1)) &
-                           ~exception;
-
-  assign pc2wb_progress0 = pc_out_progress & pc2wb_readyout0;
-  assign pc2mem_progress0 = pc_out_progress & pc2mem_readyout0;
-  assign pc2wb_progress1 = pc_out_progress & pc2wb_readyout1;
-  assign pc2mem_progress1 = pc_out_progress & pc2mem_readyout1;
+  // Since memory has priority in writeback, it's never blocked by it.
+  assign mem_out_ok0 = 1;
+  assign mem_out_ok1 = 1;
 
   // Prioritize access to the writeback stage for the memory stages over the PC stage
-  assign {mem2wb_progress0, mem2wb_progress1} = {mem2wb_readyout0, mem2wb_readyout1};
+  assign {mem2wb_progress0, mem2wb_progress1} = {mem_valid_out0, mem_valid_out1};
   assign pc2wb_readyin0 = ~mem2wb_progress0;
   assign pc2wb_readyin1 = ~mem2wb_progress1;
 
   // Debugging: Print out every virtpc we send past the commit point, and output a status
   // signal so the testbench can count instructions dispatched
-  assign dispatch = pc_out_progress & pc_valid;
+  assign dispatch = pc_out_progress & pc_valid_in;
   /*
   always @(posedge clkrst_core_clk) begin
     if(dispatch) $display("Committing instruction %x", d2pc_in_virtpc);
@@ -271,7 +305,7 @@ module MCPU_core(/*AUTOARG*/
 
   //unimplemented control inputs
 
-  assign pipe_flush = pc_valid & (pc_out_progress | exception) & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
+  assign pipe_flush = (pc_valid_out | exception) & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
 
 
 
@@ -323,7 +357,7 @@ module MCPU_core(/*AUTOARG*/
 			 .r31			(r31[31:0]));
 
   MCPU_CORE_scoreboard sb(
-        .d2pc_progress(d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall),
+        .d2pc_progress(d_valid_out & pc_ready_in & ~pipe_flush & ~dcd_depstall),
         /*AUTOINST*/
 			  // Outputs
 			  .sb2d_reg_scoreboard	(sb2d_reg_scoreboard[31:0]),
@@ -360,36 +394,38 @@ module MCPU_core(/*AUTOARG*/
 
   /* Pipeline! */
 
-  assign f_valid = ~pipe_flush;
+  assign f_valid_in = ~pipe_flush;
 
   MCPU_CORE_stage_fetch f(/*AUTOINST*/
 			  // Outputs
-			  .f2d_done		(f2d_done),
 			  .f2d_out_virtpc	(f2d_out_virtpc[27:0]),
 			  .f2d_in_inst_pf	(f2d_in_inst_pf),
+			  .f_ready_out		(f_ready_out),
+			  .f_valid_out		(f_valid_out),
 			  .f2ic_vaddr		(f2ic_vaddr[27:0]),
 			  .f2ic_valid		(f2ic_valid),
 			  // Inputs
 			  .clkrst_core_clk	(clkrst_core_clk),
 			  .clkrst_core_rst_n	(clkrst_core_rst_n),
-			  .f_valid		(f_valid),
 			  .pc2f_newpc		(pc2f_newpc[27:0]),
-			  .f2d_progress		(f2d_progress),
+			  .f_out_ok		(f_out_ok),
+			  .f_valid_in		(f_valid_in),
 			  .pipe_flush		(pipe_flush),
 			  .f2ic_paddr		(f2ic_paddr[27:0]),
 			  .ic2f_ready		(ic2f_ready));
 
-  register #(.WIDTH(29), .RESET_VAL(29'd0))
-           f2d_reg(.D({f2d_out_virtpc, f2d_progress & f_valid & ~pipe_flush}),
-                   .Q({f2d_in_virtpc, dcd_valid}),
-                   .en(f2d_progress | pipe_flush),
+  register #(.WIDTH(28), .RESET_VAL(28'd0))
+           f2d_reg(.D({f2d_out_virtpc}),
+                   .Q({f2d_in_virtpc}),
+                   .en(d_ready_in | pipe_flush),
                    /*AUTOINST*/
 		   // Inputs
 		   .clkrst_core_clk	(clkrst_core_clk),
 		   .clkrst_core_rst_n	(clkrst_core_rst_n));
 
+  assign dtlb_valid_in = d_valid_in;
   assign f2d_in_packet = ic2d_packet;
-
+  assign d_valid_in = f_valid_out;
 
   /* MCPU_CORE_decode AUTO_TEMPLATE(
     .rf2d_rs_data(rf2d_rs_data@[]),
@@ -545,6 +581,8 @@ module MCPU_core(/*AUTOARG*/
     .\(d2.*\) (\1@[]),
     .\(dtlb2.*\) (\1@[]),
     .dtlb_ready (dtlb_ready),
+    .dtlb_valid_in (dtlb_valid_in),
+    .dtlb_out_ok (dtlb_out_ok),
     .dtlb_\(.*\) (dtlb_\1@[]));*/
    MCPU_CORE_stage_dtlb stage_dtlb0(/*AUTOINST*/
 				    // Outputs
@@ -552,32 +590,42 @@ module MCPU_core(/*AUTOARG*/
 				    .dtlb2pc_pf		(dtlb2pc_pf0),	 // Templated
 				    .dtlb_addr		(dtlb_addr0[31:12]), // Templated
 				    .dtlb_re		(dtlb_re0),	 // Templated
+				    .dtlb_ready_in	(dtlb_ready_in0), // Templated
+				    .dtlb_ready_out	(dtlb_ready_out0), // Templated
+				    .dtlb_valid_out	(dtlb_valid_out0), // Templated
 				    // Inputs
 				    .clkrst_core_clk	(clkrst_core_clk),
 				    .clkrst_core_rst_n	(clkrst_core_rst_n),
 				    .d2dtlb_vaddr	(d2dtlb_vaddr0[31:0]), // Templated
 				    .d2dtlb_oper_type	(d2dtlb_oper_type0[1:0]), // Templated
 				    .user_mode		(user_mode),
+				    .pipe_flush		(pipe_flush),
 				    .dtlb_flags		(dtlb_flags0[3:0]), // Templated
 				    .dtlb_phys_addr	(dtlb_phys_addr0[31:12]), // Templated
 				    .dtlb_ready		(dtlb_ready),	 // Templated
-				    .progress		(d2pc_progress)); // Templated
+				    .dtlb_valid_in	(dtlb_valid_in), // Templated
+				    .dtlb_out_ok	(dtlb_out_ok));	 // Templated
    MCPU_CORE_stage_dtlb stage_dtlb1(/*AUTOINST*/
 				    // Outputs
 				    .dtlb2pc_paddr	(dtlb2pc_paddr1[31:0]), // Templated
 				    .dtlb2pc_pf		(dtlb2pc_pf1),	 // Templated
 				    .dtlb_addr		(dtlb_addr1[31:12]), // Templated
 				    .dtlb_re		(dtlb_re1),	 // Templated
+				    .dtlb_ready_in	(dtlb_ready_in1), // Templated
+				    .dtlb_ready_out	(dtlb_ready_out1), // Templated
+				    .dtlb_valid_out	(dtlb_valid_out1), // Templated
 				    // Inputs
 				    .clkrst_core_clk	(clkrst_core_clk),
 				    .clkrst_core_rst_n	(clkrst_core_rst_n),
 				    .d2dtlb_vaddr	(d2dtlb_vaddr1[31:0]), // Templated
 				    .d2dtlb_oper_type	(d2dtlb_oper_type1[1:0]), // Templated
 				    .user_mode		(user_mode),
+				    .pipe_flush		(pipe_flush),
 				    .dtlb_flags		(dtlb_flags1[3:0]), // Templated
 				    .dtlb_phys_addr	(dtlb_phys_addr1[31:12]), // Templated
 				    .dtlb_ready		(dtlb_ready),	 // Templated
-				    .progress		(d2pc_progress)); // Templated
+				    .dtlb_valid_in	(dtlb_valid_in), // Templated
+				    .dtlb_out_ok	(dtlb_out_ok));	 // Templated
 
   // this is going to get even bigger when we add bits for non-ALU instruction types.
   register #(.WIDTH(400), .RESET_VAL(400'd0)) // wheeeeeeeee
@@ -592,7 +640,7 @@ module MCPU_core(/*AUTOARG*/
           d2pc_out_shift_amount3, d2pc_out_shift_amount2, d2pc_out_shift_amount1, d2pc_out_shift_amount0,
           d2pc_out_execute_opcode3, d2pc_out_execute_opcode2, d2pc_out_execute_opcode1, d2pc_out_execute_opcode0,
           d2pc_out_invalid3, d2pc_out_invalid2, d2pc_out_invalid1, d2pc_out_invalid0,
-          d2pc_progress & dcd_valid & ~pipe_flush & ~dcd_depstall,
+          d_valid_out & ~pipe_flush & ~dcd_depstall,
           d2pc_out_branchreg0,
           f2d_in_virtpc,
           f2d_in_inst_pf,
@@ -609,18 +657,24 @@ module MCPU_core(/*AUTOARG*/
           d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0,
           d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0,
           d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0,
-          pc_valid,
+          d2pc_valid_in,
           d2pc_in_branchreg,
           d2pc_in_virtpc,
           d2pc_in_inst_pf,
           d2pc_in_rs_num0
         }),
-        .en(d2pc_progress | pipe_flush),
+        .en(pc_ready_in | pipe_flush),
         /*AUTOINST*/
 	     // Inputs
 	     .clkrst_core_clk		(clkrst_core_clk),
 	     .clkrst_core_rst_n		(clkrst_core_rst_n));
 
+  // The TLB might not have performed a lookup; all we need is that the output
+  // from the TLB (if any) is ready--if it's not, we stall, and so the data in
+  // the pc stage shouldn't be considered valid yet. If we used dtlb_valid_out*,
+  // we'd only consider the pc stage valid if memory ops were performed in both
+  // of the first two slots.
+  assign pc_valid_in = d2pc_valid_in & dtlb_ready_out0 & dtlb_ready_out1;
 
   /* MCPU_CORE_alu AUTO_TEMPLATE(
     .d2pc_in_rs_data(d2pc_in_rs_data@[]),
@@ -734,7 +788,7 @@ module MCPU_core(/*AUTOARG*/
 				  .pc_valid		(pc_valid));
 
   MCPU_CORE_coproc coproc(
-			  .coproc_instruction	(pc_valid & (d2pc_in_oper_type0 == OPER_TYPE_OTHER)),
+			  .coproc_instruction	(pc_valid_in & (d2pc_in_oper_type0 == OPER_TYPE_OTHER)),
 			  .mem_vaddr0		(0),
 			  .mem_vaddr1		(0), //TODO connect these
 			  /*AUTOINST*/
@@ -783,17 +837,17 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2mem_out_paddr0, pc2mem_out_data0, pc2mem_out_type0,
       d2pc_in_rd_num0, d2pc_in_rd_we0,
-      pc_valid & ~exception,
+      pc_valid_out_mem0,
       d2pc_in_virtpc
     }),
     .Q({
       pc2mem_in_paddr0, pc2mem_in_data0, pc2mem_in_type0,
 
       pc2mem_in_rd_num0, pc2mem_in_rd_we0,
-      mem_valid0,
+      mem_valid_in0,
       pc2mem_in_virtpc0
     }),
-    .en(pc2mem_progress0),
+    .en(mem_ready_in0),
   /*AUTOINST*/
 							  // Inputs
 							  .clkrst_core_clk	(clkrst_core_clk),
@@ -803,25 +857,27 @@ module MCPU_core(/*AUTOARG*/
     .D({
       pc2mem_out_paddr1, pc2mem_out_data1, pc2mem_out_type1,
       d2pc_in_rd_num1, d2pc_in_rd_we1,
-      pc_valid & ~exception,
+      pc_valid_out_mem1,
       d2pc_in_virtpc
     }),
     .Q({
       pc2mem_in_paddr1, pc2mem_in_data1, pc2mem_in_type1,
       pc2mem_in_rd_num1, pc2mem_in_rd_we1,
-      mem_valid1,
+      mem_valid_in1,
       pc2mem_in_virtpc1
     }),
-    .en(pc2mem_progress1),
+    .en(mem_ready_in1),
   /*AUTOINST*/
 							  // Inputs
 							  .clkrst_core_clk	(clkrst_core_clk),
 							  .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   /* MCPU_CORE_stage_mem AUTO_TEMPLATE(
-    .mem_valid(mem_valid@),
-    .pc2mem_readyin(pc2mem_readyin@),
-    .mem2wb_readyout(mem2wb_readyout@),
+    .mem_valid_in(mem_valid_in@),
+    .mem_out_ok(mem_out_ok@),
+    .mem_ready_in(mem_ready_in@),
+    .mem_ready_out(mem_ready_out@),
+    .mem_valid_out(mem_valid_out@),
     .pc2mem_in_paddr(pc2mem_in_paddr@[]),
     .pc2mem_in_data(pc2mem_in_data@[]),
     .pc2mem_in_type(pc2mem_in_type@[]),
@@ -842,8 +898,9 @@ module MCPU_core(/*AUTOARG*/
 
   MCPU_CORE_stage_mem stage_mem0(/*AUTOINST*/
 				 // Outputs
-				 .pc2mem_readyin	(pc2mem_readyin0), // Templated
-				 .mem2wb_readyout	(mem2wb_readyout0), // Templated
+				 .mem_ready_in		(mem_ready_in0), // Templated
+				 .mem_ready_out		(mem_ready_out0), // Templated
+				 .mem_valid_out		(mem_valid_out0), // Templated
 				 .mem2wb_out_data	(mem2wb_out_data0[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num0[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we0), // Templated
@@ -854,9 +911,8 @@ module MCPU_core(/*AUTOARG*/
 				 // Inputs
 				 .clkrst_core_clk	(clkrst_core_clk),
 				 .clkrst_core_rst_n	(clkrst_core_rst_n),
-				 .pc2mem_progress	(pc2mem_progress0), // Templated
-				 .mem2wb_progress	(mem2wb_progress0), // Templated
-				 .mem_valid		(mem_valid0),	 // Templated
+				 .mem_valid_in		(mem_valid_in0), // Templated
+				 .mem_out_ok		(mem_out_ok0),	 // Templated
 				 .pc2mem_in_paddr	(pc2mem_in_paddr0[31:0]), // Templated
 				 .pc2mem_in_data	(pc2mem_in_data0[31:0]), // Templated
 				 .pc2mem_in_type	(pc2mem_in_type0[2:0]), // Templated
@@ -867,8 +923,9 @@ module MCPU_core(/*AUTOARG*/
 
   MCPU_CORE_stage_mem stage_mem1(/*AUTOINST*/
 				 // Outputs
-				 .pc2mem_readyin	(pc2mem_readyin1), // Templated
-				 .mem2wb_readyout	(mem2wb_readyout1), // Templated
+				 .mem_ready_in		(mem_ready_in1), // Templated
+				 .mem_ready_out		(mem_ready_out1), // Templated
+				 .mem_valid_out		(mem_valid_out1), // Templated
 				 .mem2wb_out_data	(mem2wb_out_data1[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num1[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we1), // Templated
@@ -879,9 +936,8 @@ module MCPU_core(/*AUTOARG*/
 				 // Inputs
 				 .clkrst_core_clk	(clkrst_core_clk),
 				 .clkrst_core_rst_n	(clkrst_core_rst_n),
-				 .pc2mem_progress	(pc2mem_progress1), // Templated
-				 .mem2wb_progress	(mem2wb_progress1), // Templated
-				 .mem_valid		(mem_valid1),	 // Templated
+				 .mem_valid_in		(mem_valid_in1), // Templated
+				 .mem_out_ok		(mem_out_ok1),	 // Templated
 				 .pc2mem_in_paddr	(pc2mem_in_paddr1[31:0]), // Templated
 				 .pc2mem_in_data	(pc2mem_in_data1[31:0]), // Templated
 				 .pc2mem_in_type	(pc2mem_in_type1[2:0]), // Templated
@@ -919,7 +975,7 @@ module MCPU_core(/*AUTOARG*/
       pc2wb_out_result3, pc2wb_out_result2,
       d2pc_in_rd_num3, d2pc_in_rd_num2,
       d2pc_in_rd_we3, d2pc_in_rd_we2, d2pc_in_pred_we3, d2pc_in_pred_we2,
-      pc_valid & ~exception & pc_out_progress,
+      pc_valid_out_alu23,
       d2pc_in_virtpc
     }),
     .Q({
@@ -938,12 +994,12 @@ module MCPU_core(/*AUTOARG*/
   reg_2 #(.WIDTH(68), .RESET_VAL(68'b0)) pc2wb_reg0(
     .D0({
       mem2wb_out_data0, mem2wb_out_rd_num0, mem2wb_out_rd_we0, 1'b0,
-      mem_valid0 & mem2wb_progress0,
+      mem_valid_out0,
       pc2mem_in_virtpc0
     }),
     .D1({
       pc2wb_out_result0, d2pc_in_rd_num0, pc2wb_out_rd_we0, d2pc_in_pred_we0,
-      pc_valid & ~exception & pc2wb_progress0,
+      pc_valid_out_alu0,
       d2pc_in_virtpc
     }),
     .Q({
@@ -960,12 +1016,12 @@ module MCPU_core(/*AUTOARG*/
   reg_2 #(.WIDTH(68), .RESET_VAL(68'b0)) pc2wb_reg1(
     .D0({
       mem2wb_out_data1, mem2wb_out_rd_num1, mem2wb_out_rd_we1, 1'b0,
-      mem_valid1 & mem2wb_progress0,
+      mem_valid_out1,
       pc2mem_in_virtpc1
     }),
     .D1({
       pc2wb_out_result1, d2pc_in_rd_num1, d2pc_in_rd_we1, d2pc_in_pred_we1,
-      pc_valid & ~exception & pc2wb_progress1,
+      pc_valid_out_alu1,
       d2pc_in_virtpc
     }),
     .Q({

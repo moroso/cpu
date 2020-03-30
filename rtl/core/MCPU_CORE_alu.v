@@ -88,7 +88,7 @@ module mcpu_shifter(/*AUTOARG*/
         2'b00: shifted_op2 = d2pc_in_sop << d2pc_in_shift_amount[4:0];
         2'b01: shifted_op2 = d2pc_in_sop >> d2pc_in_shift_amount[4:0];
         2'b10: shifted_op2 = $signed(d2pc_in_sop) >>> d2pc_in_shift_amount[4:0];
-        2'b11: shifted_op2 = (d2pc_in_sop >> d2pc_in_shift_amount[4:0]) | (d2pc_in_sop << (5'd32 - d2pc_in_shift_amount[4:0]));
+        2'b11: shifted_op2 = (d2pc_in_sop >> d2pc_in_shift_amount[4:0]) | (d2pc_in_sop << (6'd32 - d2pc_in_shift_amount[4:0]));
       endcase
     end
   end
