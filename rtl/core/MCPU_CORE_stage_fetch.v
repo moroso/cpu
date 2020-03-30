@@ -16,14 +16,14 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
   input [27:0] pc2f_newpc;
 
   /* Fetch / Decode stage interface */
-  output reg [27:0] f2d_out_virtpc;
-  output 	    f2d_in_inst_pf;
+  output [27:0] f2d_out_virtpc;
+  output 	f2d_in_inst_pf;
 
   /* Stage signals */
-  output 	    f_ready_out;
-  output 	    f_valid_out;
-  input 	    f_out_ok;
-  input 	    f_valid_in;
+  output 	f_ready_out;
+  output 	f_valid_out;
+  input 	f_out_ok;
+  input 	f_valid_in;
 
   /* Pipeline flush */
   input pipe_flush;
@@ -37,22 +37,27 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
   /*AUTOREG*/
 
   reg 	valid_inprogress;
+  reg [27:0] virtpc;
+  reg [27:0] virtpc_1a;
 
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
     if(~clkrst_core_rst_n) begin
-       f2d_out_virtpc <= 28'd0;
+       virtpc <= 28'd0;
        valid_inprogress <= 0;
+       virtpc_1a <= 'hx;
     end
     /* TODO handle page faults correctly
      * Propagate an exception signal down the pipeline, give it priority in PC phase
      * when determining exception cause
      */
     else if(pipe_flush) begin
-       f2d_out_virtpc <= pc2f_newpc;
+       virtpc_1a <= virtpc;
+       virtpc <= pc2f_newpc;
        valid_inprogress <= 0;
     end else if(f2ic_valid & ic2f_ready) begin
+       virtpc_1a <= virtpc;
        // if / when we add branch prediction the front half goes here
-       f2d_out_virtpc <= f2d_out_virtpc + 28'd1;
+       virtpc <= virtpc + 28'd1;
        // valid_inprogress tells us whether a valid read is going on right now.
        valid_inprogress <= f_valid_in;
     end
@@ -65,6 +70,7 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
   assign f_valid_out = valid_inprogress & ic2f_ready;
 
   assign f2ic_valid = f_valid_in & f_out_ok & clkrst_core_rst_n;
-  assign f2ic_vaddr = f2d_out_virtpc;
+  assign f2ic_vaddr = virtpc;
 
+  assign f2d_out_virtpc = virtpc_1a;
 endmodule

@@ -49,6 +49,7 @@ module MCPU_mem(
                 output 	       ltc2mc_avl_write_req_0 // From ltc of MCPU_MEM_ltc.v
                                // End of automatics
                 );
+  parameter ROM_SIZE = 4096;
 
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -148,7 +149,7 @@ module MCPU_mem(
 	     .cli2arb_wbe		({dl1c2arb_wbe[31:0], il1c2arb_wbe[31:0], dptw2arb_wbe[31:0], iptw2arb_wbe[31:0], pre2arb_wbe[31:0]})); // Templated
 
    MCPU_MEM_preload #(
-                      .ROM_SIZE(128)
+                      .ROM_SIZE(ROM_SIZE)
                      ) preload_inst(/*AUTOINST*/
 				    // Outputs
 				    .pre2arb_valid	(pre2arb_valid),

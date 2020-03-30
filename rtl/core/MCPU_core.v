@@ -414,18 +414,10 @@ module MCPU_core(/*AUTOARG*/
 			  .f2ic_paddr		(f2ic_paddr[27:0]),
 			  .ic2f_ready		(ic2f_ready));
 
-  register #(.WIDTH(28), .RESET_VAL(28'd0))
-           f2d_reg(.D({f2d_out_virtpc}),
-                   .Q({f2d_in_virtpc}),
-                   .en(d_ready_in | pipe_flush),
-                   /*AUTOINST*/
-		   // Inputs
-		   .clkrst_core_clk	(clkrst_core_clk),
-		   .clkrst_core_rst_n	(clkrst_core_rst_n));
-
   assign dtlb_valid_in = d_valid_in;
   assign f2d_in_packet = ic2d_packet;
   assign d_valid_in = f_valid_out;
+  assign f2d_in_virtpc = f2d_out_virtpc;
 
   /* MCPU_CORE_decode AUTO_TEMPLATE(
     .rf2d_rs_data(rf2d_rs_data@[]),
