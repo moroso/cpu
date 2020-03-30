@@ -97,8 +97,8 @@ module TB_MCPU_core(/*AUTOARG*/
 	assign data_a = mem2dc_valid0 ? mem2dc_data_out0 : mem2dc_data_out1;
 	assign byteen = mem2dc_valid0 ? mem2dc_write0 : mem2dc_write1;
 	
-	assign mem2dc_data_in0 = mem2dc_paddr0[29] ? periph_q : q_a;
-	assign mem2dc_data_in1 = mem2dc_paddr1[29] ? periph_q : q_a;
+	assign mem2dc_data_out0 = mem2dc_paddr0[29] ? periph_q : q_a;
+	assign mem2dc_data_out1 = mem2dc_paddr1[29] ? periph_q : q_a;
 
   //assign ic2f_ready = 1;
 
@@ -151,10 +151,10 @@ module TB_MCPU_core(/*AUTOARG*/
    .dl1c_we_b (mem2dc_valid1 ? mem2dc_write1[] : 4'h0),
    .dl1c_re_a (mem2dc_valid0 & ~|mem2dc_write0[]),
    .dl1c_re_b (mem2dc_valid1 & ~|mem2dc_write1[]),
-   .dl1c_in_a (mem2dc_data_out0),
-   .dl1c_in_b (mem2dc_data_out1),
-   .dl1c_out_a (mem2dc_data_in0),
-   .dl1c_out_b (mem2dc_data_in1),
+   .dl1c_in_a (mem2dc_data_out0[]),
+   .dl1c_in_b (mem2dc_data_out1[]),
+   .dl1c_out_a (mem2dc_data_in0[]),
+   .dl1c_out_b (mem2dc_data_in1[]),
    .dl1c_addr_a (mem2dc_paddr0[29:0]),
    .dl1c_addr_b (mem2dc_paddr1[29:0]),
 
@@ -167,8 +167,8 @@ module TB_MCPU_core(/*AUTOARG*/
 	       .dl1c2periph_data_out	(dl1c2periph_data_out[31:0]),
 	       .dl1c2periph_re		(dl1c2periph_re),
 	       .dl1c2periph_we		(dl1c2periph_we[3:0]),
-	       .dl1c_out_a		(mem2dc_data_in0),	 // Templated
-	       .dl1c_out_b		(mem2dc_data_in1),	 // Templated
+	       .dl1c_out_a		(mem2dc_data_in0[31:0]), // Templated
+	       .dl1c_out_b		(mem2dc_data_in1[31:0]), // Templated
 	       .dl1c_ready		(dl1c_ready),
 	       .dtlb_flags_a		(dtlb_flags_a[3:0]),
 	       .dtlb_flags_b		(dtlb_flags_b[3:0]),
@@ -190,8 +190,8 @@ module TB_MCPU_core(/*AUTOARG*/
 	       .dl1c2periph_data_in	(dl1c2periph_data_in[31:0]),
 	       .dl1c_addr_a		(mem2dc_paddr0[29:0]),	 // Templated
 	       .dl1c_addr_b		(mem2dc_paddr1[29:0]),	 // Templated
-	       .dl1c_in_a		(mem2dc_data_out0),	 // Templated
-	       .dl1c_in_b		(mem2dc_data_out1),	 // Templated
+	       .dl1c_in_a		(mem2dc_data_out0[31:0]), // Templated
+	       .dl1c_in_b		(mem2dc_data_out1[31:0]), // Templated
 	       .dl1c_re_a		(mem2dc_valid0 & ~|mem2dc_write0), // Templated
 	       .dl1c_re_b		(mem2dc_valid1 & ~|mem2dc_write1), // Templated
 	       .dl1c_we_a		(mem2dc_valid0 ? mem2dc_write0[3:0] : 4'h0), // Templated

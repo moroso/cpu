@@ -883,7 +883,7 @@ module MCPU_core(/*AUTOARG*/
     .mem2dc_valid(mem2dc_valid@),
     .mem2dc_done(mem2dc_done@),
     .mem2dc_data_out(mem2dc_data_out@[]),
-	  .mem2dc_data_in(mem2dc_data_in@[]),
+    .mem2dc_data_in(mem2dc_data_in@[]),
     .pc2mem_progress(pc2mem_progress@),
     .mem2wb_progress(mem2wb_progress@),
     );*/
