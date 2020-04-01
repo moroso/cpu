@@ -266,10 +266,13 @@ module MCPU_core(/*AUTOARG*/
   assign d_valid_out = d_valid_in;
   assign dtlb_valid_out = dtlb_valid_out0 & dtlb_valid_out1;
 
-  //assign pc_ready_in = ~pc_valid_in | (pc_ready_out & pc_out_ok);
-  assign pc_ready_in = 1;
-  assign pc_ready_out = 1; // Post-commit stage is between cycles.
-  assign pc_valid_out = pc_valid_in & ~exception;
+  // d2pc_valid_in is the valid signal from the previous stage.
+  // pc_valid_in includes the signals from the cache.
+  assign pc_ready_in = pc_out_ok & (~d2pc_valid_in | pc_valid_in);
+  // Post-commit stage is between cycles. However, until everything after is is ready,
+  // we want to pass along valid=0.
+  assign pc_ready_out = pc_out_ok;
+  assign pc_valid_out = pc_out_ok & pc_valid_in & ~exception;
 
   assign pc_valid_out_alu0 = pc_valid_out & (d2pc_in_oper_type0 != OPER_TYPE_LSU);
   assign pc_valid_out_alu1 = pc_valid_out & (d2pc_in_oper_type1 != OPER_TYPE_LSU);
@@ -277,12 +280,14 @@ module MCPU_core(/*AUTOARG*/
   assign pc_valid_out_mem0 = pc_valid_out & (d2pc_in_oper_type0 == OPER_TYPE_LSU);
   assign pc_valid_out_mem1 = pc_valid_out & (d2pc_in_oper_type1 == OPER_TYPE_LSU);
 
+  assign pc_has_mem_op = pc_valid_out_mem0 | pc_valid_out_mem1;
+
   // TODO: we need to block in certain cases.
   assign wb_ready_in = 1;
   assign pc_out_ok = wb_ready_in & mem_ready_in;
   // The two memory ports must be used in lockstep; they're not truly independent.
   // That's why this isn't (~pc_valid_out_mem0 | mem_ready_in0) & ...
-  assign mem_ready_in = (~pc_valid_out_mem0 & ~pc_valid_out_mem1) | (mem_ready_in0 & mem_ready_in1);
+  assign mem_ready_in = mem_ready_in0 & mem_ready_in1;
 
   // Since memory has priority in writeback, it's never blocked by it.
   assign mem_out_ok0 = 1;

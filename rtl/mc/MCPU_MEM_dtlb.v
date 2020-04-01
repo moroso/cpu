@@ -197,6 +197,8 @@ module MCPU_MEM_dtlb(
    // of the cache is changed.)
    reg [NUM_SETS-1:0] evict;
 
+  reg 		      paging_on_1a;
+
    always @(*) begin
       evict_update_a_from_hit = 0;
       evict_update_a_from_miss = 0;
@@ -387,16 +389,17 @@ module MCPU_MEM_dtlb(
             dtlb_re_b_1a <= dtlb_re_b_0a;
             dtlb_addr_a_1a <= dtlb_addr_a_0a;
             dtlb_addr_b_1a <= dtlb_addr_b_0a;
+	    paging_on_1a <= paging_on;
          end
       end
    end // always @ (posedge clkrst_mem_clk)
 
    // Outputs always come from the cache. On a miss, the values will be
    // valid after the cache is updated.
-   assign dtlb_phys_addr_a = paging_on ? q_data_a_addr[hit_a_way_1a[1]] : dtlb_addr_a_1a;
-   assign dtlb_flags_a = paging_on ? q_data_a_flags[hit_a_way_1a[1]] : 4'b0011;
-   assign dtlb_phys_addr_b = paging_on ? q_data_b_addr[hit_b_way_1a[1]] : dtlb_addr_b_1a;
-   assign dtlb_flags_b = paging_on ? q_data_b_flags[hit_b_way_1a[1]] : 4'b0011;
+   assign dtlb_phys_addr_a = paging_on_1a ? q_data_a_addr[hit_a_way_1a[1]] : dtlb_addr_a_1a;
+   assign dtlb_flags_a = paging_on_1a ? q_data_a_flags[hit_a_way_1a[1]] : 4'b0011;
+   assign dtlb_phys_addr_b = paging_on_1a ? q_data_b_addr[hit_b_way_1a[1]] : dtlb_addr_b_1a;
+   assign dtlb_flags_b = paging_on_1a ? q_data_b_flags[hit_b_way_1a[1]] : 4'b0011;
 
    assign addr_data_a = read_addresses_imm ? set_a_0a : set_a_1a;
    assign addr_data_b = read_addresses_imm ? set_b_0a : set_b_1a;
