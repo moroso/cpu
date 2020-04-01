@@ -282,7 +282,7 @@ module MCPU_MEM_dl1c(
 
       dl1c2periph_re = 0;
       dl1c2periph_we = 4'h0;
-      dl1c2periph_addr = 32'hxxxxxxxx;
+      dl1c2periph_addr = 30'hxxxxxxxx;
       dl1c2periph_data_out = 32'hxxxxxxxx;
 
       if (ready) begin

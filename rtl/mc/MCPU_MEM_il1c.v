@@ -163,6 +163,7 @@ module MCPU_MEM_il1c(
    always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
       if (~clkrst_mem_rst_n) begin
          valid <= 0;
+         re_1a <= 0;
          state <= STATE_DEFAULT;
       end else begin
          if (~stall & re_0a) begin
