@@ -1,44 +1,44 @@
 module MCPU_MEM_dl1c(
-                     input              clkrst_mem_clk,
-                     input              clkrst_mem_rst_n,
+                     input 		clkrst_mem_clk,
+                     input 		clkrst_mem_rst_n,
 
                      // Control interface
                      // Addresses are word-aligned (4 byte), and all reads
                      // will give an (aligned) word of data.
-                     input [31:2]       dl1c_addr_a,
-                     input [31:2]       dl1c_addr_b,
-                     input              dl1c_re_a,
-                     input              dl1c_re_b,
-                     input [3:0]        dl1c_we_a,
-                     input [3:0]        dl1c_we_b,
-                     input [31:0]       dl1c_in_a,
-                     input [31:0]       dl1c_in_b,
-                     output [31:0]      dl1c_out_a,
-                     output [31:0]      dl1c_out_b,
-                     output             dl1c_ready,
+                     input [31:2] 	dl1c_addr_a,
+                     input [31:2] 	dl1c_addr_b,
+                     input 		dl1c_re_a,
+                     input 		dl1c_re_b,
+                     input [3:0] 	dl1c_we_a,
+                     input [3:0] 	dl1c_we_b,
+                     input [31:0] 	dl1c_in_a,
+                     input [31:0] 	dl1c_in_b,
+                     output [31:0] 	dl1c_out_a,
+                     output [31:0] 	dl1c_out_b,
+                     output 		dl1c_ready,
 
                      // Peripheral interface
-                     output [31:2]      dl1c2periph_addr,
-                     output             dl1c2periph_re,
-                     output [3:0]       dl1c2periph_we,
-                     output [31:0]      dl1c2periph_data_out,
-                     input [31:0]       dl1c2periph_data_in,
+                     output reg [31:2] 	dl1c2periph_addr,
+                     output reg 	dl1c2periph_re,
+                     output reg [3:0] 	dl1c2periph_we,
+                     output reg [31:0] 	dl1c2periph_data_out,
+                     input [31:0] 	dl1c2periph_data_in,
                      // TODO: stall signal for periph interface?
                      // Seems like it might not be necessary; all periph
                      // register reads/writes should be doable in a single
                      // cycle.
 
                      // Atom interface to arb
-                     output reg         dl1c2arb_valid,
-                     output reg [2:0]   dl1c2arb_opcode,
-                     output reg [31:5]  dl1c2arb_addr,
+                     output reg 	dl1c2arb_valid,
+                     output reg [2:0] 	dl1c2arb_opcode,
+                     output reg [31:5] 	dl1c2arb_addr,
 
                      output reg [255:0] dl1c2arb_wdata,
-                     output reg [31:0]  dl1c2arb_wbe,
+                     output reg [31:0] 	dl1c2arb_wbe,
 
-                     input [255:0]      dl1c2arb_rdata,
-                     input              dl1c2arb_rvalid,
-                     input              dl1c2arb_stall
+                     input [255:0] 	dl1c2arb_rdata,
+                     input 		dl1c2arb_rvalid,
+                     input 		dl1c2arb_stall
 
                      );
 
@@ -138,6 +138,11 @@ module MCPU_MEM_dl1c(
    reg                  write_a;
    reg                  write_b;
 
+  reg 			periph_op_a;
+  reg 			periph_op_b;
+
+   wire                 dl1c_req_a_0a = dl1c_re_a_0a | |dl1c_we_a_0a;
+   wire                 dl1c_req_b_0a = dl1c_re_b_0a | |dl1c_we_b_0a;
    wire                 dl1c_req_a_1a = dl1c_re_a_1a | |dl1c_we_a_1a;
    wire                 dl1c_req_b_1a = dl1c_re_b_1a | |dl1c_we_b_1a;
    wire                 dl1c_req_1a = dl1c_req_a_1a | dl1c_req_b_1a;
@@ -151,6 +156,11 @@ module MCPU_MEM_dl1c(
    reg                  read_b_remaining;
    reg                  next_read_a_remaining;
    reg                  next_read_b_remaining;
+
+  reg 			periph_a_remaining;
+  reg 			periph_b_remaining;
+  reg 			next_periph_a_remaining;
+  reg 			next_periph_b_remaining;
 
    // Wait for bram reads from the same address to settle, if necessary.
    // So: if we were putting the same address in but getting different values
@@ -191,6 +201,10 @@ module MCPU_MEM_dl1c(
    wire [LINE_SIZE_BYTES-1:0] wbe_a = {{28'h0, dl1c_we_a_1a}} << (4 * offs_a_1a);
    wire [LINE_SIZE_BYTES-1:0] wbe_b = {{28'h0, dl1c_we_b_1a}} << (4 * offs_b_1a);
 
+  wire 			      is_periph_a_0a = addr_a_0a[31];
+  wire 			      is_periph_b_0a = addr_b_0a[31];
+  wire 			      is_periph_a_1a = addr_a_1a[31];
+  wire 			      is_periph_b_1a = addr_b_1a[31];
    integer i;
 
    always @(*) begin
@@ -203,26 +217,36 @@ module MCPU_MEM_dl1c(
       write_a = 0;
       write_b = 0;
 
+      periph_op_a = 0;
+      periph_op_b = 0;
+
       ready = 0;
 
       if (~same_addr_kludge) begin
          // We're waiting for the bram to settle; don't do anything.
-      end else if (dl1c_req_a_1a & ~hit_a_1a) begin
+      end else if (dl1c_req_a_1a & ~is_periph_a_1a & ~hit_a_1a) begin
          if (~dl1c2arb_stall) read_a = 1;
-      end else if (dl1c_req_b_1a & ~hit_b_1a) begin
+      end else if (dl1c_req_b_1a & ~is_periph_b_1a & ~hit_b_1a) begin
          if (~dl1c2arb_stall) read_b = 1;
       end else begin
          // At this point, everything we need has been loaded into the cache.
          // TODO: coalesce writes to the same line
-         if (write_a_remaining & |dl1c_we_a_1a) begin
+	 if (periph_b_remaining & is_periph_b_1a) begin
+	    // Note: we can't have a remaining periperal op for port A at this point.
+	    periph_op_b = 1;
+         end else if (write_a_remaining & ~is_periph_a_1a & |dl1c_we_a_1a) begin
             if (~dl1c2arb_stall) write_a = 1;
-         end else if (write_b_remaining & |dl1c_we_b_1a) begin
+         end else if (write_b_remaining & ~is_periph_b_1a & |dl1c_we_b_1a) begin
             if (~dl1c2arb_stall) write_b = 1;
          end else begin
             // All operations we needed to do are done! Latch the next inputs.
             latch_inputs = 1;
             read_addr_imm = 1;
             ready = 1;
+	    if (dl1c_req_a_0a & is_periph_a_0a)
+	      periph_op_a = 1;
+	    else if (dl1c_req_b_0a & is_periph_b_0a)
+	      periph_op_b = 1;
          end
       end // else: !if(dl1c_req_b_1a & ~hit_b_1a)
    end // always @ (*)
@@ -235,6 +259,13 @@ module MCPU_MEM_dl1c(
    reg [31:5]           l2c_addr;
    reg [LINE_SIZE-1:0]  l2c_wdata;
    reg [LINE_SIZE_BYTES-1:0] l2c_wbe;
+
+  // Whether the current peripheral access (if any) should use the 0a address
+  // instead of the 1a one.
+  // In each case, we want to read the immediate address if we have not yet
+  // done an access of address A (either because we're doing A right now, or
+  // because we're doing B and there's no operation to do for A).
+  wire 			     periph_imm_addr = periph_a_remaining;
 
    always @(*) begin
       update_cache_a = 0;
@@ -249,11 +280,18 @@ module MCPU_MEM_dl1c(
       l2c_opcode = 3'bxxx;
       l2c_addr = 27'hxxxxxxx;
 
+      dl1c2periph_re = 0;
+      dl1c2periph_we = 4'h0;
+      dl1c2periph_addr = 32'hxxxxxxxx;
+      dl1c2periph_data_out = 32'hxxxxxxxx;
+
       if (ready) begin
          next_write_a_remaining = 1;
          next_write_b_remaining = 1;
          next_read_a_remaining = 1;
          next_read_b_remaining = 1;
+	 next_periph_a_remaining = 1;
+	 next_periph_b_remaining = 1;
       end else if (read_a | read_b) begin
          // Note: these are not the l2c lines themselves; there is other logic
          // to shift these values to the l2c if the stall signal is deasserted.
@@ -299,6 +337,54 @@ module MCPU_MEM_dl1c(
            next_write_b_remaining = 0;
       end
    end // always @ (*)
+
+  always @(*) begin
+     next_periph_a_remaining = periph_a_remaining;
+     next_periph_b_remaining = periph_b_remaining;
+     // TODO: reading from peripherals.
+     if (periph_op_a) begin
+	next_periph_a_remaining = 0;
+	// operipheral ops on port a will always be on the first clock edge.
+	{
+	 dl1c2periph_re,
+	 dl1c2periph_we,
+	 dl1c2periph_addr,
+	 dl1c2periph_data_out
+	 } = {
+	      dl1c_re_a_0a,
+	      dl1c_we_a_0a,
+	      addr_a_0a,
+	      dl1c_in_a_0a
+	      };
+     end else if (periph_op_b) begin // if (periph_op_a)
+	next_periph_b_remaining = 0;
+	if (periph_imm_addr) begin
+	   {
+	    dl1c2periph_re,
+	    dl1c2periph_we,
+	    dl1c2periph_addr,
+	    dl1c2periph_data_out
+	    } = {
+		 dl1c_re_b_0a,
+		 dl1c_we_b_0a,
+		 addr_b_0a,
+		 dl1c_in_b_0a
+		 };
+	end else begin // if (periph_imm_addr)
+	   {
+	    dl1c2periph_re,
+	    dl1c2periph_we,
+	    dl1c2periph_addr,
+	    dl1c2periph_data_out
+	    } = {
+		 dl1c_re_b_1a,
+		 dl1c_we_b_1a,
+		 addr_b_1a,
+		 dl1c_in_b_1a
+		 };
+	end // else: !if(periph_imm_addr)
+     end // if (periph_op_b)
+  end // always @ (*)
 
    always @(*) begin
       bram_we_a = 0;
@@ -380,6 +466,8 @@ module MCPU_MEM_dl1c(
          write_b_remaining <= next_write_b_remaining;
          read_a_remaining <= next_read_a_remaining;
          read_b_remaining <= next_read_b_remaining;
+	 periph_a_remaining <= next_periph_a_remaining;
+	 periph_b_remaining <= next_periph_b_remaining;
       end
    end // always @ (posedge clkrst_mem_clk)
 

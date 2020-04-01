@@ -28,6 +28,7 @@ module TB_MCPU_core(/*AUTOARG*/
 	
 	/*AUTOWIRE*/
 	// Beginning of automatic wires (for undeclared instantiated-module outputs)
+	wire		dispatch;		// From core of MCPU_core.v
 	wire [31:2]	dl1c2periph_addr;	// From mem of MCPU_mem.v
 	wire [31:0]	dl1c2periph_data_out;	// From mem of MCPU_mem.v
 	wire		dl1c2periph_re;		// From mem of MCPU_mem.v
@@ -44,6 +45,8 @@ module TB_MCPU_core(/*AUTOARG*/
 	wire		dtlb_ready;		// From mem of MCPU_mem.v
 	wire [27:0]	f2ic_vaddr;		// From core of MCPU_core.v
 	wire		f2ic_valid;		// From core of MCPU_core.v
+	wire [127:0]	ic2d_packet;		// From mem of MCPU_mem.v
+	wire		ic2f_ready;		// From mem of MCPU_mem.v
 	wire [24:0]	ltc2mc_avl_addr_0;	// From mem of MCPU_mem.v
 	wire [15:0]	ltc2mc_avl_be_0;	// From mem of MCPU_mem.v
 	wire		ltc2mc_avl_burstbegin_0;// From mem of MCPU_mem.v
@@ -51,62 +54,28 @@ module TB_MCPU_core(/*AUTOARG*/
 	wire [4:0]	ltc2mc_avl_size_0;	// From mem of MCPU_mem.v
 	wire [127:0]	ltc2mc_avl_wdata_0;	// From mem of MCPU_mem.v
 	wire		ltc2mc_avl_write_req_0;	// From mem of MCPU_mem.v
+	wire [31:0]	mem2dc_data_in0;	// From mem of MCPU_mem.v
+	wire [31:0]	mem2dc_data_in1;	// From mem of MCPU_mem.v
+	wire [31:0]	mem2dc_data_out0;	// From core of MCPU_core.v
+	wire [31:0]	mem2dc_data_out1;	// From core of MCPU_core.v
+	wire [29:0]	mem2dc_paddr0;		// From core of MCPU_core.v
+	wire [29:0]	mem2dc_paddr1;		// From core of MCPU_core.v
+	wire		mem2dc_valid0;		// From core of MCPU_core.v
+	wire		mem2dc_valid1;		// From core of MCPU_core.v
+	wire [3:0]	mem2dc_write0;		// From core of MCPU_core.v
+	wire [3:0]	mem2dc_write1;		// From core of MCPU_core.v
 	wire		paging_on;		// From core of MCPU_core.v
 	wire		pre2core_done;		// From mem of MCPU_mem.v
 	wire [19:0]	ptw_pagedir_base;	// From core of MCPU_core.v
 	// End of automatics
 	input [31:0] meminput;
 	output [31:0] memoutput;
-	wire ic2f_ready;		// To core of MCPU_core.v
-	wire dispatch;
-	wire mem2dc_valid0, mem2dc_valid1;
-	wire mem2dc_done0, mem2dc_done1;
-	wire [31:0] mem2dc_data_out0, mem2dc_data_out1;
-	wire [31:0] mem2dc_data_in0, mem2dc_data_in1;
-	wire [29:0] mem2dc_paddr0, mem2dc_paddr1;
-	wire [3:0] mem2dc_write0, mem2dc_write1;
-	wire [127:0] ic2d_packet;
 	
 	wire int_pending = 0;
 	wire [3:0] int_type = 0;
 	wire int_clear;
 	
 	wire [31:0] r0;
-
-	wire write0, write1;
-	wire [3:0] byteen;
-	wire [29:0] addr_a;
-	wire [31:0] data_a;
-	wire [31:0] q_a;
-	wire [31:0] periph_q;
-	reg [31:0] prev_addr0, prev_addr1;
-	reg prev_valid0, prev_valid1;
-
-	assign write0 = |mem2dc_write0 & mem2dc_valid0;
-	assign write1 = |mem2dc_write1 & mem2dc_valid1;
-	always @(posedge clkrst_core_clk) begin
-		prev_addr0 <= mem2dc_paddr0;
-		prev_addr1 <= mem2dc_paddr1;
-		prev_valid0 <= mem2dc_valid0;
-		prev_valid1 <= mem2dc_valid1 & ~mem2dc_valid0;
-	end
-	assign mem2dc_done0 = prev_valid0 & (prev_addr0 == mem2dc_paddr0);
-	assign mem2dc_done1 = prev_valid1 & (prev_addr1 == mem2dc_paddr1);
-
-	assign addr_a = mem2dc_valid0 ? mem2dc_paddr0 : mem2dc_paddr1;
-	assign data_a = mem2dc_valid0 ? mem2dc_data_out0 : mem2dc_data_out1;
-	assign byteen = mem2dc_valid0 ? mem2dc_write0 : mem2dc_write1;
-	
-	assign mem2dc_data_out0 = mem2dc_paddr0[29] ? periph_q : q_a;
-	assign mem2dc_data_out1 = mem2dc_paddr1[29] ? periph_q : q_a;
-
-  //assign ic2f_ready = 1;
-
-    reg [22:0] ctr;
-    always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n)
-        if(~clkrst_core_rst_n) ctr <= 0;
-        else if(dispatch) ctr <= ctr + 1;
-    assign uart_status[4] = ctr[22];
 
   // Hack: pretend the memory controller is returning valid data right away.
   // (This means we'll be running entirely out of the caches.)
@@ -184,10 +153,10 @@ module TB_MCPU_core(/*AUTOARG*/
 	MCPU_SOC_mmio mmio(
 		.clkrst_core_clk(clkrst_core_clk),
 		.clkrst_core_rst_n(clkrst_core_rst_n),
-		.data_in(data_a),
-		.addr(addr_a[28:0]),
-		.wren(byteen & {4{addr_a[29] & (mem2dc_valid0 | mem2dc_valid1)}}),
-		.data_out(periph_q),
+		.data_in(dl1c2periph_data_out),
+		.addr(dl1c2periph_addr[30:2]),
+		.wren(dl1c2periph_we),
+		.data_out(dl1c2periph_data_in),
 		.meminput(meminput),
 		.memoutput(memoutput),
 		.uart_tx(uart_tx),

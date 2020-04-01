@@ -247,6 +247,8 @@ module MCPU_core(/*AUTOARG*/
   wire 	      mem_ready_in, mem_out_ok0, mem_out_ok1;
   wire 	      dtlb_valid_in, d2pc_valid_in, pc_valid;
   wire 	      mem_valid_in0, mem_valid_in1;
+  wire 	      d_valid_out;
+  wire 	      pc_has_mem_op;
 
   `include "oper_type.vh"
 
