@@ -108,33 +108,6 @@ module TB_MCPU_core(/*AUTOARG*/
         else if(dispatch) ctr <= ctr + 1;
     assign uart_status[4] = ctr[22];
 
-  /*
-	altsyncram #(
-		.OPERATION_MODE("BIDIR_DUAL_PORT"),
-		.WIDTH_A(32),
-		.WIDTHAD_A(14), // 14 bits => 16k addrs => 64KB
-		.WIDTH_B(128),
-		.WIDTHAD_B(12),
-		.INIT_FILE("bootrom.mif"),
-		.INIT_FILE_LAYOUT("PORT_A"),
-		.WIDTH_BYTEENA_A(4)
-	) ram(
-		.wren_a((write0 | write1) & ~addr_a[29]),
-		.wren_b(1'b0),
-		.data_a(data_a),
-		.address_a(addr_a[13:0]),
-		.address_b(f2ic_vaddr[11:0]),
-		.clock0(clkrst_core_clk),
-		.clock1(clkrst_core_clk),
-		.byteena_a(byteen),
-		.clocken0(mem2dc_valid0 | mem2dc_valid1),
-		.clocken1(f2ic_valid),
-
-		.q_a(q_a),
-		.q_b(ic2d_packet)
-	);
-*/
-
   // Hack: pretend the memory controller is returning valid data right away.
   // (This means we'll be running entirely out of the caches.)
   // TODO: fix this, obviously.

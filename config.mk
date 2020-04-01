@@ -22,7 +22,6 @@ RTL_COMMON = \
 	rtl/lib/sp_bram.v \
 	rtl/core/MCPU_core.v \
 	rtl/core/MCPU_CORE_stage_fetch.v \
-	rtl/core/MCPU_CORE_stage_fetchtlb.v \
 	rtl/core/MCPU_CORE_decode.v \
 	rtl/core/MCPU_CORE_alu.v \
 	rtl/core/MCPU_CORE_regfile.v \
