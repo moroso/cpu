@@ -172,8 +172,8 @@ module MCPU_MEM_dl1c(
                                                                                        && q_tag_a[0] == q_tag_b[0]
                                                                                        && q_tag_a[1] == q_tag_b[1]));
 
-   assign dl1c_out_a = q_data_a[hit_idx_a_1a][offs_a_1a * 32 +: 32];
-   assign dl1c_out_b = q_data_b[hit_idx_b_1a][offs_b_1a * 32 +: 32];
+   assign dl1c_out_a = is_periph_a_1a ? periph_result_a : q_data_a[hit_idx_a_1a][offs_a_1a * 32 +: 32];
+   assign dl1c_out_b = is_periph_b_1a ? periph_result_b : q_data_b[hit_idx_b_1a][offs_b_1a * 32 +: 32];
 
    reg                  ready;
    assign dl1c_ready = ready;
@@ -205,6 +205,10 @@ module MCPU_MEM_dl1c(
   wire 			      is_periph_b_0a = addr_b_0a[31];
   wire 			      is_periph_a_1a = addr_a_1a[31];
   wire 			      is_periph_b_1a = addr_b_1a[31];
+
+  reg [31:0] 		      periph_result_a;
+  reg [31:0] 		      periph_result_b;
+
    integer i;
 
    always @(*) begin
@@ -231,10 +235,14 @@ module MCPU_MEM_dl1c(
       end else begin
          // At this point, everything we need has been loaded into the cache.
          // TODO: coalesce writes to the same line
-	 if (periph_b_remaining & is_periph_b_1a) begin
+	 if (periph_b_remaining & is_periph_b_1a & dl1c_req_b_1a) begin
 	    // Note: we can't have a remaining periperal op for port A at this point.
 	    periph_op_b = 1;
          end else if (write_a_remaining & ~is_periph_a_1a & |dl1c_we_a_1a) begin
+	    // Note: there's some room for improvement here. The peripheral stuff could
+	    // mostly be done in parallel with other accesses. OTOH this will only ever
+	    // save like one cycle, and only when one slot does a periph access and the
+	    // other a non-periph access, so not *that* important.
             if (~dl1c2arb_stall) write_a = 1;
          end else if (write_b_remaining & ~is_periph_b_1a & |dl1c_we_b_1a) begin
             if (~dl1c2arb_stall) write_b = 1;
@@ -428,6 +436,16 @@ module MCPU_MEM_dl1c(
       if (dl1c_req_b_1a & hit_b_1a)
         next_evict[set_b_1a] = ~hit_idx_b_1a;
    end
+
+  always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
+     if (~clkrst_mem_rst_n) begin
+	periph_result_a <= 32'hxxxxxxxx;
+	periph_result_b <= 32'hxxxxxxxx;
+     end else begin
+	if (periph_op_a) periph_result_a <= dl1c2periph_data_in;
+	if (periph_op_b) periph_result_b <= dl1c2periph_data_in;
+     end
+  end
 
    always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
       if (~clkrst_mem_rst_n) begin

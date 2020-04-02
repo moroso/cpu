@@ -179,7 +179,7 @@ module uart(
 
    assign uart_status = {rx_err, rxc, rx_en, ~tx_queue_full, txc};
    
-   always @(posedge clk) begin
+   always @(*) begin
       if (addr)
         read_val <= {rx_err, rxc, rx_en, ~tx_queue_full, txc};
       else

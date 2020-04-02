@@ -76,7 +76,7 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
 		   pc2mem_in_rd_num_1a <= 'hx;
 		   pc2mem_in_paddr_1a <= 'hx;
 		   pc2mem_in_rd_we_1a <= 'hx;
-		end else if (mem_ready_in) begin
+		end else if (mem2dc_done) begin
 		   mem_inprogress <= mem_valid_in;
 		   pc2mem_in_type_1a <= pc2mem_in_type;
 		   pc2mem_in_rd_num_1a <= pc2mem_in_rd_num;

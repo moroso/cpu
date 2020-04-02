@@ -4,7 +4,7 @@ data_out, meminput, memoutput, uart_rx, uart_tx, uart_status);
 	input clkrst_core_clk, clkrst_core_rst_n;
 
 	input [31:0] data_in;
-	input [28:0] addr;
+	input [30:2] addr;
 	input [3:0] wren;
 	output reg [31:0] data_out;
     
@@ -27,7 +27,7 @@ data_out, meminput, memoutput, uart_rx, uart_tx, uart_status);
 		is_ledsw = 0;
 		is_uart = 0;
 		data_out = 32'bx;
-		case(addr[28:10])
+		case(addr[30:12])
 			19'd0: begin // LED/SW
 				is_ledsw = 1;
 				data_out = meminput;
@@ -43,11 +43,11 @@ data_out, meminput, memoutput, uart_rx, uart_tx, uart_status);
 		.clk(clkrst_core_clk),
 		.tx_pin(uart_tx),
 		.rx_pin(uart_rx),
-		.addr(addr[0]),
+		.addr(addr[2]),
 		.write_en(is_uart & wren[0]),
 		.write_val(data_in),
 		.read_val(uart_read_val),
-        .uart_status(uart_status)
+        	.uart_status(uart_status)
 	);
 
 	always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
