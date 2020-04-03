@@ -26,41 +26,41 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
   input 	f_valid_in;
 
   /* Pipeline flush */
-  input pipe_flush;
+  input 	pipe_flush;
 
   /* I$ interface */
   output [27:0] f2ic_vaddr;
   input [27:0] 	f2ic_paddr;
-  output f2ic_valid;
-  input ic2f_ready;
+  output 	f2ic_valid;
+  input 	ic2f_ready;
 
   /*AUTOREG*/
 
-  reg 	valid_inprogress;
-  reg [27:0] virtpc;
-  reg [27:0] virtpc_1a;
+  reg 		valid_inprogress;
+  reg [27:0] 	virtpc;
+  reg [27:0] 	virtpc_1a;
 
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
-    if(~clkrst_core_rst_n) begin
-       virtpc <= 28'd0;
-       valid_inprogress <= 0;
-       virtpc_1a <= 'hx;
-    end
-    /* TODO handle page faults correctly
-     * Propagate an exception signal down the pipeline, give it priority in PC phase
-     * when determining exception cause
-     */
-    else if(pipe_flush) begin
-       virtpc_1a <= virtpc;
-       virtpc <= pc2f_newpc;
-       valid_inprogress <= 0;
-    end else if(f2ic_valid & ic2f_ready) begin
-       virtpc_1a <= virtpc;
-       // if / when we add branch prediction the front half goes here
-       virtpc <= virtpc + 28'd1;
-       // valid_inprogress tells us whether a valid read is going on right now.
-       valid_inprogress <= f_valid_in;
-    end
+     if(~clkrst_core_rst_n) begin
+	virtpc <= 28'd0;
+	valid_inprogress <= 0;
+	virtpc_1a <= 'hx;
+     end
+     /* TODO handle page faults correctly
+      * Propagate an exception signal down the pipeline, give it priority in PC phase
+      * when determining exception cause
+      */
+     else if(pipe_flush) begin
+	virtpc_1a <= virtpc;
+	virtpc <= pc2f_newpc;
+	valid_inprogress <= 0;
+     end else if(f2ic_valid & ic2f_ready) begin
+	virtpc_1a <= virtpc;
+	// if / when we add branch prediction the front half goes here
+	virtpc <= virtpc + 28'd1;
+	// valid_inprogress tells us whether a valid read is going on right now.
+	valid_inprogress <= f_valid_in;
+     end
   end // always @ (posedge clkrst_core_clk, negedge clkrst_core_rst_n)
 
   assign f2d_in_inst_pf = 0; // TODO!!!
