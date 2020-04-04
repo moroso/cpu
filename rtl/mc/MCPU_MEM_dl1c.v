@@ -175,10 +175,16 @@ module MCPU_MEM_dl1c(
   // out, wait until we're not getting different ones out anymore!
   // (This can happen when we're writing on one port, and reading from
   // the same address on the other port.)
-  wire 					same_addr_kludge = ~dl1c_req_1a || ((set_a_1a != set_b_1a) || (q_data_a[0] == q_data_b[0]
-												       && q_data_a[1] == q_data_b[1]
-												       && q_tag_a[0] == q_tag_b[0]
-												       && q_tag_a[1] == q_tag_b[1]));
+  /* This doesn't simulate properly, but I'm pretty sure it will actually work in practice:
+  wire same_addr_kludge = ~dl1c_req_1a || ((set_a_1a != set_b_1a) || (q_data_a[0] == q_data_b[0]
+								      && q_data_a[1] == q_data_b[1]
+								      && q_tag_a[0] == q_tag_b[0]
+								      && q_tag_a[1] == q_tag_b[1]));
+   */
+  // Instead, for now:
+  reg last_bram_we;
+  always @(posedge clkrst_mem_clk) last_bram_we <= |bram_we_a | |bram_we_b;
+  wire same_addr_kludge = ~dl1c_req_1a || (set_a_1a != set_b_1a) || ~last_bram_we;
 
   assign dl1c_out_a = is_periph_a_1a ? periph_result_a : q_data_a[hit_idx_a_1a][offs_a_1a * 32 +: 32];
   assign dl1c_out_b = is_periph_b_1a ? periph_result_b : q_data_b[hit_idx_b_1a][offs_b_1a * 32 +: 32];
@@ -536,5 +542,9 @@ module MCPU_MEM_dl1c(
   // for the sake of iverilog.
   wire [NUM_SETS-1:0] valid0 = valid[0];
   wire [NUM_SETS-1:0] valid1 = valid[1];
+  wire [LINE_SIZE-1:0] q_data_a0 = q_data_a[0];
+  wire [LINE_SIZE-1:0] q_data_a1 = q_data_a[1];
+  wire [LINE_SIZE-1:0] q_data_b0 = q_data_b[0];
+  wire [LINE_SIZE-1:0] q_data_b1 = q_data_b[1];
 
 endmodule // MCPU_MEM_dl1c

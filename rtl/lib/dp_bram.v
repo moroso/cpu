@@ -4,7 +4,8 @@
 // Taken from Quartus HDL Coding Style Handbook, so this should result in
 // inferred block RAMs.
 // A write and simultaneous read with the same address, on the same port,
-// will return the *new* value.
+// will return the *new* value. A write and read on a different port will
+// return the *old* value.
 module dp_bram
   (/*AUTOARG*/
    // Outputs
