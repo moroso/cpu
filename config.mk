@@ -29,6 +29,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/mc/MCPU_mem.v \
 	rtl/mcpu.v \
+	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
 	rtl/soc/uart.v
 

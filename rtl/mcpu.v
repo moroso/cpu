@@ -30,14 +30,18 @@ endmodule
 
 module mcpu(/*AUTOARG*/
   // Outputs
-  uart_tx, uart_status, r0, pre2core_done, LEDG, LEDR,
+  LEDG, LEDR, UART_TX,
   // Inputs
-  uart_rx, pad_clk125, in_rst_n
+  pad_clk125, in_rst_n, SW, KEY, UART_RX
   );
-  input             pad_clk125;
-  input 	    in_rst_n;
-  output wire [7:0] LEDG;
-  output wire [9:0] LEDR;
+  input        pad_clk125;
+  input        in_rst_n;
+  output [7:0] LEDG;
+  output [9:0] LEDR;
+  input [9:0]  SW;
+  input [3:0]  KEY;
+  input UART_RX;
+  output UART_TX;
 
 	/* Fake verilog-mode out for a bit until we actually wire this up. */
 	/*AUTO_LISP(setq verilog-auto-output-ignore-regexp
@@ -46,19 +50,21 @@ module mcpu(/*AUTOARG*/
 		)))*/
 
 
-	/*AUTOINPUT*/
-	// Beginning of automatic inputs (from unused autoinst inputs)
-	input		uart_rx;		// To u_int of MCPU_int.v
-	// End of automatics
-	/*AUTOOUTPUT*/
-	// Beginning of automatic outputs (from unused autoinst outputs)
-	output		pre2core_done;		// From u_int of MCPU_int.v
-	output [31:0]	r0;			// From u_int of MCPU_int.v
-	output [4:0]	uart_status;		// From u_int of MCPU_int.v
-	output		uart_tx;		// From u_int of MCPU_int.v
-	// End of automatics
-	/*AUTOINOUT*/
 	/*AUTOWIRE*/
+	// Beginning of automatic wires (for undeclared instantiated-module outputs)
+	wire [7:0]	ext_led_g;		// From u_int of MCPU_int.v
+	wire [9:0]	ext_led_r;		// From u_int of MCPU_int.v
+	wire		ext_uart_tx;		// From u_int of MCPU_int.v
+	wire [31:0]	r0;			// From u_int of MCPU_int.v
+	// End of automatics
+
+  // TODO: input buffering.
+  wire [9:0] 		ext_switches = SW;
+  wire [3:0] 		ext_buttons = ~KEY;
+  wire 			ext_uart_rx = UART_RX;
+  assign UART_TX = ext_uart_tx;
+  assign LEDR = ext_led_r;
+  assign LEDG = ext_led_g;
 
   wire 			clkrst_core_rst_n;
   wire 			clkrst_mem_rst_n;
@@ -71,8 +77,6 @@ module mcpu(/*AUTOARG*/
   wire 		   pre2core_done;
   wire 		   clkrst_core_clk = clk50;
   wire 		   clkrst_mem_clk = clk50;
-
-  assign {LEDR, LEDG} = r0[17:0];
 
   `ifndef SIM
   MCPU_pll  #(.OUT_FREQUENCY("50.00000 MHz")) u_pll(
@@ -135,16 +139,19 @@ module mcpu(/*AUTOARG*/
 		 .r31		(),
 		 /*AUTOINST*/
 		 // Outputs
-		 .uart_tx		(uart_tx),
-		 .uart_status	(uart_status[4:0]),
-		 .r0		(r0[31:0]),
-		 .pre2core_done	(pre2core_done),
+		 .ext_uart_tx		(ext_uart_tx),
+		 .ext_led_g		(ext_led_g[7:0]),
+		 .ext_led_r		(ext_led_r[9:0]),
+		 .r0			(r0[31:0]),
+		 .pre2core_done		(pre2core_done),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_mem_clk	(clkrst_mem_clk),
-		 .clkrst_mem_rst_n(clkrst_mem_rst_n),
-		 .uart_rx		(uart_rx),
-		 .clkrst_core_rst_n(clkrst_core_rst_n));
+		 .clkrst_mem_rst_n	(clkrst_mem_rst_n),
+		 .ext_buttons		(ext_buttons[3:0]),
+		 .ext_switches		(ext_switches[9:0]),
+		 .ext_uart_rx		(ext_uart_rx),
+		 .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   // TODO: having actual memory would probably be nice.
 	/* MCPU_mc AUTO_TEMPLATE(

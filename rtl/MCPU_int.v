@@ -8,28 +8,33 @@
 
 module MCPU_int(/*AUTOARG*/
   // Outputs
-  uart_tx, uart_status, r0, pre2core_done, memoutput,
+  ext_uart_tx, ext_led_g, ext_led_r, r0, pre2core_done,
   // Inputs
-  r31, ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0,
-  ltc2mc_avl_rdata_0, clkrst_mem_rst_n, clkrst_mem_clk,
-  clkrst_core_clk, uart_rx, clkrst_core_rst_n, meminput
+  ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
+  ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
+  clkrst_core_clk, ext_uart_rx, clkrst_core_rst_n
   );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
   input			clkrst_core_clk;	// To mmio of MCPU_SOC_mmio.v, ...
   input			clkrst_mem_clk;		// To mem of MCPU_mem.v
   input			clkrst_mem_rst_n;	// To mem of MCPU_mem.v
+  input [3:0]		ext_buttons;		// To mmio of MCPU_SOC_mmio.v
+  input [9:0]		ext_switches;		// To mmio of MCPU_SOC_mmio.v
   input [127:0]		ltc2mc_avl_rdata_0;	// To mem of MCPU_mem.v
   input			ltc2mc_avl_rdata_valid_0;// To mem of MCPU_mem.v
   input			ltc2mc_avl_ready_0;	// To mem of MCPU_mem.v
-  input [31:0]		r31;			// To core of MCPU_core.v
   // End of automatics
-  input 	uart_rx;
-  output 	uart_tx;
-  output [4:0] 	uart_status;
+  input 	ext_uart_rx;
+  output 	ext_uart_tx;
 
+  output [7:0] 	ext_led_g;
+  output [9:0] 	ext_led_r;
+
+  // For debugging and stuff.
   output [31:0] r0;
   output 	pre2core_done;
+  // End of debugging and stuff.
 
   input 	clkrst_core_rst_n;
   
@@ -74,9 +79,6 @@ module MCPU_int(/*AUTOARG*/
   wire			paging_on;		// From core of MCPU_core.v
   wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
   // End of automatics
-  input [31:0] 	meminput;
-  output [31:0] memoutput;
-  
   wire 		int_pending = 0;
   wire [3:0] 	int_type = 0;
   wire 		int_clear;
@@ -165,13 +167,15 @@ module MCPU_int(/*AUTOARG*/
 		     .data_out(dl1c2periph_data_in[31:0]),
 		     /*AUTOINST*/
 		     // Outputs
-		     .memoutput		(memoutput[31:0]),
-		     .uart_tx		(uart_tx),
+		     .ext_led_g		(ext_led_g[7:0]),
+		     .ext_led_r		(ext_led_r[9:0]),
+		     .ext_uart_tx	(ext_uart_tx),
 		     // Inputs
 		     .clkrst_core_clk	(clkrst_core_clk),
 		     .clkrst_core_rst_n	(clkrst_core_rst_n),
-		     .meminput		(meminput[31:0]),
-		     .uart_rx		(uart_rx));
+		     .ext_switches	(ext_switches[9:0]),
+		     .ext_buttons	(ext_buttons[3:0]),
+		     .ext_uart_rx	(ext_uart_rx));
 
   /* MCPU_core AUTO_TEMPLATE(
    .clkrst_core_rst_n(clkrst_core_rst_n & pre2core_done),
@@ -217,8 +221,7 @@ module MCPU_int(/*AUTOARG*/
 		 .dtlb_flags1		(dtlb_flags_b[3:0]),	 // Templated
 		 .dtlb_phys_addr0	(dtlb_phys_addr_a[31:12]), // Templated
 		 .dtlb_phys_addr1	(dtlb_phys_addr_b[31:12]), // Templated
-		 .dtlb_ready		(dtlb_ready),
-		 .r31			(r31[31:0]));
+		 .dtlb_ready		(dtlb_ready));
 
 endmodule
 

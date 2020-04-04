@@ -2,10 +2,10 @@ module TB_MCPU_core(/*AUTOARG*/
    // Outputs
    uart_tx, uart_status, memoutput,
    // Inputs
-   r31, ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0,
-   ltc2mc_avl_rdata_0, ic2f_pf, f2ic_paddr, dl1c2periph_data_in,
-   clkrst_mem_rst_n, clkrst_mem_clk, clkrst_core_clk, uart_rx,
-   clkrst_core_rst_n, meminput
+   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
+   ic2f_pf, f2ic_paddr, dl1c2periph_data_in, clkrst_mem_rst_n,
+   clkrst_mem_clk, clkrst_core_clk, uart_rx, clkrst_core_rst_n,
+   meminput
    );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
@@ -18,7 +18,6 @@ module TB_MCPU_core(/*AUTOARG*/
   input [127:0]		ltc2mc_avl_rdata_0;	// To mem of MCPU_mem.v
   input			ltc2mc_avl_rdata_valid_0;// To mem of MCPU_mem.v
   input			ltc2mc_avl_ready_0;	// To mem of MCPU_mem.v
-  input [31:0]		r31;			// To core of MCPU_core.v
   // End of automatics
   input 	uart_rx;
   output 	uart_tx;
@@ -208,8 +207,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		 .dtlb_flags1		(dtlb_flags_b[3:0]),	 // Templated
 		 .dtlb_phys_addr0	(dtlb_phys_addr_a[31:12]), // Templated
 		 .dtlb_phys_addr1	(dtlb_phys_addr_b[31:12]), // Templated
-		 .dtlb_ready		(dtlb_ready),
-		 .r31			(r31[31:0]));
+		 .dtlb_ready		(dtlb_ready));
 
 endmodule
 
