@@ -6,217 +6,223 @@
  * synthesis or for a testbench.
  */
 
-module MCPU_INT_leds(/*AUTOARG*/
-   // Outputs
-   rdled_addr, rdled_opcode, rdled_valid, rdled_wbe, rdled_wdata,
-   leds,
-   // Inputs
-   clkrst_mem_clk, clkrst_mem_rst_n, pre2core_done, cli2arb_rdata,
-   rdled_rvalid, rdled_stall
-   );
-	input            clkrst_mem_clk;
-	input            clkrst_mem_rst_n;
-	
-	input            pre2core_done;
-
-	output [31:5]    rdled_addr;
-	output [2:0]     rdled_opcode;
-	output           rdled_valid;
-	output [31:0]    rdled_wbe;
-	output [255:0]   rdled_wdata;
-	input [255:0]    cli2arb_rdata;
-	
-	input            rdled_rvalid;
-	input            rdled_stall;
-	
-	output [7:0]     leds;
-	
-`include "MCPU_MEM_ltc.vh"
-	
-	reg [5:0]        curad = 0;
-	reg [7:0]        leds = 8'haa;
-	
-	reg [26:0]       ctr = 0;
-	
-	reg rdled_valid = 0;
-	reg [31:5] rdled_addr = 27'b0;
-	reg [2:0] rdled_opcode = 3'b0;
-	wire [31:0] rdled_wbe = 32'b0;
-	wire [255:0] rdled_wdata = 256'b0;
-	
-	always @(posedge clkrst_mem_clk) begin
-		if (~rdled_stall) begin
-			ctr <= ctr + 1;
-			if (~|ctr && pre2core_done) begin
-				rdled_valid <= 1;
-				rdled_opcode <= LTC_OPC_READ;
-				rdled_addr <= {21'b0, curad};
-				curad <= curad + 6'b1;
-			end else begin
-				rdled_valid <= 0;
-			end
-		end
-		
-		if (rdled_rvalid) begin
-			leds <= cli2arb_rdata[7:0];
-		end
-	end
-endmodule
-
 module MCPU_int(/*AUTOARG*/
-   // Outputs
-   ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
-   ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
-   ltc2mc_avl_write_req_0, leds,
-   // Inputs
-   clkrst_mem_clk, clkrst_mem_rst_n, ltc2mc_avl_rdata_0,
-   ltc2mc_avl_rdata_valid_0, ltc2mc_avl_ready_0
-   );
-	/*AUTOINPUT*/
-	// Beginning of automatic inputs (from unused autoinst inputs)
-	input		clkrst_mem_clk;		// To u_leds of MCPU_INT_leds.v, ...
-	input		clkrst_mem_rst_n;	// To u_leds of MCPU_INT_leds.v, ...
-	input [127:0]	ltc2mc_avl_rdata_0;	// To u_ltc of MCPU_MEM_ltc.v
-	input		ltc2mc_avl_rdata_valid_0;// To u_ltc of MCPU_MEM_ltc.v
-	input		ltc2mc_avl_ready_0;	// To u_ltc of MCPU_MEM_ltc.v
-	// End of automatics
-	/*AUTOOUTPUT*/
-	// Beginning of automatic outputs (from unused autoinst outputs)
-	output [24:0]	ltc2mc_avl_addr_0;	// From u_ltc of MCPU_MEM_ltc.v
-	output [15:0]	ltc2mc_avl_be_0;	// From u_ltc of MCPU_MEM_ltc.v
-	output		ltc2mc_avl_burstbegin_0;// From u_ltc of MCPU_MEM_ltc.v
-	output		ltc2mc_avl_read_req_0;	// From u_ltc of MCPU_MEM_ltc.v
-	output [4:0]	ltc2mc_avl_size_0;	// From u_ltc of MCPU_MEM_ltc.v
-	output [127:0]	ltc2mc_avl_wdata_0;	// From u_ltc of MCPU_MEM_ltc.v
-	output		ltc2mc_avl_write_req_0;	// From u_ltc of MCPU_MEM_ltc.v
-	// End of automatics
-	/*AUTOWIRE*/
-	// Beginning of automatic wires (for undeclared instantiated-module outputs)
-	wire [31:5]	arb2ltc_addr;		// From u_arb of MCPU_MEM_arb.v
-	wire [2:0]	arb2ltc_opcode;		// From u_arb of MCPU_MEM_arb.v
-	wire [255:0]	arb2ltc_rdata;		// From u_ltc of MCPU_MEM_ltc.v
-	wire		arb2ltc_rvalid;		// From u_ltc of MCPU_MEM_ltc.v
-	wire		arb2ltc_stall;		// From u_ltc of MCPU_MEM_ltc.v
-	wire		arb2ltc_valid;		// From u_arb of MCPU_MEM_arb.v
-	wire [31:0]	arb2ltc_wbe;		// From u_arb of MCPU_MEM_arb.v
-	wire [255:0]	arb2ltc_wdata;		// From u_arb of MCPU_MEM_arb.v
-	wire [255:0]	cli2arb_rdata;		// From u_arb of MCPU_MEM_arb.v
-	wire [31:5]	pre2arb_addr;		// From u_pre of MCPU_MEM_preload.v
-	wire [2:0]	pre2arb_opcode;		// From u_pre of MCPU_MEM_preload.v
-	wire		pre2arb_rvalid;		// From u_arb of MCPU_MEM_arb.v
-	wire		pre2arb_stall;		// From u_arb of MCPU_MEM_arb.v
-	wire		pre2arb_valid;		// From u_pre of MCPU_MEM_preload.v
-	wire [31:0]	pre2arb_wbe;		// From u_pre of MCPU_MEM_preload.v
-	wire [255:0]	pre2arb_wdata;		// From u_pre of MCPU_MEM_preload.v
-	wire		pre2core_done;		// From u_pre of MCPU_MEM_preload.v
-	wire [31:5]	rdled_addr;		// From u_leds of MCPU_INT_leds.v
-	wire [2:0]	rdled_opcode;		// From u_leds of MCPU_INT_leds.v
-	wire		rdled_rvalid;		// From u_arb of MCPU_MEM_arb.v
-	wire		rdled_stall;		// From u_arb of MCPU_MEM_arb.v
-	wire		rdled_valid;		// From u_leds of MCPU_INT_leds.v
-	wire [31:0]	rdled_wbe;		// From u_leds of MCPU_INT_leds.v
-	wire [255:0]	rdled_wdata;		// From u_leds of MCPU_INT_leds.v
-	// End of automatics
-	
-	output [7:0] leds;
-	
-	MCPU_INT_leds u_leds(/*AUTOINST*/
-			     // Outputs
-			     .rdled_addr	(rdled_addr[31:5]),
-			     .rdled_opcode	(rdled_opcode[2:0]),
-			     .rdled_valid	(rdled_valid),
-			     .rdled_wbe		(rdled_wbe[31:0]),
-			     .rdled_wdata	(rdled_wdata[255:0]),
-			     .leds		(leds[7:0]),
-			     // Inputs
-			     .clkrst_mem_clk	(clkrst_mem_clk),
-			     .clkrst_mem_rst_n	(clkrst_mem_rst_n),
-			     .pre2core_done	(pre2core_done),
-			     .cli2arb_rdata	(cli2arb_rdata[255:0]),
-			     .rdled_rvalid	(rdled_rvalid),
-			     .rdled_stall	(rdled_stall));
-	
-	MCPU_MEM_preload u_pre(/*AUTOINST*/
-			       // Outputs
-			       .pre2arb_valid	(pre2arb_valid),
-			       .pre2arb_opcode	(pre2arb_opcode[2:0]),
-			       .pre2arb_addr	(pre2arb_addr[31:5]),
-			       .pre2arb_wdata	(pre2arb_wdata[255:0]),
-			       .pre2arb_wbe	(pre2arb_wbe[31:0]),
-			       .pre2core_done	(pre2core_done),
-			       // Inputs
-			       .clkrst_mem_clk	(clkrst_mem_clk),
-			       .clkrst_mem_rst_n(clkrst_mem_rst_n),
-			       .pre2arb_stall	(pre2arb_stall),
-			       .pre2arb_rvalid	(pre2arb_rvalid));
+  // Outputs
+  uart_tx, uart_status, r0, pre2core_done, memoutput,
+  // Inputs
+  r31, ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0,
+  ltc2mc_avl_rdata_0, clkrst_mem_rst_n, clkrst_mem_clk,
+  clkrst_core_clk, uart_rx, clkrst_core_rst_n, meminput
+  );
+  /*AUTOINPUT*/
+  // Beginning of automatic inputs (from unused autoinst inputs)
+  input			clkrst_core_clk;	// To mmio of MCPU_SOC_mmio.v, ...
+  input			clkrst_mem_clk;		// To mem of MCPU_mem.v
+  input			clkrst_mem_rst_n;	// To mem of MCPU_mem.v
+  input [127:0]		ltc2mc_avl_rdata_0;	// To mem of MCPU_mem.v
+  input			ltc2mc_avl_rdata_valid_0;// To mem of MCPU_mem.v
+  input			ltc2mc_avl_ready_0;	// To mem of MCPU_mem.v
+  input [31:0]		r31;			// To core of MCPU_core.v
+  // End of automatics
+  input 	uart_rx;
+  output 	uart_tx;
+  output [4:0] 	uart_status;
 
-    /* AUTO_LISP(defun client-signal (s)
-                    (let* ((signal (lambda (c) (concat c s))))
-                        (format "{ %s }" (mapconcat signal clients ", ")))) */
+  output [31:0] r0;
+  output 	pre2core_done;
 
-    /* AUTO_LISP(setq clients (mapcar 'symbol-name '(
-                    pre2arb
-                    rdled))) */
+  input 	clkrst_core_rst_n;
+  
+  /*AUTOWIRE*/
+  // Beginning of automatic wires (for undeclared instantiated-module outputs)
+  wire			dispatch;		// From core of MCPU_core.v
+  wire [31:2]		dl1c2periph_addr;	// From mem of MCPU_mem.v
+  wire [31:0]		dl1c2periph_data_out;	// From mem of MCPU_mem.v
+  wire			dl1c2periph_re;		// From mem of MCPU_mem.v
+  wire [3:0]		dl1c2periph_we;		// From mem of MCPU_mem.v
+  wire			dl1c_ready;		// From mem of MCPU_mem.v
+  wire [31:12]		dtlb_addr_a;		// From core of MCPU_core.v
+  wire [31:12]		dtlb_addr_b;		// From core of MCPU_core.v
+  wire [3:0]		dtlb_flags_a;		// From mem of MCPU_mem.v
+  wire [3:0]		dtlb_flags_b;		// From mem of MCPU_mem.v
+  wire [31:12]		dtlb_phys_addr_a;	// From mem of MCPU_mem.v
+  wire [31:12]		dtlb_phys_addr_b;	// From mem of MCPU_mem.v
+  wire			dtlb_re_a;		// From core of MCPU_core.v
+  wire			dtlb_re_b;		// From core of MCPU_core.v
+  wire			dtlb_ready;		// From mem of MCPU_mem.v
+  wire [27:0]		f2ic_vaddr;		// From core of MCPU_core.v
+  wire			f2ic_valid;		// From core of MCPU_core.v
+  wire [127:0]		ic2d_packet;		// From mem of MCPU_mem.v
+  wire			ic2f_ready;		// From mem of MCPU_mem.v
+  wire [24:0]		ltc2mc_avl_addr_0;	// From mem of MCPU_mem.v
+  wire [15:0]		ltc2mc_avl_be_0;	// From mem of MCPU_mem.v
+  wire			ltc2mc_avl_burstbegin_0;// From mem of MCPU_mem.v
+  wire			ltc2mc_avl_read_req_0;	// From mem of MCPU_mem.v
+  wire [4:0]		ltc2mc_avl_size_0;	// From mem of MCPU_mem.v
+  wire [127:0]		ltc2mc_avl_wdata_0;	// From mem of MCPU_mem.v
+  wire			ltc2mc_avl_write_req_0;	// From mem of MCPU_mem.v
+  wire [31:0]		mem2dc_data_in0;	// From mem of MCPU_mem.v
+  wire [31:0]		mem2dc_data_in1;	// From mem of MCPU_mem.v
+  wire [31:0]		mem2dc_data_out0;	// From core of MCPU_core.v
+  wire [31:0]		mem2dc_data_out1;	// From core of MCPU_core.v
+  wire [29:0]		mem2dc_paddr0;		// From core of MCPU_core.v
+  wire [29:0]		mem2dc_paddr1;		// From core of MCPU_core.v
+  wire			mem2dc_valid0;		// From core of MCPU_core.v
+  wire			mem2dc_valid1;		// From core of MCPU_core.v
+  wire [3:0]		mem2dc_write0;		// From core of MCPU_core.v
+  wire [3:0]		mem2dc_write1;		// From core of MCPU_core.v
+  wire			paging_on;		// From core of MCPU_core.v
+  wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
+  // End of automatics
+  input [31:0] 	meminput;
+  output [31:0] memoutput;
+  
+  wire 		int_pending = 0;
+  wire [3:0] 	int_type = 0;
+  wire 		int_clear;
+  
+  //wire [31:0] 	r0;
 
-    /* MCPU_MEM_arb AUTO_TEMPLATE(
-		.cli2arb_stall  (@"(client-signal \"_stall\")"),
-		.cli2arb_rvalid (@"(client-signal \"_rvalid\")"),
+  wire [31:0] 	dl1c2periph_data_in;
 
-		.cli2arb_valid  (@"(client-signal \"_valid\")"),
-		.cli2arb_opcode (@"(client-signal \"_opcode[2:0]\")"),
-		.cli2arb_addr   (@"(client-signal \"_addr[31:5]\")"),
-		.cli2arb_wdata  (@"(client-signal \"_wdata[255:0]\")"),
-		.cli2arb_wbe    (@"(client-signal \"_wbe[31:0]\")"),
-        ); */
-	MCPU_MEM_arb #(.CLIENTS(2), .CLIENTS_BITS(1))
-		u_arb(/*AUTOINST*/
-		      // Outputs
-		      .arb2ltc_valid	(arb2ltc_valid),
-		      .arb2ltc_opcode	(arb2ltc_opcode[2:0]),
-		      .arb2ltc_addr	(arb2ltc_addr[31:5]),
-		      .arb2ltc_wdata	(arb2ltc_wdata[255:0]),
-		      .arb2ltc_wbe	(arb2ltc_wbe[31:0]),
-		      .cli2arb_stall	({ pre2arb_stall, rdled_stall }), // Templated
-		      .cli2arb_rdata	(cli2arb_rdata[255:0]),
-		      .cli2arb_rvalid	({ pre2arb_rvalid, rdled_rvalid }), // Templated
-		      // Inputs
-		      .clkrst_mem_clk	(clkrst_mem_clk),
-		      .clkrst_mem_rst_n	(clkrst_mem_rst_n),
-		      .arb2ltc_stall	(arb2ltc_stall),
-		      .arb2ltc_rdata	(arb2ltc_rdata[255:0]),
-		      .arb2ltc_rvalid	(arb2ltc_rvalid),
-		      .cli2arb_valid	({ pre2arb_valid, rdled_valid }), // Templated
-		      .cli2arb_opcode	({ pre2arb_opcode[2:0], rdled_opcode[2:0] }), // Templated
-		      .cli2arb_addr	({ pre2arb_addr[31:5], rdled_addr[31:5] }), // Templated
-		      .cli2arb_wdata	({ pre2arb_wdata[255:0], rdled_wdata[255:0] }), // Templated
-		      .cli2arb_wbe	({ pre2arb_wbe[31:0], rdled_wbe[31:0] })); // Templated
 
-	MCPU_MEM_ltc u_ltc(/*AUTOINST*/
-			   // Outputs
-			   .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
-			   .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
-			   .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
-			   .ltc2mc_avl_read_req_0(ltc2mc_avl_read_req_0),
-			   .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
-			   .ltc2mc_avl_wdata_0	(ltc2mc_avl_wdata_0[127:0]),
-			   .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
-			   .arb2ltc_rdata	(arb2ltc_rdata[255:0]),
-			   .arb2ltc_rvalid	(arb2ltc_rvalid),
-			   .arb2ltc_stall	(arb2ltc_stall),
-			   // Inputs
-			   .clkrst_mem_clk	(clkrst_mem_clk),
-			   .clkrst_mem_rst_n	(clkrst_mem_rst_n),
-			   .ltc2mc_avl_rdata_0	(ltc2mc_avl_rdata_0[127:0]),
-			   .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
-			   .ltc2mc_avl_ready_0	(ltc2mc_avl_ready_0),
-			   .arb2ltc_valid	(arb2ltc_valid),
-			   .arb2ltc_opcode	(arb2ltc_opcode[2:0]),
-			   .arb2ltc_addr	(arb2ltc_addr[31:5]),
-			   .arb2ltc_wdata	(arb2ltc_wdata[255:0]),
-			   .arb2ltc_wbe		(arb2ltc_wbe[31:0]));
+  // TODO: hook this up.
+  reg [27:0] 	f2ic_paddr;
+  // TODO: hook this up, too.
+  reg 		ic2f_pf = 0;
+
+  /* MCPU_mem AUTO_TEMPLATE(
+   .il1c_packet (ic2d_packet[127:0]),
+   .il1c_ready (ic2f_ready),
+   .il1c_addr (f2ic_vaddr[27:0]),
+   .il1c_re (f2ic_valid),
+
+   .dl1c_we_a (mem2dc_valid0 ? mem2dc_write0[] : 4'h0),
+   .dl1c_we_b (mem2dc_valid1 ? mem2dc_write1[] : 4'h0),
+   .dl1c_re_a (mem2dc_valid0 & ~|mem2dc_write0[]),
+   .dl1c_re_b (mem2dc_valid1 & ~|mem2dc_write1[]),
+   .dl1c_in_a (mem2dc_data_out0[]),
+   .dl1c_in_b (mem2dc_data_out1[]),
+   .dl1c_out_a (mem2dc_data_in0[]),
+   .dl1c_out_b (mem2dc_data_in1[]),
+   .dl1c_addr_a (mem2dc_paddr0[29:0]),
+   .dl1c_addr_b (mem2dc_paddr1[29:0]),
+
+   .dl1c_valid(0),
+   .dtlb_valid(0));*/
+  MCPU_mem mem(/*AUTOINST*/
+	       // Outputs
+	       .pre2core_done		(pre2core_done),
+	       .dl1c2periph_addr	(dl1c2periph_addr[31:2]),
+	       .dl1c2periph_data_out	(dl1c2periph_data_out[31:0]),
+	       .dl1c2periph_re		(dl1c2periph_re),
+	       .dl1c2periph_we		(dl1c2periph_we[3:0]),
+	       .dl1c_out_a		(mem2dc_data_in0[31:0]), // Templated
+	       .dl1c_out_b		(mem2dc_data_in1[31:0]), // Templated
+	       .dl1c_ready		(dl1c_ready),
+	       .dtlb_flags_a		(dtlb_flags_a[3:0]),
+	       .dtlb_flags_b		(dtlb_flags_b[3:0]),
+	       .dtlb_phys_addr_a	(dtlb_phys_addr_a[31:12]),
+	       .dtlb_phys_addr_b	(dtlb_phys_addr_b[31:12]),
+	       .dtlb_ready		(dtlb_ready),
+	       .il1c_packet		(ic2d_packet[127:0]),	 // Templated
+	       .il1c_ready		(ic2f_ready),		 // Templated
+	       .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
+	       .ltc2mc_avl_be_0		(ltc2mc_avl_be_0[15:0]),
+	       .ltc2mc_avl_burstbegin_0	(ltc2mc_avl_burstbegin_0),
+	       .ltc2mc_avl_read_req_0	(ltc2mc_avl_read_req_0),
+	       .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
+	       .ltc2mc_avl_wdata_0	(ltc2mc_avl_wdata_0[127:0]),
+	       .ltc2mc_avl_write_req_0	(ltc2mc_avl_write_req_0),
+	       // Inputs
+	       .clkrst_mem_clk		(clkrst_mem_clk),
+	       .clkrst_mem_rst_n	(clkrst_mem_rst_n),
+	       .dl1c2periph_data_in	(dl1c2periph_data_in[31:0]),
+	       .dl1c_addr_a		(mem2dc_paddr0[29:0]),	 // Templated
+	       .dl1c_addr_b		(mem2dc_paddr1[29:0]),	 // Templated
+	       .dl1c_in_a		(mem2dc_data_out0[31:0]), // Templated
+	       .dl1c_in_b		(mem2dc_data_out1[31:0]), // Templated
+	       .dl1c_re_a		(mem2dc_valid0 & ~|mem2dc_write0), // Templated
+	       .dl1c_re_b		(mem2dc_valid1 & ~|mem2dc_write1), // Templated
+	       .dl1c_we_a		(mem2dc_valid0 ? mem2dc_write0[3:0] : 4'h0), // Templated
+	       .dl1c_we_b		(mem2dc_valid1 ? mem2dc_write1[3:0] : 4'h0), // Templated
+	       .dtlb_addr_a		(dtlb_addr_a[31:12]),
+	       .dtlb_addr_b		(dtlb_addr_b[31:12]),
+	       .dtlb_re_a		(dtlb_re_a),
+	       .dtlb_re_b		(dtlb_re_b),
+	       .il1c_addr		(f2ic_vaddr[27:0]),	 // Templated
+	       .il1c_re			(f2ic_valid),		 // Templated
+	       .ltc2mc_avl_rdata_0	(ltc2mc_avl_rdata_0[127:0]),
+	       .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
+	       .ltc2mc_avl_ready_0	(ltc2mc_avl_ready_0),
+	       .paging_on		(paging_on),
+	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]));
+
+  MCPU_SOC_mmio mmio(
+		     .data_in(dl1c2periph_data_out),
+		     .addr(dl1c2periph_addr[30:2]),
+		     .wren(dl1c2periph_we),
+		     .data_out(dl1c2periph_data_in[31:0]),
+		     /*AUTOINST*/
+		     // Outputs
+		     .memoutput		(memoutput[31:0]),
+		     .uart_tx		(uart_tx),
+		     // Inputs
+		     .clkrst_core_clk	(clkrst_core_clk),
+		     .clkrst_core_rst_n	(clkrst_core_rst_n),
+		     .meminput		(meminput[31:0]),
+		     .uart_rx		(uart_rx));
+
+  /* MCPU_core AUTO_TEMPLATE(
+   .clkrst_core_rst_n(clkrst_core_rst_n & pre2core_done),
+   .\(dtlb_.*\)0 (\1_a[]),
+   .\(dtlb_.*\)1 (\1_b[]),
+   .pagedir_base (ptw_pagedir_base[]),
+   .mem2dc_done. (dl1c_ready));*/
+  MCPU_core core(/*AUTOINST*/
+		 // Outputs
+		 .int_clear		(int_clear),
+		 .mem2dc_paddr0		(mem2dc_paddr0[29:0]),
+		 .mem2dc_write0		(mem2dc_write0[3:0]),
+		 .mem2dc_valid0		(mem2dc_valid0),
+		 .mem2dc_data_out0	(mem2dc_data_out0[31:0]),
+		 .mem2dc_paddr1		(mem2dc_paddr1[29:0]),
+		 .mem2dc_write1		(mem2dc_write1[3:0]),
+		 .mem2dc_valid1		(mem2dc_valid1),
+		 .mem2dc_data_out1	(mem2dc_data_out1[31:0]),
+		 .dispatch		(dispatch),
+		 .f2ic_vaddr		(f2ic_vaddr[27:0]),
+		 .f2ic_valid		(f2ic_valid),
+		 .dtlb_addr0		(dtlb_addr_a[31:12]),	 // Templated
+		 .dtlb_addr1		(dtlb_addr_b[31:12]),	 // Templated
+		 .dtlb_re0		(dtlb_re_a),		 // Templated
+		 .dtlb_re1		(dtlb_re_b),		 // Templated
+		 .paging_on		(paging_on),
+		 .pagedir_base		(ptw_pagedir_base[19:0]), // Templated
+		 .r0			(r0[31:0]),
+		 // Inputs
+		 .clkrst_core_clk	(clkrst_core_clk),
+		 .clkrst_core_rst_n	(clkrst_core_rst_n & pre2core_done), // Templated
+		 .int_pending		(int_pending),
+		 .int_type		(int_type[3:0]),
+		 .mem2dc_done0		(dl1c_ready),		 // Templated
+		 .mem2dc_data_in0	(mem2dc_data_in0[31:0]),
+		 .mem2dc_done1		(dl1c_ready),		 // Templated
+		 .mem2dc_data_in1	(mem2dc_data_in1[31:0]),
+		 .f2ic_paddr		(f2ic_paddr[27:0]),
+		 .ic2d_packet		(ic2d_packet[127:0]),
+		 .ic2f_pf		(ic2f_pf),
+		 .ic2f_ready		(ic2f_ready),
+		 .dtlb_flags0		(dtlb_flags_a[3:0]),	 // Templated
+		 .dtlb_flags1		(dtlb_flags_b[3:0]),	 // Templated
+		 .dtlb_phys_addr0	(dtlb_phys_addr_a[31:12]), // Templated
+		 .dtlb_phys_addr1	(dtlb_phys_addr_b[31:12]), // Templated
+		 .dtlb_ready		(dtlb_ready),
+		 .r31			(r31[31:0]));
 
 endmodule
 
 // Local Variables:
 // verilog-library-flags:("-f dirs.vc")
+// verilog-auto-inst-param-value: t
 // End:

@@ -34,12 +34,12 @@ module MCPU_CORE_stage_dtlb(/*AUTOARG*/
   input 	 dtlb_valid_in;
   input 	 dtlb_out_ok;
 
+  reg [11:0] 	 prev_offs;
+  reg 		 prev_valid;
+
   assign dtlb_addr = d2dtlb_vaddr[31:12];
 
   assign dtlb2pc_paddr = {dtlb_phys_addr, prev_offs}; // TODO: lower bits!
-
-  reg [11:0] 	 prev_offs;
-  reg 		 prev_valid;
 
   always @(posedge clkrst_core_clk or negedge clkrst_core_rst_n) begin
      if (~clkrst_core_rst_n) begin

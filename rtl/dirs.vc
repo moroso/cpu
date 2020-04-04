@@ -6,3 +6,4 @@
 -y ../core
 -y core/cache
 -y ../core/cache
+-y soc

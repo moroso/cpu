@@ -68,6 +68,14 @@ module MCPU_MEM_dl1c(
   reg [31:2] 				addr_a_1a;
   reg [31:2] 				addr_b_1a;
 
+  wire 					is_periph_a_0a = addr_a_0a[31];
+  wire 					is_periph_b_0a = addr_b_0a[31];
+  wire 					is_periph_a_1a = addr_a_1a[31];
+  wire 					is_periph_b_1a = addr_b_1a[31];
+
+  reg [31:0] 				periph_result_a;
+  reg [31:0] 				periph_result_b;
+
   wire [SET_WIDTH-1:0] 			set_a_0a = addr_a_0a[31-TAG_WIDTH-:SET_WIDTH];
   wire [LINE_SIZE_WORD_ADDR_BITS-1:0] 	offs_a_0a = addr_a_0a[31-TAG_WIDTH-SET_WIDTH
                                                               -:LINE_SIZE_WORD_ADDR_BITS];
@@ -201,14 +209,6 @@ module MCPU_MEM_dl1c(
   wire [LINE_SIZE_BYTES-1:0] 		wbe_a = {{28'h0, dl1c_we_a_1a}} << (4 * offs_a_1a);
   wire [LINE_SIZE_BYTES-1:0] 		wbe_b = {{28'h0, dl1c_we_b_1a}} << (4 * offs_b_1a);
 
-  wire 					is_periph_a_0a = addr_a_0a[31];
-  wire 					is_periph_b_0a = addr_b_0a[31];
-  wire 					is_periph_a_1a = addr_a_1a[31];
-  wire 					is_periph_b_1a = addr_b_1a[31];
-
-  reg [31:0] 				periph_result_a;
-  reg [31:0] 				periph_result_b;
-
   integer 				i;
 
   always @(*) begin
@@ -288,18 +288,11 @@ module MCPU_MEM_dl1c(
      l2c_opcode = 3'bxxx;
      l2c_addr = 27'hxxxxxxx;
 
-     dl1c2periph_re = 0;
-     dl1c2periph_we = 4'h0;
-     dl1c2periph_addr = 30'hxxxxxxxx;
-     dl1c2periph_data_out = 32'hxxxxxxxx;
-
      if (ready) begin
         next_write_a_remaining = 1;
         next_write_b_remaining = 1;
         next_read_a_remaining = 1;
         next_read_b_remaining = 1;
-	next_periph_a_remaining = 1;
-	next_periph_b_remaining = 1;
      end else if (read_a | read_b) begin
         // Note: these are not the l2c lines themselves; there is other logic
         // to shift these values to the l2c if the stall signal is deasserted.
@@ -347,8 +340,19 @@ module MCPU_MEM_dl1c(
   end // always @ (*)
 
   always @(*) begin
+     dl1c2periph_addr = 30'hxxxxxxxx;
+     dl1c2periph_data_out = 32'hxxxxxxxx;
+     dl1c2periph_re = 0;
+     dl1c2periph_we = 4'h0;
+
      next_periph_a_remaining = periph_a_remaining;
      next_periph_b_remaining = periph_b_remaining;
+
+     if (ready) begin
+	next_periph_a_remaining = 1;
+	next_periph_b_remaining = 1;
+     end
+
      // TODO: reading from peripherals.
      if (periph_op_a) begin
 	next_periph_a_remaining = 0;

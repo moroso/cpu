@@ -17,4 +17,4 @@ derive_clock_uncertainty
 # tpd constraints
 
 source "altera_reset_controller.sdc"
-source "lpddr2_phy_p0.sdc"
+#source "lpddr2_phy_p0.sdc"

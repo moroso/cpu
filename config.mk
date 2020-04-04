@@ -2,35 +2,35 @@
 # later!
 
 RTL_COMMON = \
-	rtl/mcpu.v \
 	rtl/MCPU_int.v \
-	rtl/mc/MCPU_mem.v \
-	rtl/mc/MCPU_MEM_ltc.v \
+	rtl/core/MCPU_CORE_alu.v \
+	rtl/core/MCPU_CORE_coproc.v \
+	rtl/core/MCPU_CORE_decode.v \
+	rtl/core/MCPU_CORE_exn_encode.v \
+	rtl/core/MCPU_CORE_regfile.v \
+	rtl/core/MCPU_CORE_scoreboard.v \
+	rtl/core/MCPU_CORE_stage_dtlb.v \
+	rtl/core/MCPU_CORE_stage_fetch.v \
+	rtl/core/MCPU_CORE_stage_mem.v \
+	rtl/core/MCPU_core.v \
+	rtl/lib/FIFO.v \
+	rtl/lib/dp_bram.v \
+	rtl/lib/reg_2.v \
+	rtl/lib/register.v \
+	rtl/lib/sp_bram.v \
 	rtl/mc/MCPU_MEM_LTC_bram.v \
 	rtl/mc/MCPU_MEM_arb.v \
-	rtl/mc/MCPU_MEM_il1c.v \
 	rtl/mc/MCPU_MEM_dl1c.v \
 	rtl/mc/MCPU_MEM_dtlb.v \
 	rtl/mc/MCPU_MEM_il1c.v \
+	rtl/mc/MCPU_MEM_il1c.v \
+	rtl/mc/MCPU_MEM_ltc.v \
 	rtl/mc/MCPU_MEM_preload.v \
 	rtl/mc/MCPU_MEM_pt_walk.v \
-	rtl/lib/FIFO.v \
-	rtl/lib/register.v \
-	rtl/lib/reg_2.v \
-	rtl/lib/altsyncram.v \
-	rtl/lib/dp_bram.v \
-	rtl/lib/sp_bram.v \
-	rtl/core/MCPU_core.v \
-	rtl/core/MCPU_CORE_stage_fetch.v \
-	rtl/core/MCPU_CORE_decode.v \
-	rtl/core/MCPU_CORE_alu.v \
-	rtl/core/MCPU_CORE_regfile.v \
-	rtl/core/MCPU_CORE_scoreboard.v \
-	rtl/core/MCPU_CORE_coproc.v \
-	rtl/core/MCPU_CORE_exn_encode.v \
-	rtl/core/MCPU_CORE_stage_mem.v \
-	rtl/soc/uart.v \
-	rtl/soc/MCPU_SOC_mmio.v
+	rtl/mc/MCPU_mem.v \
+	rtl/mcpu.v \
+	rtl/soc/MCPU_SOC_mmio.v \
+	rtl/soc/uart.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \
