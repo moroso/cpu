@@ -37,7 +37,7 @@ module MCPU_core(/*AUTOARG*/
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
    f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
-   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready, r31
+   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready
    );
 
   /* Clocks */
@@ -88,7 +88,6 @@ module MCPU_core(/*AUTOARG*/
   output [19:0]  pagedir_base;
 
   output [31:0]  r0;
-  input [31:0] 	 r31;
 
   /*AUTOREG*/
   /*AUTOWIRE*/
@@ -284,8 +283,9 @@ module MCPU_core(/*AUTOARG*/
 
   assign pc_has_mem_op = pc_valid_out_mem0 | pc_valid_out_mem1;
 
-  // TODO: we need to block in certain cases.
-  assign wb_ready_in = 1;
+  // If memory is writing, we need to stall pc until it's done.
+  // TODO: we could make this more specific, and stall in fewer circumstances.
+  assign wb_ready_in = ~(mem_valid_out0 | mem_valid_out1);
   assign pc_out_ok = wb_ready_in & mem_ready_in;
   // The two memory ports must be used in lockstep; they're not truly independent.
   // That's why this isn't (~pc_valid_out_mem0 | mem_ready_in0) & ...
@@ -360,8 +360,7 @@ module MCPU_core(/*AUTOARG*/
 			 .wb2rf_pred_we1	(wb2rf_pred_we1),
 			 .wb2rf_pred_we0	(wb2rf_pred_we0),
 			 .clkrst_core_clk	(clkrst_core_clk),
-			 .clkrst_core_rst_n	(clkrst_core_rst_n),
-			 .r31			(r31[31:0]));
+			 .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   MCPU_CORE_scoreboard sb(
 			  .d2pc_progress(d_valid_out & pc_ready_in & ~pipe_flush & ~dcd_depstall),

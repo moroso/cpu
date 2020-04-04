@@ -14,7 +14,7 @@ module MCPU_CORE_regfile(/*AUTOARG*/
    wb2rf_rd_data0, wb2rf_rd_data1, wb2rf_rd_data2, wb2rf_rd_data3,
    wb2rf_rd_we3, wb2rf_rd_we2, wb2rf_rd_we1, wb2rf_rd_we0,
    wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0,
-   clkrst_core_clk, clkrst_core_rst_n, r31
+   clkrst_core_clk, clkrst_core_rst_n
    );
 
     input [4:0] wb2rf_rd_num0, wb2rf_rd_num1, wb2rf_rd_num2, wb2rf_rd_num3;
@@ -29,7 +29,6 @@ module MCPU_CORE_regfile(/*AUTOARG*/
     output wire [31:0] rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3;
     output reg [2:0] preds;
 	 output [31:0] r0;
-	 input [31:0] r31;
 
     reg [31:0] mem[0:31] /* verilator public */;
     integer i;
@@ -38,6 +37,8 @@ module MCPU_CORE_regfile(/*AUTOARG*/
   wire [31:0] r1 = mem[1];
   wire [31:0] r2 = mem[2];
   wire [31:0] r3 = mem[3];
+  wire [31:0] r30 = mem[30];
+  wire [31:0] r31 = mem[31];
 	 
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
         if(~clkrst_core_rst_n) begin
