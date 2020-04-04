@@ -1,12 +1,12 @@
 module MCPU_CORE_stage_dtlb(/*AUTOARG*/
-			    // Outputs
-			    dtlb2pc_paddr, dtlb2pc_pf, dtlb_addr, dtlb_re, dtlb_ready_in,
-			    dtlb_ready_out, dtlb_valid_out,
-			    // Inputs
-			    clkrst_core_clk, clkrst_core_rst_n, d2dtlb_vaddr, d2dtlb_oper_type,
-			    user_mode, pipe_flush, dtlb_flags, dtlb_phys_addr, dtlb_ready,
-			    dtlb_valid_in, dtlb_out_ok
-			    );
+   // Outputs
+   dtlb2pc_paddr, dtlb2pc_pf, dtlb_addr, dtlb_re, dtlb_ready_in,
+   dtlb_ready_out, dtlb_valid_out,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, d2dtlb_vaddr, d2dtlb_oper_type,
+   user_mode, pipe_flush, dtlb_flags, dtlb_phys_addr, dtlb_ready,
+   dtlb_valid_in, dtlb_out_ok
+   );
 
 `include "oper_type.vh"
 
