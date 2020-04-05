@@ -1,0 +1,8 @@
+[package]
+name = "serial_loader"
+version = "0.1.0"
+authors = ["Matthew Wright"]
+edition = "2018"
+
+[dependencies]
+serial = "0.3"
