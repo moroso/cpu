@@ -48,7 +48,7 @@ module MCPU_CORE_stage_dtlb(/*AUTOARG*/
 	prev_valid <= 0;
      end else if (pipe_flush) begin
 	prev_valid <= 0;
-     end else if (dtlb_ready) begin
+     end else if (dtlb_ready & dtlb_out_ok) begin
 	prev_offs <= d2dtlb_vaddr[11:0];
 	dtlb2pc_pf <= 0; // TODO: page faults.
 	prev_valid <= dtlb_valid_in;

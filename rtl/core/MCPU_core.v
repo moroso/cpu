@@ -572,7 +572,7 @@ module MCPU_core(/*AUTOARG*/
   wire [31:0] 	 dtlb2pc_paddr0, dtlb2pc_paddr1;
 
   wire [1:0] 	 d2dtlb_oper_type0, d2dtlb_oper_type1;
-  assign {d2dtlb_oper_type0, d2dtlb_oper_type1} = {d2pc_out_oper_type0, d2pc_out_oper_type0};
+  assign {d2dtlb_oper_type0, d2dtlb_oper_type1} = {d2pc_out_oper_type0, d2pc_out_oper_type1};
 
   /* MCPU_CORE_stage_dtlb AUTO_TEMPLATE(
    .progress(d2pc_progress),

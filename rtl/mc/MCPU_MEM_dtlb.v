@@ -384,7 +384,7 @@ module MCPU_MEM_dtlb(
         hit_a_way_1a <= next_hit_a_way_1a;
         hit_b_way_1a <= next_hit_b_way_1a;
 
-        if (latch_inputs | ~paging_on) begin
+        if (latch_inputs | (~paging_on & (dtlb_re_a_0a | dtlb_re_b_0a))) begin
            dtlb_re_a_1a <= dtlb_re_a_0a;
            dtlb_re_b_1a <= dtlb_re_b_0a;
            dtlb_addr_a_1a <= dtlb_addr_a_0a;
