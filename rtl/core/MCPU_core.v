@@ -228,7 +228,12 @@ module MCPU_core(/*AUTOARG*/
   wire 		 wb2rf_pred_we3, wb2rf_pred_we2, wb2rf_pred_we1, wb2rf_pred_we0 /* verilator public */;
 
   //stage status signals
+  // According to Verilator, f_valid_in is circular. I can't figure out why that
+  // would be the case, and it seems to *work*, so disable the warning
+  // about it.
+  /* verilator lint_off UNOPT */
   wire 		 f_valid_in /* verilator public */, d_valid_in /* verilator public */, pc_valid_in /* verilator public */;
+  /* verilator lint_on UNOPT */
   wire 		 wb_valid0 /* verilator public */, wb_valid1 /* verilator public */, wb_valid23 /* verilator public */;
 
   wire 		 pc2wb_readyin0, pc2wb_readyin1;

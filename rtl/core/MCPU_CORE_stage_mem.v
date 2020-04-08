@@ -72,10 +72,10 @@ module MCPU_CORE_stage_mem(/*AUTOARG*/
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
      if(~clkrst_core_rst_n) begin
 	mem_inprogress <= 0;
-	pc2mem_in_type_1a <= 'hx;
-	pc2mem_in_rd_num_1a <= 'hx;
+	pc2mem_in_type_1a <= 3'hx;
+	pc2mem_in_rd_num_1a <= 5'hx;
 	pc2mem_in_paddr_1a <= 'hx;
-	pc2mem_in_rd_we_1a <= 'hx;
+	pc2mem_in_rd_we_1a <= 1'bx;
      end else if (mem2dc_done) begin
 	mem_inprogress <= mem_valid_in;
 	pc2mem_in_type_1a <= pc2mem_in_type;

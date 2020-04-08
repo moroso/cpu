@@ -44,7 +44,7 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
      if(~clkrst_core_rst_n) begin
 	virtpc <= 28'd0;
 	valid_inprogress <= 0;
-	virtpc_1a <= 'hx;
+	virtpc_1a <= 28'hx;
      end
      /* TODO handle page faults correctly
       * Propagate an exception signal down the pipeline, give it priority in PC phase

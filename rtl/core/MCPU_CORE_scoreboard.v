@@ -158,7 +158,7 @@ module MCPU_CORE_scoreboard(/*AUTOARG*/
             else begin
                 {dcd_reg1h0, dcd_reg1h1, dcd_reg1h2, dcd_reg1h3} <= 128'd0;
                 {dcd_regval0, dcd_regval1, dcd_regval2, dcd_regval3} <= 4'd0;
-                {dcd_pred1h0, dcd_pred1h1, dcd_pred1h2, dcd_pred1h3} <= 16'd0;
+                {dcd_pred1h0, dcd_pred1h1, dcd_pred1h2, dcd_pred1h3} <= 12'd0;
                 {dcd_predval0, dcd_predval1, dcd_predval2, dcd_predval3} <= 4'd0;
             end
         end
