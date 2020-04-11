@@ -43,7 +43,7 @@ module MCPU_MEM_preload(/*AUTOARG*/
 	
 	/* We write out atoms at a time, so we'll keep a RAM full of atoms. */
 	parameter ROM_ATOMS = ROM_SIZE / 32;
-	reg [255:0] rom [ROM_ATOMS - 1:0];
+        reg [255:0] rom [ROM_ATOMS - 1:0] /* verilator public */;
 	initial
         	$readmemh(ROM_FILE, rom);
 	

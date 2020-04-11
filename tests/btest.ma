@@ -7,3 +7,4 @@
 {r12 <- 1}
 lol:
 {r2 <- 1; nop; nop; nop;}
+{ break 0x1f }

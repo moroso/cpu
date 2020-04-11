@@ -17,3 +17,5 @@ after:
 {r6 <- 0xaf7; nop; nop; nop}
 {long 0xd1000000; r7 <- 1001}
 {r7 <- 0xead}
+
+{ break 0x1f }

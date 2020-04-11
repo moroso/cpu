@@ -1,4 +1,4 @@
 *~
 runs
-tests/results
+tests/gen
 boot/serial_loader/target

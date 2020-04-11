@@ -27,7 +27,7 @@ module MCPU_CORE_regfile(/*AUTOARG*/
 
     output wire [31:0] rf2d_rs_data0, rf2d_rs_data1, rf2d_rs_data2, rf2d_rs_data3;
     output wire [31:0] rf2d_rt_data0, rf2d_rt_data1, rf2d_rt_data2, rf2d_rt_data3;
-    output reg [2:0] preds;
+    output reg [2:0] preds /* verilator public */;
 	 output [31:0] r0;
 
     reg [31:0] mem[0:31] /* verilator public */;

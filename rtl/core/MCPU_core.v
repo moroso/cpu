@@ -28,17 +28,17 @@
  */
 
 module MCPU_core(/*AUTOARG*/
-   // Outputs
-   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
-   dtlb_addr1, dtlb_re0, dtlb_re1, paging_on, pagedir_base, r0,
-   // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-   f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
-   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready
-   );
+  // Outputs
+  int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
+  mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+  mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
+  dtlb_addr1, dtlb_re0, dtlb_re1, paging_on, pagedir_base, r0,
+  // Inputs
+  clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
+  mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+  f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
+  dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready
+  );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;
@@ -240,7 +240,7 @@ module MCPU_core(/*AUTOARG*/
   wire 		 pc_out_progress;
   wire 		 mem2wb_progress0, mem2wb_progress1;
 
-  wire 		 pipe_flush, exception /* verilator public */;
+  wire 		 pipe_flush /* verilator public */, exception /* verilator public */;
   wire [27:0] 	 pc2f_newpc;
 
   wire 		 f_out_ok, d_ready_out, d_out_ok, dtlb_out_ok, dtlb_valid_out;
@@ -249,7 +249,7 @@ module MCPU_core(/*AUTOARG*/
   wire 		 pc_valid_out_mem0, pc_valid_out_mem1;
   wire 		 wb_ready_in, pc_out_ok;
   wire 		 mem_ready_in, mem_out_ok0, mem_out_ok1;
-  wire 		 dtlb_valid_in, d2pc_valid_in, pc_valid;
+  wire 		 dtlb_valid_in, d2pc_valid_in;
   wire 		 mem_valid_in0, mem_valid_in1;
   wire 		 d_valid_out;
   wire 		 pc_has_mem_op;
@@ -765,8 +765,10 @@ module MCPU_core(/*AUTOARG*/
   wire 		 pc_div_zero = 0;
 
   wire 		 pc_syscall = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0010);
-  wire 		 pc_break = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0001);
+  wire 		 pc_break /* verilator public */ = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0001);
 
+  /* MCPU_CORE_exn_encode AUTO_TEMPLATE(
+   .pc_valid(pc_valid_in)); */
   MCPU_CORE_exn_encode exn_encode(/*AUTOINST*/
 				  // Outputs
 				  .combined_ec0		(combined_ec0[4:0]),
@@ -788,7 +790,7 @@ module MCPU_core(/*AUTOARG*/
 				  .pc_syscall		(pc_syscall),
 				  .pc_break		(pc_break),
 				  .interrupts_enabled	(interrupts_enabled),
-				  .pc_valid		(pc_valid));
+				  .pc_valid		(pc_valid_in));	 // Templated
 
   MCPU_CORE_coproc coproc(
 			  .coproc_instruction	(pc_valid_in & (d2pc_in_oper_type0 == OPER_TYPE_OTHER)),

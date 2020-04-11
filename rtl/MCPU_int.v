@@ -8,7 +8,10 @@
 
 module MCPU_int(/*AUTOARG*/
   // Outputs
-  ext_uart_tx, ext_led_g, ext_led_r, r0, pre2core_done,
+  ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
+  ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
+  ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r, r0,
+  pre2core_done,
   // Inputs
   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
   ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
@@ -25,6 +28,15 @@ module MCPU_int(/*AUTOARG*/
   input			ltc2mc_avl_rdata_valid_0;// To mem of MCPU_mem.v
   input			ltc2mc_avl_ready_0;	// To mem of MCPU_mem.v
   // End of automatics
+  output [24:0]		ltc2mc_avl_addr_0;	// From mem of MCPU_mem.v
+  output [15:0]		ltc2mc_avl_be_0;	// From mem of MCPU_mem.v
+  output 		ltc2mc_avl_burstbegin_0;// From mem of MCPU_mem.v
+  output 		ltc2mc_avl_read_req_0;	// From mem of MCPU_mem.v
+  output [4:0] 		ltc2mc_avl_size_0;	// From mem of MCPU_mem.v
+  output [127:0] 	ltc2mc_avl_wdata_0;	// From mem of MCPU_mem.v
+  output 		ltc2mc_avl_write_req_0;	// From mem of MCPU_mem.v
+
+
   input 	ext_uart_rx;
   output 	ext_uart_tx;
 
@@ -59,13 +71,6 @@ module MCPU_int(/*AUTOARG*/
   wire			f2ic_valid;		// From core of MCPU_core.v
   wire [127:0]		ic2d_packet;		// From mem of MCPU_mem.v
   wire			ic2f_ready;		// From mem of MCPU_mem.v
-  wire [24:0]		ltc2mc_avl_addr_0;	// From mem of MCPU_mem.v
-  wire [15:0]		ltc2mc_avl_be_0;	// From mem of MCPU_mem.v
-  wire			ltc2mc_avl_burstbegin_0;// From mem of MCPU_mem.v
-  wire			ltc2mc_avl_read_req_0;	// From mem of MCPU_mem.v
-  wire [4:0]		ltc2mc_avl_size_0;	// From mem of MCPU_mem.v
-  wire [127:0]		ltc2mc_avl_wdata_0;	// From mem of MCPU_mem.v
-  wire			ltc2mc_avl_write_req_0;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in0;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in1;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_out0;	// From core of MCPU_core.v

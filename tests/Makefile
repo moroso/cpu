@@ -1,15 +1,13 @@
 .PHONY: all
-all:
-	sh ./test.sh
+#all:
+#	sh ./test.sh
 
-tests: $(patsubst %.ma,results/%.txt,$(wildcard *.ma))
+tests: $(patsubst %.ma,gen/%.txt,$(wildcard *.ma)) $(patsubst %.ma,gen/%.bin,$(wildcard *.ma))
+	for f in $(patsubst %.bin,%,$(wildcard gen/*.bin)); do echo $$f; $(core_test) $$f.bin $$f.txt; done
 
-bin/%.bin: %.ma
+gen/%.bin: %.ma
 	@mkdir -p bin
-	@$(MAS) --fmt bin < $< > $@
+	$(MAS) --fmt bin < $< > $@
 
-results/%.txt: bin/%.bin %.txt
-	@echo $<
-	@mkdir -p results
-	@$(VMCPU_core) $^ | awk 'P==1 { print } /Beginning register dump/ { P=1 }' > $@
-	@diff $@ $(patsubst results/%,%,$@) || (rm $@; false)
+gen/%.txt: gen/%.bin
+	$(cpu_sim) < $< > $@

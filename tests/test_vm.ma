@@ -23,8 +23,7 @@ b1:        { bl store_caller; }
            { bl r0; }
            { r23 <- r0 - long; long b2; }
 
-exit:      { r30 <- 0; r0 <- 0; r1 <- 0; r7 <- 0; }
-           { break 0x1f; }
+exit:      { break 0x1f; }
 store_caller_wrapper:
            { r7 <- r31; }
 b2:        { bl store_caller; }

@@ -157,6 +157,10 @@ TB_core_sim_top = MCPU_core
 TB_core_sim_cpps = core_sim.cpp Sim.cpp
 ALL_TBS += core_sim
 
+TB_core_test_top = MCPU_int
+TB_core_test_cpps = core_test.cpp Sim.cpp Cmod_MCPU_MEM_mc.cpp
+ALL_TBS += core_test
+
 TB_core_sys_top = TB_MCPU_core
 TB_core_sys_cpps = core_sys.cpp Sim.cpp
 ALL_TBS += core_sys
