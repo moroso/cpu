@@ -29,11 +29,11 @@ module MCPU_pll
 endmodule
 
 module mcpu(/*AUTOARG*/
-  // Outputs
-  LEDG, LEDR, UART_TX,
-  // Inputs
-  pad_clk125, in_rst_n, SW, KEY, UART_RX
-  );
+   // Outputs
+   LEDG, LEDR, UART_TX,
+   // Inputs
+   pad_clk125, in_rst_n, SW, KEY, UART_RX
+   );
   input        pad_clk125;
   input        in_rst_n;
   output [7:0] LEDG;
@@ -55,6 +55,13 @@ module mcpu(/*AUTOARG*/
 	wire [7:0]	ext_led_g;		// From u_int of MCPU_int.v
 	wire [9:0]	ext_led_r;		// From u_int of MCPU_int.v
 	wire		ext_uart_tx;		// From u_int of MCPU_int.v
+	wire [24:0]	ltc2mc_avl_addr_0;	// From u_int of MCPU_int.v
+	wire [15:0]	ltc2mc_avl_be_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_burstbegin_0;// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_read_req_0;	// From u_int of MCPU_int.v
+	wire [4:0]	ltc2mc_avl_size_0;	// From u_int of MCPU_int.v
+	wire [127:0]	ltc2mc_avl_wdata_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_write_req_0;	// From u_int of MCPU_int.v
 	wire [31:0]	r0;			// From u_int of MCPU_int.v
 	// End of automatics
 
@@ -139,6 +146,13 @@ module mcpu(/*AUTOARG*/
 		 .r31		(),
 		 /*AUTOINST*/
 		 // Outputs
+		 .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
+		 .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
+		 .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
+		 .ltc2mc_avl_read_req_0	(ltc2mc_avl_read_req_0),
+		 .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
+		 .ltc2mc_avl_wdata_0	(ltc2mc_avl_wdata_0[127:0]),
+		 .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
 		 .ext_uart_tx		(ext_uart_tx),
 		 .ext_led_g		(ext_led_g[7:0]),
 		 .ext_led_r		(ext_led_r[9:0]),

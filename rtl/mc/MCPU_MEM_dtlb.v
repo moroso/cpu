@@ -11,13 +11,20 @@ module MCPU_MEM_dtlb(
                      input [31:12] 	dtlb_addr_b,
                      input 		dtlb_re_a,
                      input 		dtlb_re_b,
+		     input 		dtlb_is_write_a,
+		     input 		dtlb_is_write_b,
 
 		     input 		paging_on,
+		     input 		user_mode,
 
                      output [31:12] 	dtlb_phys_addr_a,
                      output [31:12] 	dtlb_phys_addr_b,
-                     output [3:0] 	dtlb_flags_a,
-                     output [3:0] 	dtlb_flags_b,
+		     // Note: flags aren't used directly by the CPU (it just cares about pf), but
+		     // are useful for testing.
+		     output [3:0] 	dtlb_flags_a,
+		     output [3:0] 	dtlb_flags_b,
+		     output reg 	dtlb_pf_a,
+		     output reg 	dtlb_pf_b,
                      output 		dtlb_ready,
 
                      // Page table walker interface
@@ -403,6 +410,48 @@ module MCPU_MEM_dtlb(
 
   assign addr_data_a = read_addresses_imm ? set_a_0a : set_a_1a;
   assign addr_data_b = read_addresses_imm ? set_b_0a : set_b_1a;
+
+  // Page fault logic. dtlb_flags_* has the *combined* flags from the page table and page directory.
+  // (That is, the writeable bit is set if *both* writeable bits are set; the kernel bit is set
+  // if *either* kernel bit is set, etc.)
+  wire page_writeable_a;
+  wire page_writeable_b;
+  wire page_present_a;
+  wire page_present_b;
+  wire page_kernel_a;
+  wire page_kernel_b;
+
+  assign {page_kernel_a, page_writeable_a, page_present_a} = dtlb_flags_a[2:0];
+  assign {page_kernel_b, page_writeable_b, page_present_b} = dtlb_flags_b[2:0];
+
+  always @(*) begin
+     if (~dtlb_re_a_1a)
+       dtlb_pf_a = 0;
+     else if (page_present_a) begin
+	if (page_kernel_a & user_mode)
+	  dtlb_pf_a = 1;
+	else if (dtlb_is_write_a & ~page_writeable_b)
+	  dtlb_pf_a = 1;
+	else
+	  dtlb_pf_a = 0;
+     end else
+       dtlb_pf_a = 1;
+  end // always @ (*)
+
+  always @(*) begin
+     if (~dtlb_re_b_1a)
+       dtlb_pf_b = 0;
+     else if (page_present_b) begin
+	if (page_kernel_b & user_mode)
+	  dtlb_pf_b = 1;
+	else if (dtlb_is_write_b & ~page_writeable_b)
+	  dtlb_pf_b = 1;
+	else
+	  dtlb_pf_b = 0;
+     end else
+       dtlb_pf_b = 1;
+  end // always @ (*)
+
 
   genvar i;
   generate

@@ -7,16 +7,16 @@
  */
 
 module MCPU_int(/*AUTOARG*/
-  // Outputs
-  ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
-  ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
-  ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r, r0,
-  pre2core_done,
-  // Inputs
-  ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
-  ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
-  clkrst_core_clk, ext_uart_rx, clkrst_core_rst_n
-  );
+   // Outputs
+   ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
+   ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
+   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r, r0,
+   pre2core_done,
+   // Inputs
+   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
+   ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
+   clkrst_core_clk, ext_uart_rx, clkrst_core_rst_n
+   );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
   input			clkrst_core_clk;	// To mmio of MCPU_SOC_mmio.v, ...
@@ -62,6 +62,10 @@ module MCPU_int(/*AUTOARG*/
   wire [31:12]		dtlb_addr_b;		// From core of MCPU_core.v
   wire [3:0]		dtlb_flags_a;		// From mem of MCPU_mem.v
   wire [3:0]		dtlb_flags_b;		// From mem of MCPU_mem.v
+  wire			dtlb_is_write_a;	// From core of MCPU_core.v
+  wire			dtlb_is_write_b;	// From core of MCPU_core.v
+  wire			dtlb_pf_a;		// From mem of MCPU_mem.v
+  wire			dtlb_pf_b;		// From mem of MCPU_mem.v
   wire [31:12]		dtlb_phys_addr_a;	// From mem of MCPU_mem.v
   wire [31:12]		dtlb_phys_addr_b;	// From mem of MCPU_mem.v
   wire			dtlb_re_a;		// From core of MCPU_core.v
@@ -70,6 +74,7 @@ module MCPU_int(/*AUTOARG*/
   wire [27:0]		f2ic_vaddr;		// From core of MCPU_core.v
   wire			f2ic_valid;		// From core of MCPU_core.v
   wire [127:0]		ic2d_packet;		// From mem of MCPU_mem.v
+  wire			ic2d_pf;		// From mem of MCPU_mem.v
   wire			ic2f_ready;		// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in0;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in1;	// From mem of MCPU_mem.v
@@ -83,6 +88,7 @@ module MCPU_int(/*AUTOARG*/
   wire [3:0]		mem2dc_write1;		// From core of MCPU_core.v
   wire			paging_on;		// From core of MCPU_core.v
   wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
+  wire			user_mode;		// From core of MCPU_core.v
   // End of automatics
   wire 		int_pending = 0;
   wire [3:0] 	int_type = 0;
@@ -103,6 +109,7 @@ module MCPU_int(/*AUTOARG*/
    .il1c_ready (ic2f_ready),
    .il1c_addr (f2ic_vaddr[27:0]),
    .il1c_re (f2ic_valid),
+   .il1c_pf (ic2d_pf),
 
    .dl1c_we_a (mem2dc_valid0 ? mem2dc_write0[] : 4'h0),
    .dl1c_we_b (mem2dc_valid1 ? mem2dc_write1[] : 4'h0),
@@ -119,6 +126,9 @@ module MCPU_int(/*AUTOARG*/
    .dtlb_valid(0));*/
   MCPU_mem mem(/*AUTOINST*/
 	       // Outputs
+	       .il1c_pf			(ic2d_pf),		 // Templated
+	       .dtlb_pf_a		(dtlb_pf_a),
+	       .dtlb_pf_b		(dtlb_pf_b),
 	       .pre2core_done		(pre2core_done),
 	       .dl1c2periph_addr	(dl1c2periph_addr[31:2]),
 	       .dl1c2periph_data_out	(dl1c2periph_data_out[31:0]),
@@ -155,6 +165,8 @@ module MCPU_int(/*AUTOARG*/
 	       .dl1c_we_b		(mem2dc_valid1 ? mem2dc_write1[3:0] : 4'h0), // Templated
 	       .dtlb_addr_a		(dtlb_addr_a[31:12]),
 	       .dtlb_addr_b		(dtlb_addr_b[31:12]),
+	       .dtlb_is_write_a		(dtlb_is_write_a),
+	       .dtlb_is_write_b		(dtlb_is_write_b),
 	       .dtlb_re_a		(dtlb_re_a),
 	       .dtlb_re_b		(dtlb_re_b),
 	       .il1c_addr		(f2ic_vaddr[27:0]),	 // Templated
@@ -163,7 +175,8 @@ module MCPU_int(/*AUTOARG*/
 	       .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
 	       .ltc2mc_avl_ready_0	(ltc2mc_avl_ready_0),
 	       .paging_on		(paging_on),
-	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]));
+	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]),
+	       .user_mode		(user_mode));
 
   MCPU_SOC_mmio mmio(
 		     .data_in(dl1c2periph_data_out),
@@ -206,8 +219,11 @@ module MCPU_int(/*AUTOARG*/
 		 .dtlb_addr1		(dtlb_addr_b[31:12]),	 // Templated
 		 .dtlb_re0		(dtlb_re_a),		 // Templated
 		 .dtlb_re1		(dtlb_re_b),		 // Templated
+		 .dtlb_is_write0	(dtlb_is_write_a),	 // Templated
+		 .dtlb_is_write1	(dtlb_is_write_b),	 // Templated
 		 .paging_on		(paging_on),
 		 .pagedir_base		(ptw_pagedir_base[19:0]), // Templated
+		 .user_mode		(user_mode),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
@@ -220,12 +236,14 @@ module MCPU_int(/*AUTOARG*/
 		 .mem2dc_data_in1	(mem2dc_data_in1[31:0]),
 		 .f2ic_paddr		(f2ic_paddr[27:0]),
 		 .ic2d_packet		(ic2d_packet[127:0]),
-		 .ic2f_pf		(ic2f_pf),
+		 .ic2d_pf		(ic2d_pf),
 		 .ic2f_ready		(ic2f_ready),
 		 .dtlb_flags0		(dtlb_flags_a[3:0]),	 // Templated
 		 .dtlb_flags1		(dtlb_flags_b[3:0]),	 // Templated
 		 .dtlb_phys_addr0	(dtlb_phys_addr_a[31:12]), // Templated
 		 .dtlb_phys_addr1	(dtlb_phys_addr_b[31:12]), // Templated
+		 .dtlb_pf0		(dtlb_pf_a),		 // Templated
+		 .dtlb_pf1		(dtlb_pf_b),		 // Templated
 		 .dtlb_ready		(dtlb_ready));
 
 endmodule

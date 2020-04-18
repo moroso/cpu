@@ -28,17 +28,19 @@
  */
 
 module MCPU_core(/*AUTOARG*/
-  // Outputs
-  int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-  mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-  mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
-  dtlb_addr1, dtlb_re0, dtlb_re1, paging_on, pagedir_base, r0,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-  mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-  f2ic_paddr, ic2d_packet, ic2f_pf, ic2f_ready, dtlb_flags0,
-  dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_ready
-  );
+   // Outputs
+   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
+   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
+   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
+   dtlb_addr1, dtlb_re0, dtlb_re1, dtlb_is_write0, dtlb_is_write1,
+   paging_on, pagedir_base, user_mode, r0,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
+   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
+   f2ic_paddr, ic2d_packet, ic2d_pf, ic2f_ready, dtlb_flags0,
+   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_pf0, dtlb_pf1,
+   dtlb_ready
+   );
 
   /* Clocks */
   input clkrst_core_clk, clkrst_core_rst_n;
@@ -70,7 +72,7 @@ module MCPU_core(/*AUTOARG*/
   input [27:0] 	f2ic_paddr;
   output 	f2ic_valid;
   input [127:0] ic2d_packet;
-  input 	ic2f_pf;
+  input 	ic2d_pf;
   input 	ic2f_ready;
 
   /* DTLB interface */
@@ -82,10 +84,15 @@ module MCPU_core(/*AUTOARG*/
   input [3:0] 	 dtlb_flags1;
   input [31:12]  dtlb_phys_addr0;
   input [31:12]  dtlb_phys_addr1;
+  input 	 dtlb_pf0;
+  input 	 dtlb_pf1;
+  output 	 dtlb_is_write0;
+  output 	 dtlb_is_write1;
   input 	 dtlb_ready;
 
   output 	 paging_on;
   output [19:0]  pagedir_base;
+  output 	 user_mode;
 
   output [31:0]  r0;
 
@@ -151,8 +158,6 @@ module MCPU_core(/*AUTOARG*/
   wire			dep_stall1;		// From d1 of MCPU_CORE_decode.v
   wire			dep_stall2;		// From d2 of MCPU_CORE_decode.v
   wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
-  wire			dtlb2pc_pf0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
-  wire			dtlb2pc_pf1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_ready_in0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_ready_in1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_ready_out0;	// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
@@ -194,7 +199,6 @@ module MCPU_core(/*AUTOARG*/
   wire [31:0]		rf2d_rt_data3;		// From regs of MCPU_CORE_regfile.v
   wire [2:0]		sb2d_pred_scoreboard;	// From sb of MCPU_CORE_scoreboard.v
   wire [31:0]		sb2d_reg_scoreboard;	// From sb of MCPU_CORE_scoreboard.v
-  wire			user_mode;		// From coproc of MCPU_CORE_coproc.v
   // End of automatics
 
   // wires that get missed because they're not module outputs :/
@@ -368,7 +372,7 @@ module MCPU_core(/*AUTOARG*/
 			 .clkrst_core_rst_n	(clkrst_core_rst_n));
 
   MCPU_CORE_scoreboard sb(
-			  .d2pc_progress(d_valid_out & pc_ready_in & ~pipe_flush & ~dcd_depstall),
+			  .d2pc_progress(d_valid_out & pc_ready_in & ~dcd_depstall),
 			  /*AUTOINST*/
 			  // Outputs
 			  .sb2d_reg_scoreboard	(sb2d_reg_scoreboard[31:0]),
@@ -410,7 +414,6 @@ module MCPU_core(/*AUTOARG*/
   MCPU_CORE_stage_fetch f(/*AUTOINST*/
 			  // Outputs
 			  .f2d_out_virtpc	(f2d_out_virtpc[27:0]),
-			  .f2d_in_inst_pf	(f2d_in_inst_pf),
 			  .f_ready_out		(f_ready_out),
 			  .f_valid_out		(f_valid_out),
 			  .f2ic_vaddr		(f2ic_vaddr[27:0]),
@@ -427,6 +430,7 @@ module MCPU_core(/*AUTOARG*/
 
   assign dtlb_valid_in = d_valid_in;
   assign f2d_in_packet = ic2d_packet;
+  assign f2d_in_inst_pf = ic2d_pf & f_valid_out;
   assign d_valid_in = f_valid_out;
   assign f2d_in_virtpc = f2d_out_virtpc;
 
@@ -578,6 +582,8 @@ module MCPU_core(/*AUTOARG*/
 
   wire [1:0] 	 d2dtlb_oper_type0, d2dtlb_oper_type1;
   assign {d2dtlb_oper_type0, d2dtlb_oper_type1} = {d2pc_out_oper_type0, d2pc_out_oper_type1};
+  wire [2:0] 	 d2dtlb_memop_type0, d2dtlb_memop_type1;
+  assign {d2dtlb_memop_type0, d2dtlb_memop_type1} = {d2pc_out_execute_opcode0[2:0], d2pc_out_execute_opcode1[2:0]};
 
   /* MCPU_CORE_stage_dtlb AUTO_TEMPLATE(
    .progress(d2pc_progress),
@@ -590,9 +596,9 @@ module MCPU_core(/*AUTOARG*/
   MCPU_CORE_stage_dtlb stage_dtlb0(/*AUTOINST*/
 				   // Outputs
 				   .dtlb2pc_paddr	(dtlb2pc_paddr0[31:0]), // Templated
-				   .dtlb2pc_pf		(dtlb2pc_pf0),	 // Templated
 				   .dtlb_addr		(dtlb_addr0[31:12]), // Templated
 				   .dtlb_re		(dtlb_re0),	 // Templated
+				   .dtlb_is_write	(dtlb_is_write0), // Templated
 				   .dtlb_ready_in	(dtlb_ready_in0), // Templated
 				   .dtlb_ready_out	(dtlb_ready_out0), // Templated
 				   .dtlb_valid_out	(dtlb_valid_out0), // Templated
@@ -607,13 +613,14 @@ module MCPU_core(/*AUTOARG*/
 				   .dtlb_phys_addr	(dtlb_phys_addr0[31:12]), // Templated
 				   .dtlb_ready		(dtlb_ready),	 // Templated
 				   .dtlb_valid_in	(dtlb_valid_in), // Templated
-				   .dtlb_out_ok		(dtlb_out_ok));	 // Templated
+				   .dtlb_out_ok		(dtlb_out_ok),	 // Templated
+				   .d2dtlb_memop_type	(d2dtlb_memop_type0[2:0])); // Templated
   MCPU_CORE_stage_dtlb stage_dtlb1(/*AUTOINST*/
 				   // Outputs
 				   .dtlb2pc_paddr	(dtlb2pc_paddr1[31:0]), // Templated
-				   .dtlb2pc_pf		(dtlb2pc_pf1),	 // Templated
 				   .dtlb_addr		(dtlb_addr1[31:12]), // Templated
 				   .dtlb_re		(dtlb_re1),	 // Templated
+				   .dtlb_is_write	(dtlb_is_write1), // Templated
 				   .dtlb_ready_in	(dtlb_ready_in1), // Templated
 				   .dtlb_ready_out	(dtlb_ready_out1), // Templated
 				   .dtlb_valid_out	(dtlb_valid_out1), // Templated
@@ -628,7 +635,8 @@ module MCPU_core(/*AUTOARG*/
 				   .dtlb_phys_addr	(dtlb_phys_addr1[31:12]), // Templated
 				   .dtlb_ready		(dtlb_ready),	 // Templated
 				   .dtlb_valid_in	(dtlb_valid_in), // Templated
-				   .dtlb_out_ok		(dtlb_out_ok));	 // Templated
+				   .dtlb_out_ok		(dtlb_out_ok),	 // Templated
+				   .d2dtlb_memop_type	(d2dtlb_memop_type1[2:0])); // Templated
 
   // this is going to get even bigger when we add bits for non-ALU instruction types.
   register #(.WIDTH(400), .RESET_VAL(400'd0)) // wheeeeeeeee
@@ -760,8 +768,8 @@ module MCPU_core(/*AUTOARG*/
                  (d2pc_in_pred_we2 & d2pc_in_pred_we3 & (d2pc_in_rd_num2[1:0] == d2pc_in_rd_num3[1:0]));
 
   wire 		 pc_dup_dest = pc_dup_rd | pc_dup_pred;
-  wire 		 pc_data_pf0 = 0;
-  wire 		 pc_data_pf1 = 0;
+  wire 		 pc_data_pf0 = dtlb_pf0 & dtlb_valid_out0;
+  wire 		 pc_data_pf1 = dtlb_pf1 & dtlb_valid_out1;
   wire 		 pc_div_zero = 0;
 
   wire 		 pc_syscall = (d2pc_in_oper_type0 == OPER_TYPE_OTHER) & (d2pc_in_execute_opcode0[8:5] == 4'b0010);

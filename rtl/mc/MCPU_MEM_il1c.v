@@ -13,6 +13,7 @@ module MCPU_MEM_il1c(
                      input 	    il1c_re,
                      output [127:0] il1c_packet,
                      output 	    il1c_ready,
+		     output 	    il1c_pf,
 
                      // TLB interface
                      output [31:12] il1c2tlb_addr,
@@ -21,6 +22,7 @@ module MCPU_MEM_il1c(
                      input [3:0]    il1c2tlb_flags,
                      input [31:12]  il1c2tlb_phys_addr,
                      input 	    il1c2tlb_ready,
+		     input 	    il1c2tlb_pf,
 
                      // Atom interface to arb
                      output reg     il1c2arb_valid,
@@ -79,6 +81,8 @@ module MCPU_MEM_il1c(
 
   // Always doing reads from the arb, if anything.
   assign il1c2arb_opcode = 0; // TODO
+
+  assign il1c_pf = il1c2tlb_pf;
 
   wire 				    re_0a = il1c_re;
   reg 				    re_1a;

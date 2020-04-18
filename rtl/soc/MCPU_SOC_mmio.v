@@ -1,10 +1,10 @@
 module MCPU_SOC_mmio(/*AUTOARG*/
-  // Outputs
-  data_out, ext_led_g, ext_led_r, ext_uart_tx,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, data_in, addr, wren,
-  ext_switches, ext_buttons, ext_uart_rx
-  );
+   // Outputs
+   data_out, ext_led_g, ext_led_r, ext_uart_tx,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, data_in, addr, wren,
+   ext_switches, ext_buttons, ext_uart_rx
+   );
 
   input clkrst_core_clk, clkrst_core_rst_n;
 

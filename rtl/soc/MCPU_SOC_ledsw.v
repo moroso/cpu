@@ -4,12 +4,12 @@
  */
 
 module MCPU_SOC_ledsw(/*AUTOARG*/
-  // Outputs
-  ext_led_r, ext_led_g, data_out,
-  // Inputs
-  ext_switches, ext_buttons, clkrst_core_clk, clkrst_core_rst_n, addr,
-  data_in, write_mask
-  );
+   // Outputs
+   ext_led_r, ext_led_g, data_out,
+   // Inputs
+   ext_switches, ext_buttons, clkrst_core_clk, clkrst_core_rst_n,
+   addr, data_in, write_mask
+   );
   // The actual switches/LEDs
   input [9:0] ext_switches;
   input [3:0] ext_buttons;

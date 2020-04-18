@@ -1,8 +1,7 @@
 
 module MCPU_CORE_stage_fetch(/*AUTOARG*/
    // Outputs
-   f2d_out_virtpc, f2d_in_inst_pf, f_ready_out, f_valid_out,
-   f2ic_vaddr, f2ic_valid,
+   f2d_out_virtpc, f_ready_out, f_valid_out, f2ic_vaddr, f2ic_valid,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, pc2f_newpc, f_out_ok,
    f_valid_in, pipe_flush, f2ic_paddr, ic2f_ready
@@ -17,7 +16,6 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
 
   /* Fetch / Decode stage interface */
   output [27:0] f2d_out_virtpc;
-  output 	f2d_in_inst_pf;
 
   /* Stage signals */
   output 	f_ready_out;
@@ -62,8 +60,6 @@ module MCPU_CORE_stage_fetch(/*AUTOARG*/
 	valid_inprogress <= f_valid_in;
      end
   end // always @ (posedge clkrst_core_clk, negedge clkrst_core_rst_n)
-
-  assign f2d_in_inst_pf = 0; // TODO!!!
 
   // Valid output is ready if we had started a read, and it's now done.
   assign f_ready_out = ic2f_ready;

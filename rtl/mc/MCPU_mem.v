@@ -14,6 +14,8 @@ module MCPU_mem(
 		input [3:0]	dl1c_we_b,		// To dl1c of MCPU_MEM_dl1c.v
 		input [31:12]	dtlb_addr_a,		// To dtlb of MCPU_MEM_dtlb.v
 		input [31:12]	dtlb_addr_b,		// To dtlb of MCPU_MEM_dtlb.v
+		input		dtlb_is_write_a,	// To dtlb of MCPU_MEM_dtlb.v
+		input		dtlb_is_write_b,	// To dtlb of MCPU_MEM_dtlb.v
 		input		dtlb_re_a,		// To dtlb of MCPU_MEM_dtlb.v
 		input		dtlb_re_b,		// To dtlb of MCPU_MEM_dtlb.v
 		input [31:4]	il1c_addr,		// To il1c of MCPU_MEM_il1c.v
@@ -23,6 +25,14 @@ module MCPU_mem(
 		input		ltc2mc_avl_ready_0,	// To ltc of MCPU_MEM_ltc.v
 		input		paging_on,		// To dtlb of MCPU_MEM_dtlb.v, ...
 		input [19:0]	ptw_pagedir_base,	// To dtlb_walk of MCPU_MEM_pt_walk.v, ...
+		input		user_mode,		// To dtlb of MCPU_MEM_dtlb.v, ...
+		// End of automatics
+		// Beginning of automatic outputs (from unused autoinst outputs)
+		output 	       il1c_pf, // From il1c of MCPU_MEM_il1c.v
+		// End of automatics
+		// Beginning of automatic outputs (from unused autoinst outputs)
+		output 	       dtlb_pf_a, // From dtlb of MCPU_MEM_dtlb.v
+		output 	       dtlb_pf_b, // From dtlb of MCPU_MEM_dtlb.v
 		// End of automatics
                 // Beginning of automatic outputs (from unused autoinst outputs)
                 output 	       pre2core_done, // From preload_inst of MCPU_MEM_preload.v
@@ -91,6 +101,7 @@ module MCPU_mem(
    wire [255:0]		il1c2arb_wdata;		// From il1c of MCPU_MEM_il1c.v
    wire [31:12]		il1c2itlb_addr;		// From il1c of MCPU_MEM_il1c.v
    wire [3:0]		il1c2itlb_flags;	// From itlb of MCPU_MEM_dtlb.v
+   wire			il1c2itlb_pf;		// From itlb of MCPU_MEM_dtlb.v
    wire [31:12]		il1c2itlb_phys_addr;	// From itlb of MCPU_MEM_dtlb.v
    wire			il1c2itlb_re;		// From il1c of MCPU_MEM_il1c.v
    wire			il1c2itlb_ready;	// From itlb of MCPU_MEM_dtlb.v
@@ -230,6 +241,8 @@ module MCPU_mem(
 		      .dtlb_phys_addr_b	(dtlb_phys_addr_b[31:12]),
 		      .dtlb_flags_a	(dtlb_flags_a[3:0]),
 		      .dtlb_flags_b	(dtlb_flags_b[3:0]),
+		      .dtlb_pf_a	(dtlb_pf_a),
+		      .dtlb_pf_b	(dtlb_pf_b),
 		      .dtlb_ready	(dtlb_ready),
 		      .tlb2ptw_addr	(dtlb2dptw_addr[31:12]), // Templated
 		      .tlb2ptw_re	(dtlb2dptw_re),		 // Templated
@@ -240,7 +253,10 @@ module MCPU_mem(
 		      .dtlb_addr_b	(dtlb_addr_b[31:12]),
 		      .dtlb_re_a	(dtlb_re_a),
 		      .dtlb_re_b	(dtlb_re_b),
+		      .dtlb_is_write_a	(dtlb_is_write_a),
+		      .dtlb_is_write_b	(dtlb_is_write_b),
 		      .paging_on	(paging_on),
+		      .user_mode	(user_mode),
 		      .tlb2ptw_phys_addr(dtlb2dptw_phys_addr[31:12]), // Templated
 		      .tlb2ptw_ready	(dtlb2dptw_ready),	 // Templated
 		      .tlb2ptw_pagetab_flags(dtlb2dptw_pagetab_flags[3:0]), // Templated
@@ -274,6 +290,7 @@ module MCPU_mem(
 
    /* MCPU_MEM_dtlb AUTO_TEMPLATE(
     .dtlb_re_b(1'b0),
+    .dtlb_is_write_a(1'b0),
     .dtlb\(.*\)_b (),
     .dtlb\(.*\)_a (il1c2itlb\1[]),
     .tlb2ptw\(.*\) (itlb2iptw\1[]),
@@ -285,6 +302,8 @@ module MCPU_mem(
 		      .dtlb_phys_addr_b	(),			 // Templated
 		      .dtlb_flags_a	(il1c2itlb_flags[3:0]),	 // Templated
 		      .dtlb_flags_b	(),			 // Templated
+		      .dtlb_pf_a	(il1c2itlb_pf),		 // Templated
+		      .dtlb_pf_b	(),			 // Templated
 		      .dtlb_ready	(il1c2itlb_ready),	 // Templated
 		      .tlb2ptw_addr	(itlb2iptw_addr[31:12]), // Templated
 		      .tlb2ptw_re	(itlb2iptw_re),		 // Templated
@@ -295,7 +314,10 @@ module MCPU_mem(
 		      .dtlb_addr_b	(),			 // Templated
 		      .dtlb_re_a	(il1c2itlb_re),		 // Templated
 		      .dtlb_re_b	(1'b0),			 // Templated
+		      .dtlb_is_write_a	(1'b0),			 // Templated
+		      .dtlb_is_write_b	(),			 // Templated
 		      .paging_on	(paging_on),
+		      .user_mode	(user_mode),
 		      .tlb2ptw_phys_addr(itlb2iptw_phys_addr[31:12]), // Templated
 		      .tlb2ptw_ready	(itlb2iptw_ready),	 // Templated
 		      .tlb2ptw_pagetab_flags(itlb2iptw_pagetab_flags[3:0]), // Templated
@@ -330,6 +352,7 @@ module MCPU_mem(
 		      // Outputs
 		      .il1c_packet	(il1c_packet[127:0]),
 		      .il1c_ready	(il1c_ready),
+		      .il1c_pf		(il1c_pf),
 		      .il1c2tlb_addr	(il1c2itlb_addr[31:12]), // Templated
 		      .il1c2tlb_re	(il1c2itlb_re),		 // Templated
 		      .il1c2arb_valid	(il1c2arb_valid),
@@ -345,6 +368,7 @@ module MCPU_mem(
 		      .il1c2tlb_flags	(il1c2itlb_flags[3:0]),	 // Templated
 		      .il1c2tlb_phys_addr(il1c2itlb_phys_addr[31:12]), // Templated
 		      .il1c2tlb_ready	(il1c2itlb_ready),	 // Templated
+		      .il1c2tlb_pf	(il1c2itlb_pf),		 // Templated
 		      .il1c2arb_rdata	(cli2arb_rdata[255:0]),	 // Templated
 		      .il1c2arb_rvalid	(il1c2arb_rvalid),
 		      .il1c2arb_stall	(il1c2arb_stall));
