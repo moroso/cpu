@@ -88,6 +88,7 @@ module MCPU_int(/*AUTOARG*/
   wire [3:0]		mem2dc_write1;		// From core of MCPU_core.v
   wire			paging_on;		// From core of MCPU_core.v
   wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
+  wire			tlb_clear;		// From core of MCPU_core.v
   wire			user_mode;		// From core of MCPU_core.v
   // End of automatics
   wire 		int_pending = 0;
@@ -176,6 +177,7 @@ module MCPU_int(/*AUTOARG*/
 	       .ltc2mc_avl_ready_0	(ltc2mc_avl_ready_0),
 	       .paging_on		(paging_on),
 	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]),
+	       .tlb_clear		(tlb_clear),
 	       .user_mode		(user_mode));
 
   MCPU_SOC_mmio mmio(
@@ -224,6 +226,7 @@ module MCPU_int(/*AUTOARG*/
 		 .paging_on		(paging_on),
 		 .pagedir_base		(ptw_pagedir_base[19:0]), // Templated
 		 .user_mode		(user_mode),
+		 .tlb_clear		(tlb_clear),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),

@@ -14,6 +14,10 @@ module MCPU_MEM_dtlb(
 		     input 		dtlb_is_write_a,
 		     input 		dtlb_is_write_b,
 
+		     // Should be asserted for one cycle. TLB will be cleared at the end of the
+		     // current request.
+		     input 		dtlb_clear,
+
 		     input 		paging_on,
 		     input 		user_mode,
 
@@ -147,6 +151,8 @@ module MCPU_MEM_dtlb(
 
   reg 					tlb2ptw_ready_1a;
 
+  reg 					pending_clear;
+
   assign dtlb_ready = state == ST_IDLE ||
                       (state == ST_COMPARING &&
                        (~dtlb_re_a_1a | hit_a_1a) &&
@@ -205,6 +211,9 @@ module MCPU_MEM_dtlb(
   reg [NUM_SETS-1:0] 			evict;
 
   reg 					paging_on_1a;
+  reg 					user_mode_1a;
+  reg 					dtlb_is_write_a_1a;
+  reg 					dtlb_is_write_b_1a;
 
   always @(*) begin
      evict_update_a_from_hit = 0;
@@ -397,6 +406,9 @@ module MCPU_MEM_dtlb(
            dtlb_addr_a_1a <= dtlb_addr_a_0a;
            dtlb_addr_b_1a <= dtlb_addr_b_0a;
 	   paging_on_1a <= paging_on;
+	   user_mode_1a <= user_mode;
+	   dtlb_is_write_a_1a <= dtlb_is_write_a;
+	   dtlb_is_write_b_1a <= dtlb_is_write_b;
         end
      end
   end // always @ (posedge clkrst_mem_clk)
@@ -428,9 +440,9 @@ module MCPU_MEM_dtlb(
      if (~dtlb_re_a_1a)
        dtlb_pf_a = 0;
      else if (page_present_a) begin
-	if (page_kernel_a & user_mode)
+	if (page_kernel_a & user_mode_1a)
 	  dtlb_pf_a = 1;
-	else if (dtlb_is_write_a & ~page_writeable_b)
+	else if (dtlb_is_write_a_1a & ~page_writeable_b)
 	  dtlb_pf_a = 1;
 	else
 	  dtlb_pf_a = 0;
@@ -442,9 +454,9 @@ module MCPU_MEM_dtlb(
      if (~dtlb_re_b_1a)
        dtlb_pf_b = 0;
      else if (page_present_b) begin
-	if (page_kernel_b & user_mode)
+	if (page_kernel_b & user_mode_1a)
 	  dtlb_pf_b = 1;
-	else if (dtlb_is_write_b & ~page_writeable_b)
+	else if (dtlb_is_write_b_1a & ~page_writeable_b)
 	  dtlb_pf_b = 1;
 	else
 	  dtlb_pf_b = 0;
@@ -506,17 +518,25 @@ module MCPU_MEM_dtlb(
   always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
      if (~clkrst_mem_rst_n) begin
         valid <= 0;
+	pending_clear <= 0;
      end else begin
-        for (ii = 0; ii < WAYS; ii = ii + 1) begin
-           if (we_data_a[ii]) begin
-              valid[{addr_data_a, ii[0]}] <= data_data_a_valid;
-              tags[{addr_data_a, ii[0]}] <= data_data_a_tag;
-           end
-           if (we_data_b[ii]) begin
-              valid[{addr_data_b, ii[0]}] <= data_data_b_valid;
-              tags[{addr_data_b, ii[0]}] <= data_data_b_tag;
-           end
-        end
+	if ((pending_clear | dtlb_clear) & (state == ST_IDLE)) begin
+	   pending_clear <= 0;
+	   valid <= 0;
+	end else if (dtlb_clear) begin
+	  pending_clear <= 1;
+	end else begin
+	  for (ii = 0; ii < WAYS; ii = ii + 1) begin
+	     if (we_data_a[ii]) begin
+		valid[{addr_data_a, ii[0]}] <= data_data_a_valid;
+		tags[{addr_data_a, ii[0]}] <= data_data_a_tag;
+	     end
+	     if (we_data_b[ii]) begin
+		valid[{addr_data_b, ii[0]}] <= data_data_b_valid;
+		tags[{addr_data_b, ii[0]}] <= data_data_b_tag;
+	     end
+	  end
+	end
      end // else: !if(~clkrst_mem_rst_n)
   end // always @ (posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 endmodule

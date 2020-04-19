@@ -2,6 +2,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
    // Outputs
    coproc_reg_result, coproc_rd_we, user_mode, paging_on,
    interrupts_enabled, coproc_branchaddr, coproc_branch, pagedir_base,
+   tlb_clear,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
    d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
@@ -34,7 +35,9 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     input [31:0] mem_vaddr0, mem_vaddr1;
     output [27:0] coproc_branchaddr;
     output coproc_branch;
+
   output [19:0] pagedir_base;
+  output 	tlb_clear;
 
     reg [31:0] scratchpad[3:0];
     reg [31:0] coproc_regs[9:0];
@@ -44,6 +47,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     assign coproc_reg_result = d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
                                                   : coproc_regs[d2pc_in_rs_num0[3:0]];
   assign pagedir_base = coproc_regs[1][31:12];
+  assign tlb_clear = (mtc_inst & (~d2pc_in_rd_num0[4]) & d2pc_in_rd_num0[3:0] == 1);
 
     wire coproc_rd_we = coproc_instruction & d2pc_in_execute_opcode0[8:5] == 4'b0110;
 

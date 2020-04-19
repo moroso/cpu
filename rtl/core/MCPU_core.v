@@ -33,7 +33,7 @@ module MCPU_core(/*AUTOARG*/
    mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
    mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
    dtlb_addr1, dtlb_re0, dtlb_re1, dtlb_is_write0, dtlb_is_write1,
-   paging_on, pagedir_base, user_mode, r0,
+   paging_on, pagedir_base, user_mode, tlb_clear, r0,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
@@ -51,7 +51,6 @@ module MCPU_core(/*AUTOARG*/
   output      int_clear;
   assign int_clear = int_pending | |int_type; // Get rid of warnings. REPLACE THIS
 
-  /* TODO DTLB/D$ interface */
 
   output [29:0] mem2dc_paddr0;
   output [3:0] 	mem2dc_write0;
@@ -93,6 +92,7 @@ module MCPU_core(/*AUTOARG*/
   output 	 paging_on;
   output [19:0]  pagedir_base;
   output 	 user_mode;
+  output 	 tlb_clear;
 
   output [31:0]  r0;
 
@@ -814,6 +814,7 @@ module MCPU_core(/*AUTOARG*/
 			  .coproc_branchaddr	(coproc_branchaddr[27:0]),
 			  .coproc_branch	(coproc_branch),
 			  .pagedir_base		(pagedir_base[19:0]),
+			  .tlb_clear		(tlb_clear),
 			  // Inputs
 			  .clkrst_core_clk	(clkrst_core_clk),
 			  .clkrst_core_rst_n	(clkrst_core_rst_n),
