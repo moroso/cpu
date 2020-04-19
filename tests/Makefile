@@ -1,9 +1,12 @@
-.PHONY: all
-#all:
-#	sh ./test.sh
+.PHONY: tests
+tests: $(patsubst %.ma,gen/%.vcd,$(wildcard *.ma))
 
-tests: $(patsubst %.ma,gen/%.txt,$(wildcard *.ma)) $(patsubst %.ma,gen/%.bin,$(wildcard *.ma))
-	(for f in $(patsubst %.bin,%,$(wildcard gen/*.bin)); do echo $$f; $(core_test) $$f.bin $$f.txt || exit 1; done)
+.PHONY: gen/%.vcd
+gen/%.vcd: gen/%.txt gen/%.bin
+	$(core_test) $(patsubst %.vcd,%.bin,$@) $(patsubst %.vcd,%.txt,$@)
+# TODO: core_test really should take a commandline option to tell it where
+# to put the vcd.
+	mv trace.vcd $@
 
 gen/%.bin: %.ma
 	@mkdir -p bin
