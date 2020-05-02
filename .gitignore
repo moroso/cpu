@@ -2,3 +2,8 @@
 runs
 tests/gen
 boot/serial_loader/target
+test_bin
+fpga/output_files
+fpga/db
+fpga/incremental_db
+fpga/bootrom.hex

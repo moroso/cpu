@@ -72,7 +72,7 @@ FPGA_PROJ = mcpu
 #  L1: slightly longer tests: L1 may take a little longer.
 #  L9: randoms: L9 is expected to grow to be an hour or so.
 
-ALL_TESTPLANS = L0 L1 L9
+ALL_TESTPLANS = L0 L1 L2 L9
 
 TESTPLAN_L0_name  = level0 sanity
 TESTPLAN_L0_tests =

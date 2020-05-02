@@ -14,7 +14,6 @@ module MCPU_MEM_preload(/*AUTOARG*/
    );
 
 `include "MCPU_MEM_ltc.vh"
-`include "clog2.vh"
 
 	parameter ROM_SIZE = 2048; /* bytes */
 	parameter ROM_FILE = "bootrom.hex";
@@ -47,7 +46,7 @@ module MCPU_MEM_preload(/*AUTOARG*/
 	initial
         	$readmemh(ROM_FILE, rom);
 	
-	reg [clog2(ROM_ATOMS - 1) - 1 : 0] romad;
+	reg [31 : 0] romad;
 	reg loading;
 	
 	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin

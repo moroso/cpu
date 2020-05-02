@@ -1,217 +1,124 @@
-RUNTIME := $(shell date +R%Y%m%d-%H%M%S)
-RUN ?= $(RUNTIME)
-RUNDIR ?= runs/$(RUN)
-TESTPLANS ?= L0 L1
-VER_CFLAGS=-g
-
 include config.mk
+
+MAS ?= ../compiler/mas
+MBC ?= ../compiler/mbc
+
+#### Quartus
 -include $(HOME)/.quartus_config.mk
 Q ?= quartus_
 
-default:
-	@echo "targets:"
-#	@echo "  sw            builds software (must be run before fpga to build boot0)"
-	@echo "  fpga          runs a complete pass through the tool flow"
-	@echo "  sim           produces a Verilator binary"
-	@echo "  tests         runs tests"
-	@echo "  sanity        runs sanity-only tests"
-	@echo "  auto          re-autoizes all RTL"
-	@echo ""
-	@echo "expert targets:"
-	@echo "  tb_...        builds one testbench"
-	@echo "  test_...      runs one test"
-	@echo ""
-	@echo "variables:"
-	@echo "  RUN=[...]     name of run (for runs/ directory; defaults to date+time)"
-	@echo "  STA=1         run static timing analysis"
-	@echo "  PROG=1        download FPGA bitfile to board after compilation"
-	@echo "  SVF=1         build SVF for distribution"
-	@echo "  TESTPLANS=... testplans to run (for tests) (default: L0)"
-	@echo "  TESTS=...     tests tor run (for tests)"
-	@echo "  TRACE=1       dump vcd file from test"
-	@echo ""
-	@echo "testplans available:"
-	@$(foreach testplan,$(ALL_TESTPLANS),echo "  $(testplan): $(TESTPLAN_$(testplan)_name) (tests:$(TESTPLAN_$(testplan)_tests)) ";)
-	@echo ""
-	@echo "error: you must specify a valid target"
-	@exit 1
-.PHONY: default
+PROJ=mcpu
 
-#sw: .DUMMY
-#	@make -C sw
+QUARTUS_PARAMS=--read_settings_files=off --write_settings_files=off
 
-###############################################################################
+.PHONY: all
+all:
+	@echo "Targets:"
+	@echo "  fpga: run full synthesis and generate bitstream"
+	@echo "  fpga-prog: program the FPGA"
+	@echo "  TESTS_L0: run basic verilator tests"
+	@echo "  TESTS_L{1,2,9}: run slower verilator tests"
+	@echo "  CORETESTS: run full core tests"
+	@echo "  CORETEST_%: run a single core test (from a .ma file in tests/)"
+	@echo "  auto: re-autoizes all RTL"
+	@echo "  run_%: run the binary generated from boot/%a.ma"
 
-GREEN=\033[32;01m
-RED=\033[31;01m
-STOP=\033[0m
 
-say = @echo -e "${GREEN}"$(1)"${STOP}"
-err = @echo -e "${RED}"$(1)"${STOP}"
+timing: fpga/output_files/$(PROJ).sta.summary
 
-###############################################################################
+fpga/output_files/$(PROJ).map.summary: $(RTL_COMMON) $(RTL_FPGA) $(RTL_INC) fpga/bootrom.hex
+	cd fpga && $(Q)map $(PROJ) $(addprefix --source=../,$(RTL_COMMON) $(RTL_FPGA))
 
-.PHONY: symlinks
-symlinks: $(RUNDIR)/stamps/symlinks
+fpga/output_files/$(PROJ).fit.summary: fpga/output_files/$(PROJ).map.summary
+	cd fpga && $(Q)fit $(QUARTUS_PARAMS) $(PROJ)
 
-$(RUNDIR)/stamps/symlinks:
-	$(call say,Creating run symlinks)
-	@mkdir -p runs
-	if [ -h runs/run_0a ] ; then rm runs/run_1a; mv runs/run_0a runs/run_1a ; fi
-	ln -s $(RUN) runs/run_0a
-	@mkdir -p $(RUNDIR)/stamps
-	@touch $(RUNDIR)/stamps/symlinks
+fpga/output_files/$(PROJ).sof: fpga/output_files/$(PROJ).fit.summary
+	cd fpga && $(Q)asm $(QUARTUS_PARAMS) $(PROJ)
+	@echo Created $@
 
-.PHONY: sim-symlinks
-sim-symlinks: $(RUNDIR)/stamps/sim-symlinks
+fpga/output_files/$(PROJ).sta.summary: fpga/output_files/$(PROJ).sof
+	cd fpga && $(Q)sta $(PROJ)
 
-$(RUNDIR)/stamps/sim-symlinks:  $(RUNDIR)/stamps/symlinks
-	if [ -h runs/sim_0a ] ; then rm runs/sim_1a; mv runs/sim_0a runs/sim_1a ; fi
-	ln -s $(RUN) runs/sim_0a
-	@touch $(RUNDIR)/stamps/sim-symlinks
+.PHONY: fpga-prog
+fpga-prog: fpga/output_files/$(PROJ).sof
+	$(Q)pgm -m JTAG -o p\;$<
+.PHONY: fpga
+fpga: fpga/output_files/$(PROJ).sof
 
-.PHONY: sim-genrtl
-sim-genrtl: $(RUNDIR)/stamps/sim-genrtl
+#### Verilator
 
-$(RUNDIR)/stamps/sim-genrtl: sim-symlinks
-	$(call say,Copying RTL for simulation to $(RUNDIR)/sim/rtl...)
-	@mkdir -p $(RUNDIR)/stamps
-	@mkdir -p $(RUNDIR)/sim/rtl
-	@cp $(RTL_COMMON) $(RTL_SIM) $(RTL_INC) $(RUNDIR)/sim/rtl
-	$(call say,Copying testbench for simulation to $(RUNDIR)/sim...)
-	@cp -R sim/* $(RUNDIR)/sim
-	@touch $(RUNDIR)/stamps/sim-genrtl
+TEST_BIN_DIR=test_bin
 
-# Here comes all the testplan mess.
+L0_TBS = $(foreach tb,$(TESTPLAN_L0_tests),$(TEST_$(tb)_tb))
+L1_TBS = $(foreach tb,$(TESTPLAN_L1_tests),$(TEST_$(tb)_tb))
+
+all_tbs: $(addprefix tb_,$(ALL_TBS))
+l0_tbs: $(addprefix tb_,$(L0_TBS))
+l1_tbs: $(addprefix tb_,$(L1_TBS))
 
 # First, define the rules to build the testbenches.
 define TB_template
-$(RUNDIR)/sim/$(1)/V$$($(1)_top): $(RUNDIR)/stamps/sim-genrtl
-	$(call say,"Verilating testbench: $(1)")
-	cd $(RUNDIR)/sim; verilator -CFLAGS $(VER_CFLAGS) -Irtl --Mdir $(1) --cc $$(TB_$(1)_top) $$(TB_$(1)_cpps) --exe --assert $(if $(TRACE),--trace)
-	$(call say,"Compiling testbench: $(1)")
-	make -C $(RUNDIR)/sim/$(1) -f V$$(TB_$(1)_top).mk
-
-.PHONY: tb_$(1)
-tb_$(1): $(RUNDIR)/sim/$(1)/V$$($(1)_top)
+$(TEST_BIN_DIR)/TB_$(1)/V$$(TB_$(1)_top): $(RTL_COMMON) $(addprefix sim/,$(TB_$(1)_cpps))
+	verilator -CFLAGS $(VER_CFLAGS) -Irtl --Mdir $(TEST_BIN_DIR)/TB_$(1) --cc $$(TB_$(1)_top) $(addprefix sim/,$(TB_$(1)_cpps)) --exe --assert $(if $(TRACE),--trace) $(addprefix +incdir+,$(sort $(dir $(RTL_COMMON)))) +incdir+rtl/tb
+	VPATH=../../ make -C $(TEST_BIN_DIR)/TB_$(1)/ -f V$$(TB_$(1)_top).mk
 endef
 $(foreach tb,$(ALL_TBS),$(eval $(call TB_template,$(tb))))
 
-TB_binary = ../../sim/$(1)/V$(TB_$(1)_top)
-
-# Then, the rules to run tests.
 define TEST_template
-$(RUNDIR)/test/$(1)/log: tb_$$(TEST_$(1)_tb)
-	$(call say,"Running test: $(1)")
-	@mkdir -p $(RUNDIR)/test/$(1)
-	$$(if $$(TEST_$(1)_rom),cp $$(TEST_$(1)_rom) $(RUNDIR)/test/$(1)/bootrom.hex)
-	(cd $(RUNDIR)/test/$(1); $$(TEST_$(1)_env) $$(call TB_binary,$$(TEST_$(1)_tb)) > log)
-
 .PHONY: test_$(1)
-test_$(1): $(RUNDIR)/test/$(1)/log
+test_$(1): $(TEST_BIN_DIR)/TB_$(TEST_$(1)_tb)/V$(TB_$(TEST_$(1)_tb)_top)
+	$$(TEST_$(1)_env) $(TEST_BIN_DIR)/TB_$(TEST_$(1)_tb)/V$(TB_$(TEST_$(1)_tb)_top)
 endef
+$(foreach tb,$(ALL_TESTS),$(eval $(call TEST_template,$(tb))))
 
-$(foreach test,$(ALL_TESTS),$(eval $(call TEST_template,$(test))))
+define TEST_LEVEL_template
+.PHONY: TESTS_$(1)
+TESTS_$(1): $(foreach tb,$(TESTPLAN_$(1)_tests),test_$(tb))
+endef
+$(foreach level,$(ALL_TESTPLANS),$(eval $(call TEST_LEVEL_template,$(level))))
 
-# Finally, run the tests as requested.
-TESTS += $(foreach testplan,$(TESTPLANS),$(TESTPLAN_$(testplan)_tests))
-tests: $(foreach test,$(TESTS),$(RUNDIR)/test/$(test)/log)
+#### Core tests
+.PHONY: CORETESTS
+CORETESTS: $(patsubst tests/%.ma,CORETEST_%,$(wildcard tests/*.ma))
 
-sanity:
-	make tests TESTPLANS=L0
+.PHONY: asd
+asd:
+	echo $(patsubst tests/%.ma,tests/gen/%.vcd,$(wildcard tests/*.ma))
 
-.PHONY: sim
-sim:
-	$(call err,"There is no simulator right now: maybe you want to 'make tests'?")
+tests/gen/%.bin: tests/%.ma
+	@mkdir -p tests/bin
+	$(MAS) --fmt bin < $< > $@
 
-###############################################################################
+tests/gen/%.txt: tests/gen/%.bin sim/cpu_sim/cpu_sim
+	sim/cpu_sim/cpu_sim < $< > $@
 
-QPARAMS = $(FPGA_TOOL_BITS) --read_settings_files=off --write_settings_files=off $(FPGA_PROJ)
+tests/gen/%.vcd: tests/gen/%.txt tests/gen/%.bin test_bin/bin/coretest
+	test_bin/bin/coretest $(patsubst %.vcd,%.bin,$@) $(patsubst %.vcd,%.txt,$@)
+# TODO: core_test really should take a commandline option to tell it where
+# to put the vcd.
+	mv trace.vcd $@ || true
 
-.PHONY: fpga-symlinks
-fpga-symlinks: $(RUNDIR)/stamps/fpga-symlinks
+.phony: CORETEST_%
+CORETEST_%: tests/gen/%.txt tests/gen/%.bin test_bin/bin/coretest
+	test_bin/bin/coretest $(patsubst CORETEST_%,tests/gen/%.bin,$@) $(patsubst CORETEST_%,tests/gen/%.txt,$@)
 
-$(RUNDIR)/stamps/fpga-symlinks:  $(RUNDIR)/stamps/symlinks
-	if [ -h runs/fpga_0a ] ; then rm runs/fpga_1a; mv runs/fpga_0a runs/fpga_1a ; fi
-	ln -s $(RUN) runs/fpga_0a
-	@touch $(RUNDIR)/stamps/fpga-symlinks
+#### Other
+sim/cpu_sim/cpu_sim: sim/cpu_sim/*.h sim/cpu_sim/*.cc
+	make -C sim/cpu_sim cpu_sim
 
-# XXX: should we generate the .xst file?
-.PHONY: fpga-genrtl
-fpga-genrtl: $(RUNDIR)/stamps/fpga-genrtl
+fpga/bootrom.hex: $(BOOTROM_ASM)
+	$(MAS) --fmt bootrom $< -o $@
 
-$(RUNDIR)/stamps/fpga-genrtl: $(RUNDIR)/stamps/fpga-symlinks
-	$(call say,"Copying RTL for synthesis to $(RUNDIR)/fpga/rtl...")
-	@mkdir -p $(RUNDIR)/stamps
-	@mkdir -p $(RUNDIR)/fpga/rtl
-	@cp $(RTL_COMMON) $(RTL_FPGA) $(RTL_INC) $(RUNDIR)/fpga/rtl
-	$(call say,"Copying FPGA configuration to $(RUNDIR)/fpga...")
-	@cp fpga/* $(RUNDIR)/fpga
-	@touch $(RUNDIR)/stamps/fpga-genrtl
+test_bin/bin/coretest: $(TEST_BIN_DIR)/TB_core_test/V$(TB_core_test_top)
+	cp $< test_bin/bin/coretest
 
-.PHONY: fpga-map
-fpga-map: $(RUNDIR)/stamps/fpga-map
+test_bin/boot/%.bin: boot/%.ma
+	mkdir -p test_bin/boot
+	$(MAS) --fmt bin $< -o $@
 
-$(RUNDIR)/stamps/fpga-map: $(RUNDIR)/stamps/fpga-genrtl
-	$(call say,"Running mapper in $(RUNDIR)/fpga...")
-	@touch $(RUNDIR)/stamps/fpga-map-start
-	cd $(RUNDIR)/fpga; $(Q)map $(FPGA_TOOL_BITS) --read_settings_files=on --write_settings_files=on $(FPGA_PROJ) $(addprefix --source=rtl/,$(notdir $(RTL_COMMON) $(RTL_FPGA)))
-	@touch $(RUNDIR)/stamps/fpga-map
-
-.PHONY: fpga-fit
-fpga-fit: $(RUNDIR)/stamps/fpga-fit
-
-$(RUNDIR)/stamps/fpga-fit: $(RUNDIR)/stamps/fpga-map
-	$(call say,"Running fitter in $(RUNDIR)/fpga...")
-	@touch $(RUNDIR)/stamps/fpga-fit-start
-	cd $(RUNDIR)/fpga; $(Q)fit $(QPARAMS)
-	@touch $(RUNDIR)/stamps/fpga-fit
-
-.PHONY: fpga-asm
-fpga-asm: $(RUNDIR)/stamps/fpga-asm
-
-$(RUNDIR)/stamps/fpga-asm: $(RUNDIR)/stamps/fpga-fit
-	$(call say,"Running assembler in $(RUNDIR)/fpga...")
-	@touch $(RUNDIR)/stamps/fpga-asm-start
-	cd $(RUNDIR)/fpga; $(Q)asm $(QPARAMS)
-	@touch $(RUNDIR)/stamps/fpga-asm
-	@echo -en "\n\n\n"
-	$(call say,"Bit file generated: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).sof")
-	@echo -en "\n\n\n"
-
-.PHONY: fpga-sta
-fpga-sta: $(RUNDIR)/stamps/fpga-sta
-
-$(RUNDIR)/stamps/fpga-sta: $(RUNDIR)/stamps/fpga-fit
-	$(call say,"Running STA in $(RUNDIR)/fpga...")
-	@touch $(RUNDIR)/stamps/fpga-sta-start
-	cd $(RUNDIR)/fpga; $(Q)sta $(FPGA_PROJ)
-	@touch $(RUNDIR)/stamps/fpga-sta
-
-$(RUNDIR)/fpga/output_files/$(FPGA_PROJ).sof: $(RUNDIR)/stamps/fpga-asm
-
-.PHONY: fpga-svf
-fpga-svf: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).svf
-
-$(RUNDIR)/fpga/output_files/$(FPGA_PROJ).svf: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).sof
-	$(Q)cpf -c -q 33MHz -g 3.3 -n p $< $@
-
-.PHONY: fpga-prog
-fpga-prog: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).sof
-	$(Q)pgm -m JTAG -o p\;$<
-
-.PHONY: fpga
-fpga: $(RUNDIR)/stamps/fpga
-
-$(RUNDIR)/stamps/fpga: fpga-asm $(if $(STA),fpga-sta) $(if $(SVF),fpga-svf) $(if $(PROG),fpga-prog)
-	@echo -en '\n\n\n'
-	$(call say,"Build complete!")
-	$(call say,"  Bit file location: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).sof")
-	@$(if $(SVF),$(call say,"  SVF file location: $(RUNDIR)/fpga/output_files/$(FPGA_PROJ).svf"))
-	@echo -en '\n\n\n'
-	@touch $(RUNDIR)/stamps/fpga
-
-###############################################################################
+.PHONY: run_%
+run_%: test_bin/boot/%.bin test_bin/bin/coretest
+	test_bin/bin/coretest $<
 
 .PHONY: auto
 auto:
@@ -220,7 +127,3 @@ auto:
 .PHONY: unauto
 unauto:
 	emacs -l utils/nogit.el -l utils/verilog-mode.el --batch $(RTL_COMMON) $(RTL_FPGA) $(RTL_SIM) -f verilog-batch-delete-auto
-
-#tests:
-#	make -C tests
-

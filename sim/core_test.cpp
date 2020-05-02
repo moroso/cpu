@@ -12,16 +12,15 @@
 #if VM_TRACE
 #include <verilated_vcd_c.h>  
 VerilatedVcdC* tfp;
+void _close_trace() {
+	if (tfp) tfp->close();
+}
+#endif
 
 #if VM_TRACE
 #define TRACE tfp->dump(Sim::main_time)
 #else
 #define TRACE
-#endif
-
-void _close_trace() {
-	if (tfp) tfp->close();
-}
 #endif
 
 class CoreTest {
@@ -103,6 +102,8 @@ void run_test(CoreTest *t, char *romfile, char *regsfile) {
     }
   }
 
+  if (!regsfile) return;
+
   FILE *regsf = fopen(regsfile, "r");
   uint32_t expected_pc;
 
@@ -151,7 +152,7 @@ int main(int argc, char **argv, char **env) {
 
   SIM_INFO("Testing");
 
-  run_test(t, argv[1], argv[2]);
+  run_test(t, argv[1], argc > 2 ? argv[2] : NULL);
 
   SIM_INFO("Done");
 }
