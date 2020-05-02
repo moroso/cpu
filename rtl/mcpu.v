@@ -30,7 +30,9 @@ endmodule
 
 module mcpu(/*AUTOARG*/
    // Outputs
-   LEDG, LEDR, UART_TX,
+   LEDG, LEDR, UART_TX, I2C_SCL, I2C_SDA_MIRROR, I2C_SCL_MIRROR,
+   // Inouts
+   I2C_SDA,
    // Inputs
    pad_clk125, in_rst_n, SW, KEY, UART_RX
    );
@@ -42,6 +44,15 @@ module mcpu(/*AUTOARG*/
   input [3:0]  KEY;
   input UART_RX;
   output UART_TX;
+
+  inout  I2C_SDA;
+  output I2C_SCL;
+
+  output I2C_SDA_MIRROR;
+  output I2C_SCL_MIRROR;
+
+  wire 	 i2c_scl;
+  assign I2C_SCL = i2c_scl;
 
 	/* Fake verilog-mode out for a bit until we actually wire this up. */
 	/*AUTO_LISP(setq verilog-auto-output-ignore-regexp
@@ -132,11 +143,10 @@ module mcpu(/*AUTOARG*/
 		if (clkrst_mem_rst_ctr != 0)
 			clkrst_mem_rst_ctr <= clkrst_mem_rst_ctr - 1;
 	end
-*/	
-	/* We'll tie all this stuff off for now. */
+*/
 	/* MCPU_int AUTO_TEMPLATE(
-		.leds(pad_led_g),
-		); */
+	 .ext_i2c_sda(I2C_SDA),
+	 .ext_i2c_scl(i2c_scl)); */
   MCPU_int u_int(
 		 .ltc2mc_avl_rdata_0(),
 		 .ltc2mc_avl_rdata_valid_0(1),
@@ -156,8 +166,11 @@ module mcpu(/*AUTOARG*/
 		 .ext_uart_tx		(ext_uart_tx),
 		 .ext_led_g		(ext_led_g[7:0]),
 		 .ext_led_r		(ext_led_r[9:0]),
+		 .ext_i2c_scl		(i2c_scl),		 // Templated
 		 .r0			(r0[31:0]),
 		 .pre2core_done		(pre2core_done),
+		 // Inouts
+		 .ext_i2c_sda		(I2C_SDA),		 // Templated
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_mem_clk	(clkrst_mem_clk),

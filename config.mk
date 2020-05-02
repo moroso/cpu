@@ -29,6 +29,7 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/mc/MCPU_mem.v \
 	rtl/mcpu.v \
+	rtl/soc/MCPU_SOC_i2c.v \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
 	rtl/soc/uart.v
@@ -52,6 +53,7 @@ RTL_INC = \
 	rtl/core/oper_type.vh \
 	rtl/core/exn_codes.vh
 
+BOOTROM_ASM = boot/serial_bootloader.ma
 
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu

@@ -10,8 +10,10 @@ module MCPU_int(/*AUTOARG*/
    // Outputs
    ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
    ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
-   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r, r0,
-   pre2core_done,
+   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
+   ext_i2c_scl, r0, pre2core_done,
+   // Inouts
+   ext_i2c_sda,
    // Inputs
    ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
    ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
@@ -42,6 +44,9 @@ module MCPU_int(/*AUTOARG*/
 
   output [7:0] 	ext_led_g;
   output [9:0] 	ext_led_r;
+
+  inout 	ext_i2c_sda;
+  output 	ext_i2c_scl;
 
   // For debugging and stuff.
   output [31:0] r0;
@@ -190,6 +195,9 @@ module MCPU_int(/*AUTOARG*/
 		     .ext_led_g		(ext_led_g[7:0]),
 		     .ext_led_r		(ext_led_r[9:0]),
 		     .ext_uart_tx	(ext_uart_tx),
+		     .ext_i2c_scl	(ext_i2c_scl),
+		     // Inouts
+		     .ext_i2c_sda	(ext_i2c_sda),
 		     // Inputs
 		     .clkrst_core_clk	(clkrst_core_clk),
 		     .clkrst_core_rst_n	(clkrst_core_rst_n),
