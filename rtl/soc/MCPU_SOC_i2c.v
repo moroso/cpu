@@ -14,34 +14,6 @@ module i2c_internal(
 		    output 	     scl,
 		    inout 	     sda
 		    );
-  reg  out;
-
-  // The i2c bit clock. Every two times it reaches ctr_max, we toggle the output clock--so
-  // the reset frequency of this is 4x the i2c bit clock frequency.
-  reg [31:0] ctr;
-  reg [31:0] next_ctr;
-
-  // 0 is the first half of the clock being high.
-  reg [1:0]  phase;
-
-  wire 	     clkout = ~phase[1] & ~clock_force_low;
-
-`ifdef VERILATOR
-  assign scl = clkout;
-  assign sda = out;
-`else
-  assign scl = clkout ? 1'bz : 1'b0;
-  assign sda = out ? 1'bz : 1'b0;
-`endif
-
-  wire 	     i2c_tick = (ctr == ctr_max);
-  wire 	     output_bit_tick = i2c_tick & (phase == 2);
-  wire 	     read_bit_tick = i2c_tick & (phase == 0);
-  wire 	     state_tick = i2c_tick & (phase == 3);
-  wire 	     start_bit_tick = read_bit_tick;
-  reg 	     latch_inputs;
-  reg 	     clock_force_low;
-
   localparam ST_IDLE = 0;
   localparam ST_START_BIT = 1;
   localparam ST_PREPARE = 2;
@@ -52,6 +24,34 @@ module i2c_internal(
   localparam ST_STOP_BIT = 7;
   localparam STATE_BITS = 3;
   localparam ctr_max = 32'hf; // TODO
+
+  reg  out;
+
+  // The i2c bit clock. Every two times it reaches ctr_max, we toggle the output clock--so
+  // the reset frequency of this is 4x the i2c bit clock frequency.
+  reg [31:0] ctr;
+  reg [31:0] next_ctr;
+
+  // 0 is the first half of the clock being high.
+  reg [1:0]  phase;
+
+  wire 	     i2c_tick = (ctr == ctr_max);
+  wire 	     output_bit_tick = i2c_tick & (phase == 2);
+  wire 	     read_bit_tick = i2c_tick & (phase == 0);
+  wire 	     state_tick = i2c_tick & (phase == 3);
+  wire 	     start_bit_tick = read_bit_tick;
+  reg 	     latch_inputs;
+  reg 	     clock_force_low;
+
+  wire 	     clkout = ~phase[1] & ~clock_force_low;
+
+`ifdef VERILATOR
+  assign scl = clkout;
+  assign sda = out;
+`else
+  assign scl = clkout ? 1'bz : 1'b0;
+  assign sda = out ? 1'bz : 1'b0;
+`endif
 
   reg [STATE_BITS-1:0] state;
   reg [STATE_BITS-1:0] next_state;

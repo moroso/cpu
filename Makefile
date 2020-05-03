@@ -16,6 +16,7 @@ all:
 	@echo "Targets:"
 	@echo "  fpga: run full synthesis and generate bitstream"
 	@echo "  fpga-prog: program the FPGA"
+	@echo "  fpga-timing: generating timing report"
 	@echo "  TESTS_L0: run basic verilator tests"
 	@echo "  TESTS_L{1,2,9}: run slower verilator tests"
 	@echo "  CORETESTS: run full core tests"
@@ -24,9 +25,7 @@ all:
 	@echo "  run_%: run the binary generated from boot/%a.ma"
 
 
-timing: fpga/output_files/$(PROJ).sta.summary
-
-fpga/output_files/$(PROJ).map.summary: $(RTL_COMMON) $(RTL_FPGA) $(RTL_INC) fpga/bootrom.hex
+fpga/output_files/$(PROJ).map.summary: $(RTL_COMMON) $(RTL_FPGA) $(RTL_INC) fpga/bootrom.hex fpga/mcpu.*
 	cd fpga && $(Q)map $(PROJ) $(addprefix --source=../,$(RTL_COMMON) $(RTL_FPGA))
 
 fpga/output_files/$(PROJ).fit.summary: fpga/output_files/$(PROJ).map.summary
@@ -38,10 +37,13 @@ fpga/output_files/$(PROJ).sof: fpga/output_files/$(PROJ).fit.summary
 
 fpga/output_files/$(PROJ).sta.summary: fpga/output_files/$(PROJ).sof
 	cd fpga && $(Q)sta $(PROJ)
+	@echo Created $@
 
 .PHONY: fpga-prog
 fpga-prog: fpga/output_files/$(PROJ).sof
 	$(Q)pgm -m JTAG -o p\;$<
+.PHONY: fpga-timing
+fpga-timing: fpga/output_files/$(PROJ).sta.summary
 .PHONY: fpga
 fpga: fpga/output_files/$(PROJ).sof
 

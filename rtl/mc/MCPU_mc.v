@@ -15,6 +15,11 @@ module MCPU_mc(
    clkrst_soft_rst_n, clkrst_mem_rst_n, clkrst_mem_clk,
    clkrst_global_rst_n
    );
+	wire local_init_done, local_cal_success, local_cal_fail, pll_locked;
+
+  output     mc_ready;
+
+  assign mc_ready = local_init_done & local_cal_success & ~local_cal_fail & pll_locked;
 
 	/*AUTO_LISP(setq verilog-auto-output-ignore-regexp
 		(verilog-regexp-words `(
@@ -59,9 +64,6 @@ module MCPU_mc(
 	inout [3:0]	pad_mem_dqs_n;		// To/From u_phy of lpddr2_phy.v
 	// End of automatics
 	
-	wire local_init_done, local_cal_success, local_cal_fail, pll_locked;
-	
-	output wire mc_ready = local_init_done & local_cal_success & ~local_cal_fail & pll_locked;
 	
 	/* lpddr2_phy AUTO_TEMPLATE(
 		.afi_.*         (),

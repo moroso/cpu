@@ -1,7 +1,7 @@
 module uart_rx(
-               input        clk,
-               input        rx_en,
-               input        rx_pin,
+               input 	    clk,
+               input 	    rx_en,
+               input 	    rx_pin,
                output reg   rxc = 0,
                output reg   rx_err = 0,
                output [7:0] rx_byte
@@ -40,7 +40,7 @@ module uart_rx(
         if ((next_state != END_STATE) & (state >= 4'h3))
           rxbuf <= {rx_pin, rxbuf[7:1]};
          baudclock <= 0;
-      end else if (state == 0 | (state == 4'b1 & rx_pin))
+      end else if (state == 0 | state == 4'b1)
         baudclock <= 0;
       else
         baudclock <= baudclock + 1;
@@ -146,12 +146,12 @@ module uart_tx(
 endmodule // uart_tx
 
 module uart(
-            input             clk,
-            output            tx_pin,
-            input             rx_pin,
-            input             write_en,
+            input 	      clk,
+            output 	      tx_pin,
+            input 	      rx_pin,
+            input 	      write_en,
             input [31:0]      write_val,
-            input             addr,
+            input 	      addr,
             output reg [31:0] read_val
             );
 

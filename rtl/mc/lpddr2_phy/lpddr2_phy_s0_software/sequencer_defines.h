@@ -1,15 +1,43 @@
+/*
+Copyright (C) 2016 Intel Corporation
+All rights reserved.
+
+SPDX-License-Identifier:    BSD-3-Clause
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Altera Corporation nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL ALTERA CORPORATION BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 #ifndef _SEQUENCER_DEFINES_H_
 #define _SEQUENCER_DEFINES_H_
 
-#define AC_ROM_MR1_CALIB 10000011000000010000
-#define AC_ROM_MR1 10000011000000010000
+#define AC_ROM_MR1_CALIB 01100011000000010000
+#define AC_ROM_MR1 01100011000000010000
 #define AC_ROM_MR2 00000101000000100000
 #define AC_ROM_MR3 00000010000000110000
-#define AFI_CLK_FREQ 351
+#define AFI_CLK_FREQ 331
 #define AFI_RATE_RATIO 1
 #define ARRIAVGZ 0
 #define ARRIAV 0
-#define AVL_CLK_FREQ 71
+#define AVL_CLK_FREQ 67
 #define BFM_MODE 0
 #define BURST2 0
 #define CALIBRATE_BIT_SLIPS 0
@@ -29,9 +57,12 @@
 #define ENABLE_INST_ROM_WRITE 0
 #define ENABLE_MARGIN_REPORT_GEN 0
 #define ENABLE_NON_DESTRUCTIVE_CALIB 0
+#define ENABLE_NON_DES_CAL_TEST 0
+#define ENABLE_NON_DES_CAL 0
 #define ENABLE_SUPER_QUICK_CALIBRATION 0
-#define ENABLE_TCL_DEBUG 0
+#define ENABLE_TCL_DEBUG 1
 #define FAKE_CAL_FAIL 0
+#define FIX_READ_LATENCY 8
 #define FULL_RATE 1
 #define GUARANTEED_READ_BRINGUP_TEST 0
 #define HALF_RATE 0
@@ -45,7 +76,7 @@
 #define HR_DDIO_OUT_HAS_THREE_REGS 0
 #define IO_DELAY_PER_DCHAIN_TAP 25
 #define IO_DELAY_PER_DQS_EN_DCHAIN_TAP 25
-#define IO_DELAY_PER_OPA_TAP 357
+#define IO_DELAY_PER_OPA_TAP 378
 #define IO_DLL_CHAIN_LENGTH 8
 #define IO_DM_OUT_RESERVE 0
 #define IO_DQDQS_OUT_PHASE_MAX 0
@@ -69,14 +100,16 @@
 #define MEM_BURST_LEN 8
 #define MEM_IF_COL_ADDR_WIDTH 10
 #define MEM_IF_ROW_ADDR_WIDTH 14
+#define MRS_MIRROR_PING_PONG_ATSO 0
 #define MULTIPLE_AFI_WLAT 0
+#define NON_DES_CAL 0
 #define NUM_SHADOW_REGS 1
 #define QDRII 0
 #define QUARTER_RATE 0
 #define RDIMM 0
 #define READ_AFTER_WRITE_CALIBRATION 1
 #define READ_VALID_FIFO_SIZE 16
-#define REG_FILE_INIT_SEQ_SIGNATURE 0x55550483
+#define REG_FILE_INIT_SEQ_SIGNATURE 0x555504bf
 #define RLDRAM3 0
 #define RLDRAMII 0
 #define RLDRAMX 0
@@ -102,20 +135,23 @@
 #define RW_MGR_MR0_CAS_LATENCY 5
 #define RW_MGR_TRUE_MEM_DATA_MASK_WIDTH 4
 #define RW_MGR_WRITE_TO_DEBUG_READ 1.0
+#define SET_FIX_READ_LATENCY_ENABLE 0
 #define SKEW_CALIBRATION 0
+#define SKIP_PTAP_0_DQS_EN_CAL 1
 #define STATIC_FULL_CALIBRATION 1
 #define STATIC_SIM_FILESET 0
 #define STATIC_SKIP_MEM_INIT 0
 #define STRATIXV 0
-#define TINIT_CNTR1_VAL 32
-#define TINIT_CNTR2_VAL 32
-#define TINIT_CNTR0_VAL 86
+#define TINIT_CNTR1_VAL 20
+#define TINIT_CNTR2_VAL 20
+#define TINIT_CNTR0_VAL 81
 #define TRACKING_ERROR_TEST 0
 #define TRACKING_WATCH_TEST 0
 #define TRESET_CNTR1_VAL 99
 #define TRESET_CNTR2_VAL 10
-#define TRESET_CNTR0_VAL 86
+#define TRESET_CNTR0_VAL 81
 #define USE_DQS_TRACKING 1
 #define USE_SHADOW_REGS 0
+#define USE_USER_RDIMM_VALUE 0
 
 #endif /* _SEQUENCER_DEFINES_H_ */

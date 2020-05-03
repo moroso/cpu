@@ -1,13 +1,13 @@
-// (C) 2001-2014 Altera Corporation. All rights reserved.
-// Your use of Altera Corporation's design tools, logic functions and other 
+// (C) 2001-2019 Intel Corporation. All rights reserved.
+// Your use of Intel Corporation's design tools, logic functions and other 
 // software and tools, and its AMPP partner logic functions, and any output 
-// files any of the foregoing (including device programming or simulation 
+// files from any of the foregoing (including device programming or simulation 
 // files), and any associated documentation or information are expressly subject 
-// to the terms and conditions of the Altera Program License Subscription 
-// Agreement, Altera MegaCore Function License Agreement, or other applicable 
+// to the terms and conditions of the Intel Program License Subscription 
+// Agreement, Intel FPGA IP License Agreement, or other applicable 
 // license agreement, including, without limitation, that your use is for the 
-// sole purpose of programming logic devices manufactured by Altera and sold by 
-// Altera or its authorized distributors.  Please refer to the applicable 
+// sole purpose of programming logic devices manufactured by Intel and sold by 
+// Intel or its authorized distributors.  Please refer to the applicable 
 // agreement for further details.
 
 
@@ -17,7 +17,7 @@
 
 `timescale 1 ps / 1 ps
 
-(* altera_attribute = "-name IP_TOOL_NAME common; -name IP_TOOL_VERSION 13.1; -name FITTER_ADJUST_HC_SHORT_PATH_GUARDBAND 100; -name ALLOW_SYNCH_CTRL_USAGE OFF; -name AUTO_CLOCK_ENABLE_RECOGNITION OFF; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF" *)
+(* altera_attribute = "-name IP_TOOL_NAME common; -name IP_TOOL_VERSION 19.1; -name FITTER_ADJUST_HC_SHORT_PATH_GUARDBAND 100; -name ALLOW_SYNCH_CTRL_USAGE OFF; -name AUTO_CLOCK_ENABLE_RECOGNITION OFF; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF" *)
 
 
 module lpddr2_phy_pll0 (
@@ -57,25 +57,25 @@ localparam FAST_SIM_MODEL = ALTERA_ALT_MEM_IF_PHY_FAST_SIM_MODEL;
 parameter REF_CLK_FREQ = "125.0 MHz";
 parameter REF_CLK_PERIOD_PS = 8000;
 
-parameter PLL_AFI_CLK_FREQ_STR = "350.0 MHz";
-parameter PLL_MEM_CLK_FREQ_STR = "350.0 MHz";
-parameter PLL_WRITE_CLK_FREQ_STR = "350.0 MHz";
-parameter PLL_ADDR_CMD_CLK_FREQ_STR = "350.0 MHz";
-parameter PLL_AFI_HALF_CLK_FREQ_STR = "175.0 MHz";
-parameter PLL_NIOS_CLK_FREQ_STR = "70.0 MHz";
-parameter PLL_CONFIG_CLK_FREQ_STR = "23.333333 MHz";
+parameter PLL_AFI_CLK_FREQ_STR = "330.0 MHz";
+parameter PLL_MEM_CLK_FREQ_STR = "330.0 MHz";
+parameter PLL_WRITE_CLK_FREQ_STR = "330.0 MHz";
+parameter PLL_ADDR_CMD_CLK_FREQ_STR = "330.0 MHz";
+parameter PLL_AFI_HALF_CLK_FREQ_STR = "165.0 MHz";
+parameter PLL_NIOS_CLK_FREQ_STR = "66.0 MHz";
+parameter PLL_CONFIG_CLK_FREQ_STR = "22.0 MHz";
 parameter PLL_P2C_READ_CLK_FREQ_STR = "";
 parameter PLL_C2P_WRITE_CLK_FREQ_STR = "";
 parameter PLL_HR_CLK_FREQ_STR = "";
 parameter PLL_DR_CLK_FREQ_STR = "";
 
-parameter PLL_AFI_CLK_FREQ_SIM_STR = "2858 ps";
-parameter PLL_MEM_CLK_FREQ_SIM_STR = "2858 ps";
-parameter PLL_WRITE_CLK_FREQ_SIM_STR = "2858 ps";
-parameter PLL_ADDR_CMD_CLK_FREQ_SIM_STR = "2858 ps";
-parameter PLL_AFI_HALF_CLK_FREQ_SIM_STR = "5716 ps";
-parameter PLL_NIOS_CLK_FREQ_SIM_STR = "14290 ps";
-parameter PLL_CONFIG_CLK_FREQ_SIM_STR = "42870 ps";
+parameter PLL_AFI_CLK_FREQ_SIM_STR = "3030 ps";
+parameter PLL_MEM_CLK_FREQ_SIM_STR = "3030 ps";
+parameter PLL_WRITE_CLK_FREQ_SIM_STR = "3030 ps";
+parameter PLL_ADDR_CMD_CLK_FREQ_SIM_STR = "3030 ps";
+parameter PLL_AFI_HALF_CLK_FREQ_SIM_STR = "6060 ps";
+parameter PLL_NIOS_CLK_FREQ_SIM_STR = "15150 ps";
+parameter PLL_CONFIG_CLK_FREQ_SIM_STR = "45450 ps";
 parameter PLL_P2C_READ_CLK_FREQ_SIM_STR = "0 ps";
 parameter PLL_C2P_WRITE_CLK_FREQ_SIM_STR = "0 ps";
 parameter PLL_HR_CLK_FREQ_SIM_STR = "0 ps";
@@ -84,15 +84,15 @@ parameter PLL_DR_CLK_FREQ_SIM_STR = "0 ps";
 parameter AFI_CLK_PHASE      = "0 ps";
 parameter AFI_PHY_CLK_PHASE  = "0 ps";
 parameter MEM_CLK_PHASE      = "0 ps";
-parameter WRITE_CLK_PHASE    = "2142 ps";
-parameter ADDR_CMD_CLK_PHASE = "2142 ps";
+parameter WRITE_CLK_PHASE    = "2272 ps";
+parameter ADDR_CMD_CLK_PHASE = "2272 ps";
 parameter AFI_HALF_CLK_PHASE = "0 ps";
-parameter AVL_CLK_PHASE      = "14107 ps";
+parameter AVL_CLK_PHASE      = "14962 ps";
 parameter CONFIG_CLK_PHASE   = "0 ps";
 
 parameter MEM_CLK_PHASE_SIM       = "0 ps";
-parameter WRITE_CLK_PHASE_SIM     = "2143 ps";
-parameter ADDR_CMD_CLK_PHASE_SIM  = "2143 ps";
+parameter WRITE_CLK_PHASE_SIM     = "2273 ps";
+parameter ADDR_CMD_CLK_PHASE_SIM  = "2273 ps";
 
 
 parameter ABSTRACT_REAL_COMPARE_TEST = "false";
@@ -123,7 +123,7 @@ localparam DR_CLK_FREQ        = SIM_FILESET ? PLL_DR_CLK_FREQ_SIM_STR : PLL_DR_C
 input	pll_ref_clk;		// PLL reference clock
 
 // When the PHY is selected to be a PLL/DLL MASTER, the PLL and DLL are instantied on this top level
-wire	pll_afi_clk;		// See pll_memphy instantiation below for detailed description of each clock
+wire	pll_afi_clk /* synthesis keep */;		// See pll_memphy instantiation below for detailed description of each clock
 
 output	pll_mem_clk;
 output	pll_write_clk;

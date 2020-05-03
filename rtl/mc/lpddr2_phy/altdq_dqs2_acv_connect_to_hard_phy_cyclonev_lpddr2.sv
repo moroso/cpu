@@ -1,13 +1,13 @@
-// (C) 2001-2014 Altera Corporation. All rights reserved.
-// Your use of Altera Corporation's design tools, logic functions and other 
+// (C) 2001-2019 Intel Corporation. All rights reserved.
+// Your use of Intel Corporation's design tools, logic functions and other 
 // software and tools, and its AMPP partner logic functions, and any output 
-// files any of the foregoing (including device programming or simulation 
+// files from any of the foregoing (including device programming or simulation 
 // files), and any associated documentation or information are expressly subject 
-// to the terms and conditions of the Altera Program License Subscription 
-// Agreement, Altera MegaCore Function License Agreement, or other applicable 
+// to the terms and conditions of the Intel Program License Subscription 
+// Agreement, Intel FPGA IP License Agreement, or other applicable 
 // license agreement, including, without limitation, that your use is for the 
-// sole purpose of programming logic devices manufactured by Altera and sold by 
-// Altera or its authorized distributors.  Please refer to the applicable 
+// sole purpose of programming logic devices manufactured by Intel and sold by 
+// Intel or its authorized distributors.  Please refer to the applicable 
 // agreement for further details.
 
 
@@ -115,6 +115,7 @@ parameter PREAMBLE_TYPE = "none";
 parameter USE_DATA_OE_FOR_OCT = "false";
 parameter DQS_ENABLE_WIDTH = 1;
 parameter EMIF_UNALIGNED_PREAMBLE_SUPPORT = "false";
+parameter EMIF_BYPASS_OCT_DDIO = "false";
 
 parameter USE_2X_FF = "false";
 parameter USE_DQS_TRACKING = "false";
@@ -225,6 +226,8 @@ assign dll_delay_value = dll_delayctrl_in;
 
 wire dqsbusout;
 wire dqsnbusout;
+
+wire capture_strobe;
 
 
 wire [1:0] inputclkdelaysetting;
@@ -799,28 +802,35 @@ generate
 
 	if (USE_HALF_RATE_OUTPUT == "true")
 	begin
-		cyclonev_ddio_out
-		#(
-			.half_rate_mode("true"),
-			.use_new_clocking_model("true"),
-			.async_mode("none")
-		) hr_to_fr_os_oct (		
-			.datainhi(oct_ena[0]),
-			.datainlo(oct_ena[1]),
-			.dataout(fr_os_oct),
-			.clkhi (hr_seq_clock),
-			.clklo (hr_seq_clock),
-			.hrbypass(dqshalfratebypass[0]),
-			.muxsel (hr_seq_clock),
-      .clk(),
-      .ena(1'b1),
-      .areset(),
-      .sreset(),
-      .dfflo(),
-      .dffhi(),
-      .devpor(),
-      .devclrn()
-		);
+		if (EMIF_BYPASS_OCT_DDIO == "true")
+		begin
+			assign fr_os_oct = oct_ena[0];
+		end
+		else
+		begin
+			cyclonev_ddio_out
+			#(
+				.half_rate_mode("true"),
+				.use_new_clocking_model("true"),
+				.async_mode("none")
+			) hr_to_fr_os_oct (		
+				.datainhi(oct_ena[0]),
+				.datainlo(oct_ena[1]),
+				.dataout(fr_os_oct),
+				.clkhi (hr_seq_clock),
+				.clklo (hr_seq_clock),
+				.hrbypass(dqshalfratebypass[0]),
+				.muxsel (hr_seq_clock),
+			.clk(),
+			.ena(1'b1),
+			.areset(),
+			.sreset(),
+			.dfflo(),
+			.dffhi(),
+			.devpor(),
+			.devclrn()
+			);
+		end
 	end
 	else
 	begin
@@ -829,6 +839,13 @@ generate
 
 	if (USE_HARD_FIFOS == "true")
 	begin
+		if (EMIF_BYPASS_OCT_DDIO == "true")
+		begin
+			assign aligned_os_oct = fr_os_oct;
+		end
+		else
+		begin
+		end
 	end
 	else
 	begin
@@ -860,7 +877,7 @@ generate
 if (PIN_TYPE == "input" || PIN_TYPE == "bidir")
 begin
 
-	assign capture_strobe_out = dqsbusout;
+	assign capture_strobe = dqsbusout;
 	wire dqsin;
 	
 	wire capture_strobe_ibuf_i;

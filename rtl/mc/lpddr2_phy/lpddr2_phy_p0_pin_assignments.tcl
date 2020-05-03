@@ -1,13 +1,13 @@
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -160,6 +160,17 @@ source "$script_dir/lpddr2_phy_p0_pin_map.tcl"
 
 set family_name [string tolower [regsub -all " +" [get_global_assignment -name FAMILY] ""]]
 
+#######################################
+# Check if user is using a SOC Device #
+#######################################
+set device_name [string tolower [regsub -all " +" [get_global_assignment -name DEVICE] ""]]
+set is_av_soc_device 0
+set soc_device_regexp "5as"
+
+if {[regexp $soc_device_regexp $device_name]} {
+   set is_av_soc_device 1
+}
+
 ##############################
 # Clean up stale assignments #
 ##############################
@@ -208,11 +219,13 @@ foreach inst $instances {
 	foreach dqs_pin [ concat $pins(dqs_pins) $pins(dqsn_pins) ] {
 		set_instance_assignment -name IO_STANDARD "DIFFERENTIAL $::GLOBAL_lpddr2_phy_p0_io_standard_differential" -to $dqs_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
 		set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to $dqs_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
+		set_instance_assignment -name D5_DELAY 4 -to $dqs_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
+		set_instance_assignment -name D6_DELAY 0 -to $dqs_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
 	}
 
 
 	foreach ck_pin [ concat $pins(ck_pins) $pins(ckn_pins) ] {
-		set_instance_assignment -name D5_DELAY 3 -to $ck_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
+		set_instance_assignment -name D5_DELAY 4 -to $ck_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
 		set_instance_assignment -name IO_STANDARD "DIFFERENTIAL $::GLOBAL_lpddr2_phy_p0_io_standard_differential" -to $ck_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
 		set_instance_assignment -name OUTPUT_TERMINATION "SERIES 34 OHM WITH CALIBRATION" -to $ck_pin -tag __$::GLOBAL_lpddr2_phy_p0_corename
 	}

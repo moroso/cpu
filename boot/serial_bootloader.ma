@@ -27,6 +27,8 @@
   r28 <- 0x1000; // Destination address (at which to store the program).
                  // Note (if you change this): appears again below.
 }
+{ r26 <- 0x80000000; r0 <- 1; }
+{ *l(r26) <- r0; }
 {
   bl write_uart;
   *l(r29 + 4) <- r11; // enable rx
@@ -45,8 +47,6 @@ outer_loop:
 { bl write_uart; r0 <- 'O'; }
 { bl write_uart; r0 <- 'N'; }
 { bl write_uart; r0 <- 'E'; r28 <- 0x1000; }
-{ r0 <- 0x80000000; r1 <- 0x1; }
-{ *l(r0) <- r1; }
 { b r28; }
 
 // Note: the functions here don't save any registers. Beware of that if
@@ -56,6 +56,7 @@ read_packet:
   { bl write_uart; r0 <- r27; }
   read_packet_loop:
     { bl read_uart; }
+    { *l(r26) <- r0; }
     { *b(r28) <- r0; r28 <- r28 + 1; r3 <- r3 - 1; p1 <- r3 == 0; }
     { !p1? b read_packet_loop; }
     { b r10 + 1; }
@@ -67,6 +68,8 @@ read_uart:
     { r0 <- *b(r29 + 4); }
     { p0 <- r0 & 0b1000; } // rxc
     { !p0? b uart_read_loop; }
+  { p0 <- r0 & 0b10000; }
+  { p0? b err; }
   { b r31 + 1; r0 <- *b(r29); }
 
 write_uart:
@@ -78,3 +81,7 @@ write_uart:
     { p0 <- r0 & 0b1; } // txc
     { !p0? b uart_write_loop; }
   { b r31 + 1; }
+
+err:
+  { r0 <- 0x80000000; r1 <- long; long 0x555; }
+  { b err; *l(r0) <- r1; }

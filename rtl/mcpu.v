@@ -30,11 +30,12 @@ endmodule
 
 module mcpu(/*AUTOARG*/
    // Outputs
-   LEDG, LEDR, UART_TX, I2C_SCL, I2C_SDA_MIRROR, I2C_SCL_MIRROR,
+   LEDG, LEDR, UART_TX, I2C_SCL, pad_mem_ca, pad_mem_ck, pad_mem_ck_n,
+   pad_mem_cke, pad_mem_cs_n, pad_mem_dm, GPIO,
    // Inouts
-   I2C_SDA,
+   I2C_SDA, pad_mem_dq, pad_mem_dqs, pad_mem_dqs_n,
    // Inputs
-   pad_clk125, in_rst_n, SW, KEY, UART_RX
+   pad_clk125, in_rst_n, SW, KEY, UART_RX, pad_mem_oct_rzqin
    );
   input        pad_clk125;
   input        in_rst_n;
@@ -48,11 +49,19 @@ module mcpu(/*AUTOARG*/
   inout  I2C_SDA;
   output I2C_SCL;
 
-  output I2C_SDA_MIRROR;
-  output I2C_SCL_MIRROR;
-
   wire 	 i2c_scl;
   assign I2C_SCL = i2c_scl;
+
+  output [9:0] pad_mem_ca;
+  output [0:0] pad_mem_ck;
+  output [0:0] pad_mem_ck_n;
+  output [0:0] pad_mem_cke;
+  output [0:0] pad_mem_cs_n;
+  output [3:0] pad_mem_dm;
+  inout [31:0] pad_mem_dq;
+  inout [3:0]  pad_mem_dqs;
+  inout [3:0]  pad_mem_dqs_n;
+  input        pad_mem_oct_rzqin;
 
 	/* Fake verilog-mode out for a bit until we actually wire this up. */
 	/*AUTO_LISP(setq verilog-auto-output-ignore-regexp
@@ -69,17 +78,27 @@ module mcpu(/*AUTOARG*/
 	wire [24:0]	ltc2mc_avl_addr_0;	// From u_int of MCPU_int.v
 	wire [15:0]	ltc2mc_avl_be_0;	// From u_int of MCPU_int.v
 	wire		ltc2mc_avl_burstbegin_0;// From u_int of MCPU_int.v
+	wire [127:0]	ltc2mc_avl_rdata_0;	// From u_mc of MCPU_mc.v
+	wire		ltc2mc_avl_rdata_valid_0;// From u_mc of MCPU_mc.v
 	wire		ltc2mc_avl_read_req_0;	// From u_int of MCPU_int.v
+	wire		ltc2mc_avl_ready_0;	// From u_mc of MCPU_mc.v
 	wire [4:0]	ltc2mc_avl_size_0;	// From u_int of MCPU_int.v
 	wire [127:0]	ltc2mc_avl_wdata_0;	// From u_int of MCPU_int.v
 	wire		ltc2mc_avl_write_req_0;	// From u_int of MCPU_int.v
 	wire [31:0]	r0;			// From u_int of MCPU_int.v
 	// End of automatics
 
-  // TODO: input buffering.
+  // TODO: more input buffering.
   wire [9:0] 		ext_switches = SW;
   wire [3:0] 		ext_buttons = ~KEY;
-  wire 			ext_uart_rx = UART_RX;
+  reg [3:0] 		uart_fifo;
+  wire 			ext_uart_rx = uart_fifo[0];
+
+  always @(posedge clk50)
+    uart_fifo <= {UART_RX, uart_fifo[3:1]};
+
+  output [1:0] 		GPIO;
+
   assign UART_TX = ext_uart_tx;
   assign LEDR = ext_led_r;
   assign LEDG = ext_led_g;
@@ -88,13 +107,11 @@ module mcpu(/*AUTOARG*/
   wire 			clkrst_mem_rst_n;
 
   wire 			clk50;
-  wire 			clkrst_avl_clk;
-
-  reg [26:0] 		ctr;
 
   wire 		   pre2core_done;
   wire 		   clkrst_core_clk = clk50;
   wire 		   clkrst_mem_clk = clk50;
+  wire 		   mc_pll_ref;
 
   `ifndef SIM
   MCPU_pll  #(.OUT_FREQUENCY("50.00000 MHz")) u_pll(
@@ -103,16 +120,10 @@ module mcpu(/*AUTOARG*/
 						    .outclk_0(clk50),
 						    .locked()
 						    );
-  MCPU_pll
-    #(.OUT_FREQUENCY("175.00000 MHz")) u_pll175 (
-						 .pad_clk125(pad_clk125),
-						 .rst(0),
-						 .outclk_0(clkrst_avl_clk),
-						 .locked()
-						 );
 
-  assign clkrst_core_rst_n = in_rst_n;
+  assign clkrst_core_rst_n = in_rst_n & mc_ready & KEY[0];
   assign clkrst_mem_rst_n = in_rst_n;
+  assign mc_pll_ref = pad_clk125;
   `endif
 
   `ifdef SIM
@@ -120,6 +131,7 @@ module mcpu(/*AUTOARG*/
   reg 		   simclk = 0;
   always #1 simclk <= ~simclk;
   assign clk50 = simclk;
+  assign mc_pll_ref = simclk;
 
   reg 		   rst = 0;
   assign clkrst_core_rst_n = rst;
@@ -130,9 +142,6 @@ module mcpu(/*AUTOARG*/
      #10 rst <= 1;
   end
   `endif //  `ifdef SIM
-
-  always @(posedge clkrst_avl_clk)
-    ctr <= ctr + 1;
 
   wire mc_ready;
   /* TODO: bring this back.
@@ -146,15 +155,14 @@ module mcpu(/*AUTOARG*/
 */
 	/* MCPU_int AUTO_TEMPLATE(
 	 .ext_i2c_sda(I2C_SDA),
-	 .ext_i2c_scl(i2c_scl)); */
+	 .ext_i2c_scl(i2c_scl),
+	 .clkrst_mem_rst_n(clkrst_core_rst_n)); */
   MCPU_int u_int(
-		 .ltc2mc_avl_rdata_0(),
-		 .ltc2mc_avl_rdata_valid_0(1),
-		 .ltc2mc_avl_ready_0(1),
-		 .meminput	(),
-		 .memoutput	(),
-		 .r31		(),
-		 /*AUTOINST*/
+  		 //.ltc2mc_avl_rdata_0	(),
+  		 //.ltc2mc_avl_rdata_valid_0(1),
+  		 //.ltc2mc_avl_ready_0	(1),
+
+  		 /*AUTOINST*/
 		 // Outputs
 		 .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
 		 .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
@@ -174,48 +182,51 @@ module mcpu(/*AUTOARG*/
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_mem_clk	(clkrst_mem_clk),
-		 .clkrst_mem_rst_n	(clkrst_mem_rst_n),
+		 .clkrst_mem_rst_n	(clkrst_core_rst_n),	 // Templated
 		 .ext_buttons		(ext_buttons[3:0]),
 		 .ext_switches		(ext_switches[9:0]),
+		 .ltc2mc_avl_rdata_0	(ltc2mc_avl_rdata_0[127:0]),
+		 .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
+		 .ltc2mc_avl_ready_0	(ltc2mc_avl_ready_0),
 		 .ext_uart_rx		(ext_uart_rx),
 		 .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  // TODO: having actual memory would probably be nice.
 	/* MCPU_mc AUTO_TEMPLATE(
-		.clkrst_.*_rst_n(1'b1),
-		.mc_ready(mc_ready),
-		); */
-	// MCPU_mc u_mc(
-	// 	/*AUTOINST*/
-	// 	     // Outputs
-	// 	     .ltc2mc_avl_rdata_0(ltc2mc_avl_rdata_0[127:0]),
-	// 	     .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
-	// 	     .ltc2mc_avl_ready_0(ltc2mc_avl_ready_0),
-	// 	     .pad_mem_ca	(pad_mem_ca[9:0]),
-	// 	     .pad_mem_ck	(pad_mem_ck[0:0]),
-	// 	     .pad_mem_ck_n	(pad_mem_ck_n[0:0]),
-	// 	     .pad_mem_cke	(pad_mem_cke[0:0]),
-	// 	     .pad_mem_cs_n	(pad_mem_cs_n[0:0]),
-	// 	     .pad_mem_dm	(pad_mem_dm[3:0]),
-	// 	     .mc_ready		(mc_ready),
-	// 	     // Inouts
-	// 	     .pad_mem_dq	(pad_mem_dq[31:0]),
-	// 	     .pad_mem_dqs	(pad_mem_dqs[3:0]),
-	// 	     .pad_mem_dqs_n	(pad_mem_dqs_n[3:0]),
-	// 	     // Inputs
-	// 	     .clkrst_global_rst_n(1'b1),
-	// 	     .clkrst_mem_clk	(clkrst_mem_clk),
-	// 	     .clkrst_mem_rst_n	(1'b1),
-	// 	     .clkrst_soft_rst_n	(1'b1),
-	// 	     .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
-	// 	     .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
-	// 	     .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
-	// 	     .ltc2mc_avl_read_req_0(ltc2mc_avl_read_req_0),
-	// 	     .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
-	// 	     .ltc2mc_avl_wdata_0(ltc2mc_avl_wdata_0[127:0]),
-	// 	     .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
-	// 	     .pad_clk125	(pad_clk125),
-	// 	     .pad_mem_oct_rzqin	(pad_mem_oct_rzqin));
+	 .clkrst_.*_rst_n(clkrst_mem_rst_n),
+	 .mc_ready(mc_ready),
+	 .clkrst_mem_clk(clkrst_mem_clk),
+	 .pad_clk125(mc_pll_ref)); */
+	MCPU_mc u_mc(
+		/*AUTOINST*/
+		     // Outputs
+		     .mc_ready		(mc_ready),		 // Templated
+		     .ltc2mc_avl_rdata_0(ltc2mc_avl_rdata_0[127:0]),
+		     .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
+		     .ltc2mc_avl_ready_0(ltc2mc_avl_ready_0),
+		     .pad_mem_ca	(pad_mem_ca[9:0]),
+		     .pad_mem_ck	(pad_mem_ck[0:0]),
+		     .pad_mem_ck_n	(pad_mem_ck_n[0:0]),
+		     .pad_mem_cke	(pad_mem_cke[0:0]),
+		     .pad_mem_cs_n	(pad_mem_cs_n[0:0]),
+		     .pad_mem_dm	(pad_mem_dm[3:0]),
+		     // Inouts
+		     .pad_mem_dq	(pad_mem_dq[31:0]),
+		     .pad_mem_dqs	(pad_mem_dqs[3:0]),
+		     .pad_mem_dqs_n	(pad_mem_dqs_n[3:0]),
+		     // Inputs
+		     .clkrst_global_rst_n(clkrst_mem_rst_n),	 // Templated
+		     .clkrst_mem_clk	(clkrst_mem_clk),	 // Templated
+		     .clkrst_mem_rst_n	(clkrst_mem_rst_n),	 // Templated
+		     .clkrst_soft_rst_n	(clkrst_mem_rst_n),	 // Templated
+		     .ltc2mc_avl_addr_0	(ltc2mc_avl_addr_0[24:0]),
+		     .ltc2mc_avl_be_0	(ltc2mc_avl_be_0[15:0]),
+		     .ltc2mc_avl_burstbegin_0(ltc2mc_avl_burstbegin_0),
+		     .ltc2mc_avl_read_req_0(ltc2mc_avl_read_req_0),
+		     .ltc2mc_avl_size_0	(ltc2mc_avl_size_0[4:0]),
+		     .ltc2mc_avl_wdata_0(ltc2mc_avl_wdata_0[127:0]),
+		     .ltc2mc_avl_write_req_0(ltc2mc_avl_write_req_0),
+		     .pad_clk125	(mc_pll_ref),		 // Templated
+		     .pad_mem_oct_rzqin	(pad_mem_oct_rzqin));
 endmodule
 
 // Local Variables:

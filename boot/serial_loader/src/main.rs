@@ -102,14 +102,14 @@ fn send_program(port: &mut TTYPort, prog: &[u8]) {
         print!("Writing packet {}: ", i);
         print_packet(&prog[i * 16..(i+1)*16]);
         println!("");
-        port.write(&prog[i * 16..(i+1)*16]).unwrap();
+        let res = port.write(&prog[i * 16..(i+1) * 16]).unwrap();
+        assert!(res == 16);
     }
 
     assert_eq!(readchar(port), b'D');
     assert_eq!(readchar(port), b'O');
     assert_eq!(readchar(port), b'N');
     assert_eq!(readchar(port), b'E');
-    println!("Done!");
 }
 
 fn main() -> Result<(), ::std::io::Error> {
@@ -121,6 +121,19 @@ fn main() -> Result<(), ::std::io::Error> {
     wait_header(&mut port);
     println!("Got bootloader ping. Loading program...");
     send_program(&mut port, &prog);
+    println!("Done!");
 
-    Ok(())
+    loop {
+        let chars: Vec<u8> = (0..16).map(|_| readchar(&mut port)).collect();
+        for (i, &c) in chars.iter().enumerate() {
+            if i % 8 == 0 { print!(" "); }
+            print!("{}", if c >= 0x20 && c <= 0x7e { c as char } else { '.' } );
+        }
+        print!("  ");
+        for (i, &c) in chars.iter().enumerate() {
+            if i % 8 == 0 { print!(" "); }
+            print!("{:02x} ", c);
+        }
+        print!("\n");
+    }
 }

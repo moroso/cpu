@@ -46,9 +46,6 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     assign interrupts_enabled = coproc_regs[0][0];
     assign coproc_reg_result = d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
                                                   : coproc_regs[d2pc_in_rs_num0[3:0]];
-  assign pagedir_base = coproc_regs[1][31:12];
-  assign tlb_clear = (mtc_inst & (~d2pc_in_rd_num0[4]) & d2pc_in_rd_num0[3:0] == 1);
-
     wire coproc_rd_we = coproc_instruction & d2pc_in_execute_opcode0[8:5] == 4'b0110;
 
     wire eret_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == 4'b0100;
@@ -56,6 +53,8 @@ module MCPU_CORE_coproc(/*AUTOARG*/
 
     assign coproc_branch = exception | eret_inst;
     assign coproc_branchaddr = exception ? coproc_regs[2][31:4] : coproc_regs[3][31:4]; // EHA or EPC
+  assign pagedir_base = coproc_regs[1][31:12];
+  assign tlb_clear = (mtc_inst & (~d2pc_in_rd_num0[4]) & d2pc_in_rd_num0[3:0] == 1);
 
     integer i;
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin

@@ -1,13 +1,13 @@
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -33,7 +33,7 @@ package require ::quartus::ddr_timing_model
 ###################
 
 # Interface Clock Period
-set t(CK) 2.857
+set t(CK) 3.03
 
 # Reference Clock Period
 set t(refCK) 8.0
@@ -46,16 +46,16 @@ set t(min_CK) 2.5
 ##########################
 
 # A/C Setup/Hold
-set t(IS) 0.395
-set t(IH) 0.38
+set t(IS) 0.51
+set t(IH) 0.42
 
 # Data Setup/Hold
-set t(DS) 0.27
-set t(DH) 0.255
+set t(DS) 0.49
+set t(DH) 0.4
 
 # DQS clock edge to DQ data edge (in same group)
-set t(DQSQ) [expr { 120 / 1000.0 }]
-set t(QHS) [expr { 300 / 1000.0 }]
+set t(DQSQ) [expr { 240 / 1000.0 }]
+set t(QHS) [expr { 280 / 1000.0 }]
 
 # Convert QH into time unit so that it's consistent with DQSQ
 set t(QH_time) [expr 0.5 * $t(CK) - $t(QHS) ]
@@ -63,20 +63,20 @@ set t(QH_time) [expr 0.5 * $t(CK) - $t(QHS) ]
 # DQS to CK input timing
 set t(DSS) 0.2
 set t(DSH) 0.2
-set t(DQSS) 0.25
+set t(DQSS) 1.0
 set t(DSS) [expr $t(DSS)*$t(min_CK)/$t(CK)]
 set t(DSH) [expr $t(DSH)*$t(min_CK)/$t(CK)]
 set t(DQSS) [expr 0.5 - ($t(DQSS)-1.0)*$t(min_CK)/$t(CK)]
 
 # DQS Timing
-set t(DQSH) 0.35
+set t(DQSH) 0.4
 
 # Write Levelling parameters
 set t(WLS) [ expr 0.13 * $t(min_CK) ]
 set t(WLH) [ expr 0.13 * $t(min_CK) ]
 
 # DQS to CK timing on reads
-set t(DQSCK) [expr { 2500 / 1000.0 }]
+set t(DQSCK) [expr { 5500 / 1000.0 }]
 set t(DQSCKDS) [expr { 450 / 1000.0 }]
 set t(DQSCKDM) [expr { 900 / 1000.0 }]
 set t(DQSCKDL) [expr { 1200 / 1000.0 }]
@@ -91,7 +91,7 @@ set t(DCD) 0.0
 set t(RL) 7
 set t(WL) 4
 set t(DWIDTH_RATIO) [expr { 1 * 2 }]
-set t(rd_to_wr_turnaround_oct) 3
+set t(rd_to_wr_turnaround_oct) 4
 
 #####################
 # FPGA specifications
@@ -141,8 +141,8 @@ set ISI(READ_DQS) 0.0
 
 
 # Board skews
-set board(abs_max_CK_delay) 0.6
-set board(abs_max_DQS_delay) 0.6
+set board(abs_max_CK_delay) 0.33
+set board(abs_max_DQS_delay) 0.34
 set board(minCK_DQS_skew) -0.01
 set board(maxCK_DQS_skew) 0.01
 set board(tpd_inter_DIMM) 0.0

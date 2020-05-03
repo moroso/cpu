@@ -1,13 +1,13 @@
-// (C) 2001-2014 Altera Corporation. All rights reserved.
-// Your use of Altera Corporation's design tools, logic functions and other 
+// (C) 2001-2019 Intel Corporation. All rights reserved.
+// Your use of Intel Corporation's design tools, logic functions and other 
 // software and tools, and its AMPP partner logic functions, and any output 
-// files any of the foregoing (including device programming or simulation 
+// files from any of the foregoing (including device programming or simulation 
 // files), and any associated documentation or information are expressly subject 
-// to the terms and conditions of the Altera Program License Subscription 
-// Agreement, Altera MegaCore Function License Agreement, or other applicable 
+// to the terms and conditions of the Intel Program License Subscription 
+// Agreement, Intel FPGA IP License Agreement, or other applicable 
 // license agreement, including, without limitation, that your use is for the 
-// sole purpose of programming logic devices manufactured by Altera and sold by 
-// Altera or its authorized distributors.  Please refer to the applicable 
+// sole purpose of programming logic devices manufactured by Intel and sold by 
+// Intel or its authorized distributors.  Please refer to the applicable 
 // agreement for further details.
 
 
@@ -24,10 +24,10 @@
 // agreement for further details.
 
 
-// $Id: //acds/rel/13.1up/ip/merlin/altera_merlin_slave_agent/altera_merlin_burst_uncompressor.sv#1 $
+// $Id: //acds/rel/19.1std/ip/merlin/altera_merlin_slave_agent/altera_merlin_burst_uncompressor.sv#1 $
 // $Revision: #1 $
-// $Date: 2013/11/05 $
-// $Author: swbranch $
+// $Date: 2018/11/07 $
+// $Author: psgswbuild $
 
 // ------------------------------------------
 // Merlin Burst Uncompressor
@@ -88,16 +88,18 @@ module altera_merlin_burst_uncompressor
 // being transferred.
 // ---------------------------------------------------
 function reg[63:0] bytes_in_transfer;
-    input [2:0] axsize;
+    input [BURST_SIZE_W-1:0] axsize;
     case (axsize)
-        3'b000: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000001;
-        3'b001: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000010;
-        3'b010: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000100;
-        3'b011: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000001000;
-        3'b100: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000010000;
-        3'b101: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000100000;
-        3'b110: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000001000000;
-        3'b111: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000010000000;
+        4'b0000: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000001;
+        4'b0001: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000010;
+        4'b0010: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000100;
+        4'b0011: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000001000;
+        4'b0100: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000010000;
+        4'b0101: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000100000;
+        4'b0110: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000001000000;
+        4'b0111: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000010000000;
+        4'b1000: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000100000000;
+        4'b1001: bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000001000000000;
         default:bytes_in_transfer = 64'b0000000000000000000000000000000000000000000000000000000000000001;
     endcase
 

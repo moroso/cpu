@@ -50,8 +50,12 @@ class Cmod_MCPU_MEM_mc {
 
 	/* State */
 	uint8_t memory[Cmod_MCPU_MEM_mc_MEMSZ];
-	int burst_cycrem;
-	int burst_rnw;
+	int burst_length;
+  int burst_idx;
+	bool burst_read;
+  bool burst_write;
+  uint32_t burst_base;
+  
 	
 public:
 	Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_ports *_ports);

@@ -1,13 +1,13 @@
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -289,7 +289,7 @@ proc lpddr2_phy_p0_get_core_full_instance_list {corename} {
 	append inst_regexp ${corename}
 	append inst_regexp {:[A-Za-z0-9\.\\_\[\]\-\$():]+\|}
 	append inst_regexp "${corename}_acv_hard_memphy"
-	append inst_regexp {:umemphy}
+        append inst_regexp {:umemphy}
 
 	foreach_in_collection keeper $allkeepers {
 		set name [ get_node_info -name $keeper ]
@@ -306,9 +306,11 @@ proc lpddr2_phy_p0_get_core_full_instance_list {corename} {
 	if {[ llength $instance_list ] == 0} {
 		post_message -type error "The auto-constraining script was not able to detect any instance for core < $corename >"
 		post_message -type error "Verify the following:"
-      post_message -type error " The core < $corename > is instantiated within another component (wrapper)"
+		post_message -type error " The core < $corename > is instantiated within another component (wrapper)"
 		post_message -type error " The core is not the top-level of the project"
 		post_message -type error " The memory interface pins are exported to the top-level of the project"
+		post_message -type error "Alternatively, if you are no longer instantiating core < $corename >,"
+		post_message -type error " clean up any stale SDC_FILE references from the QSF/QIP files."
 	}
 
 	return $instance_list
@@ -428,7 +430,7 @@ proc lpddr2_phy_p0_get_input_clk_id { pll_output_node_id } {
 					#  but keep searching for the pin anyways, otherwise all the timing constraining scripts will
 					#  crash
 					post_message -type critical_warning "PLL clock [get_node_info -name $pll_output_node_id] not driven by a dedicated clock pin or neighboring PLL source.  To ensure minimum jitter on memory interface clock outputs, the PLL clock source should be a dedicated PLL input clock pin or an output of the neighboring PLL. Timing analyses may not be valid."
-					lpddr2_phy_p0_traverse_fanin_up_to_depth $pll_inclk_id lpddr2_phy_p0_is_node_type_pin clock results_array 9
+					lpddr2_phy_p0_traverse_fanin_up_to_depth $pll_inclk_id lpddr2_phy_p0_is_node_type_pin clock results_array 20
 					if {[array size results_array] == 1} {
 						set pin_id [lindex [array names results_array] 0]
 						set result $pin_id
@@ -1201,16 +1203,28 @@ proc lpddr2_phy_p0_get_rzq_pins { instname all_rzq_pins } {
 	set_project_mode -always_show_entity_name qsf
 	set rzqpins $rzq_pins
 }
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+
+
+proc lpddr2_phy_p0_get_acv_read_offset { period dqs_phase dqs_period } {
+
+	set offset [expr abs(90/360.0*$period - $dqs_phase/360.0*$dqs_period)]
+	if {$offset != 0} {
+		set part_period [expr $dqs_phase/360.0*$dqs_period - 0.469/2.0 - 0.12]
+		set offset [max 0.120 $part_period] 
+	}
+
+	return $offset
+}
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -2408,7 +2422,7 @@ proc lpddr2_phy_p0_dump_all_pins { ddr_db_par } {
 	puts $FH "#"
 	puts $FH "# Generated by ${::GLOBAL_lpddr2_phy_p0_corename}_pin_assignments.tcl"
 	puts $FH "#"
-	puts $FH "# This file is for reference only and is not used by Quartus II"
+	puts $FH "# This file is for reference only and is not used by Quartus Prime"
 	puts $FH "#"
 	puts $FH ""
 

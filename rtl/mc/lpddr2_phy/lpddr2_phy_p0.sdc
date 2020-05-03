@@ -1,13 +1,13 @@
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -708,8 +708,8 @@ foreach { inst } $instances {
 			set_clock_uncertainty -from [get_clocks $local_pll_avl_phy_clk] -to [get_clocks $local_pll_afi_clk] -add -hold 0.200
 		}
 
-		if {[string compare -nocase $pll_driver_core_clock "_UNDEFINED_PIN_"] != 0} {
-			set_min_delay -from $local_pll_driver_core_clk -to $hmc_ff 0.500
+      		if {[string compare -nocase $pll_driver_core_clock "_UNDEFINED_PIN_"] != 0} {
+         		set_min_delay -from $local_pll_driver_core_clk -to $hmc_ff 0.500
 		}
 
 

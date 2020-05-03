@@ -463,13 +463,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		end
 		MCSM_READING: begin
 			ltc2mc_avl_read_req_0 = 1'b1;
-			ltc2mc_avl_burstbegin_0 = mcsm_ofs == 3'd0;
+			ltc2mc_avl_burstbegin_0 = 1'b1;
 			ltc2mc_avl_size_0 = 5'd8;
-			ltc2mc_avl_addr_0 = {arb2ltc_addr[/*31*/28:7], mcsm_ofs}; 
+			ltc2mc_avl_addr_0 = {arb2ltc_addr[/*31*/28:7], 3'b0};
 			
-			read_filling_set = (mcsm_ofs == 3'd0);
-			mcsm_next = (mcsm_ofs == 3'd7) ? MCSM_IDLE : MCSM_READING;
-			mcsm_ofs_next = mcsm_ofs + 1;
+			read_filling_set = 1'b1;
+			mcsm_next = MCSM_IDLE;
 		end
 		default: begin
 			mcsm_next = 2'hx;

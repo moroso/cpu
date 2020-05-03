@@ -18,13 +18,51 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "NO HEAT SINK WITH STILL AIR"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
-
+# Files.
+# This section is needed to be able to open the project in the Quartus GUI.
+# It's not needed for the "make" targets.
+# If you have trouble with this in the Quartus GUI it's probably because
+# we forgot to add something here; check that it's up to date with the
+# file list in config.mk (both RTL_COMMON and RTL_FPGA).
+set_global_assignment -name VERILOG_FILE ../rtl/MCPU_int.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_alu.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_coproc.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_decode.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_exn_encode.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_regfile.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_scoreboard.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_dtlb.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_fetch.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_mem.v
+set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_core.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/FIFO.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/dp_bram.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/reg_2.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/register.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/sp_bram.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_LTC_bram.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_arb.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_dl1c.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_dtlb.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_il1c.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_ltc.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_preload.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_pt_walk.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_mem.v
+set_global_assignment -name VERILOG_FILE ../rtl/mcpu.v
+set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_i2c.v
+set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_ledsw.v
+set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_mmio.v
+set_global_assignment -name VERILOG_FILE ../rtl/soc/uart.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/lpddr2_phy.v
+set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_mc.v
+set_global_assignment -name SEARCH_PATH ../rtl/mc/lpddr2_phy
 
 ############################################################################
 # Synthesis setup
 ############################################################################
 
-set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
+set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name ECO_REGENERATE_REPORT ON
@@ -196,6 +234,13 @@ set_location_assignment PIN_B7 -to I2C_SCL
 set_instance_assignment -name IO_STANDARD "2.5 V" -to I2C_SCL
 set_location_assignment PIN_G11 -to I2C_SDA
 set_instance_assignment -name IO_STANDARD "2.5 V" -to I2C_SDA
+
+# GPIO
+set_location_assignment PIN_T21 -to GPIO[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[0]
+set_location_assignment PIN_D26 -to GPIO[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[1]
+
 
 ############################################################################
 # Pin/route configuration: LPDDR2

@@ -1,13 +1,13 @@
-# (C) 2001-2014 Altera Corporation. All rights reserved.
-# Your use of Altera Corporation's design tools, logic functions and other 
+# (C) 2001-2019 Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions and other 
 # software and tools, and its AMPP partner logic functions, and any output 
-# files any of the foregoing (including device programming or simulation 
+# files from any of the foregoing (including device programming or simulation 
 # files), and any associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License Subscription 
-# Agreement, Altera MegaCore Function License Agreement, or other applicable 
+# to the terms and conditions of the Intel Program License Subscription 
+# Agreement, Intel FPGA IP License Agreement, or other applicable 
 # license agreement, including, without limitation, that your use is for the 
-# sole purpose of programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the applicable 
+# sole purpose of programming logic devices manufactured by Intel and sold by 
+# Intel or its authorized distributors.  Please refer to the applicable 
 # agreement for further details.
 
 
@@ -954,7 +954,7 @@ proc lpddr2_phy_p0_perform_flexible_read_capture_timing_analysis {opcs opcname i
 		
 		# Consider variation in the delay chains used during dynamic deksew
 		set dqs_period [ lpddr2_phy_p0_get_dqs_period $pins(dqs_pins) ]
-		set offset_from_90 [expr abs(90/360.0*$period - $dqs_phase/360.0*$dqs_period)]
+		set offset_from_90 [lpddr2_phy_p0_get_acv_read_offset $period $dqs_phase $dqs_period]
 		if {$IP(num_ranks) == 1} {
 			set t1_variation [expr [min [expr $offset_from_90 + [max [expr $MP(DQSQ)*$t(DQSQ)] [expr $MP(QH_time)*(0.5*$period - $t(QH_time))]] + 2*$board(intra_DQS_group_skew) + $max_package_skew + $fpga(tDQS_PSERR)] [max $max_read_deskew_setup $max_read_deskew_hold]]*2*$t1_vt_variation_percent*0.75]
 		} else {
@@ -1127,7 +1127,7 @@ proc lpddr2_phy_p0_perform_phy_analyses {opcs opcname inst inst_controller pin_a
 
 }
 
-proc lpddr2_phy_p0_perform_ac_analyses {opcs opcname inst scale_factors_name pin_array_name timing_parameters_array_name summary_name IP_name} {
+proc lpddr2_phy_p0_perform_ac_analyses {opcs opcname inst family scale_factors_name pin_array_name timing_parameters_array_name summary_name IP_name} {
 
 	###############################################################################
 	# The adress/command analysis concerns the timing requirements of the pins (other
@@ -1293,11 +1293,13 @@ proc lpddr2_phy_p0_perform_ac_analyses {opcs opcname inst scale_factors_name pin
 	foreach summary_line $ac_summary {
 		add_row_to_table -id $panel_id $summary_line -fcolors $positive_fcolour
 	}
-	
+
+        # #####################################################################
 	# DQS vs CK
 	set res_0 [report_timing -detail full_path -to [get_ports $pins(dqs_pins)] -npaths $num_failing_path -panel_name "$inst DQS vs CK (setup)" -setup]
 	set res_1 [report_timing -detail full_path -to [get_ports $pins(dqs_pins)] -npaths $num_failing_path -panel_name "$inst DQS vs CK (hold)" -hold]
 	lappend summary [list $opcname 0 "DQS vs CK ($opcname)" [lindex $res_0 1] [lindex $res_1 1] [lindex $res_0 0] [lindex $res_1 0]]
+
 }
 
 
