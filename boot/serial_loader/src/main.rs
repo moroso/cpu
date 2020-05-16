@@ -112,6 +112,27 @@ fn send_program(port: &mut TTYPort, prog: &[u8]) {
     assert_eq!(readchar(port), b'E');
 }
 
+fn hexdump_vec(chars: &[u8]) {
+    print!("\r");
+    let l = chars.len();
+
+    for i in 0..16 {
+        let c = *chars.get(i).unwrap_or(&b' ');
+        if i % 8 == 0 { print!(" "); }
+        print!("{}", if c >= 0x20 && c <= 0x7e { c as char } else { '.' } );
+    }
+    print!("  ");
+    for i in 0..16 {
+        if i % 8 == 0 { print!(" "); }
+        match chars.get(i) {
+            Some(c) => print!("{:02x} ", c),
+            _ => {},
+        }
+    }
+
+    ::std::io::stdout().flush();
+}
+
 fn main() -> Result<(), ::std::io::Error> {
     let prog_filename = ::std::env::args().skip(1).next().expect("Specify a program file");
     let prog = load_program(&prog_filename);
@@ -124,16 +145,21 @@ fn main() -> Result<(), ::std::io::Error> {
     println!("Done!");
 
     loop {
-        let chars: Vec<u8> = (0..16).map(|_| readchar(&mut port)).collect();
-        for (i, &c) in chars.iter().enumerate() {
-            if i % 8 == 0 { print!(" "); }
-            print!("{}", if c >= 0x20 && c <= 0x7e { c as char } else { '.' } );
+        let mut chars = vec!();
+        loop {
+            let mut buf = [0; 1];
+            let res = port.read(&mut buf);
+            match res {
+                Err(e) if e.kind() == TimedOut => {},
+                Err(e) => {
+                    panic!("{:?}", e);
+                }
+                Ok(l) if l > 0 => { chars.push(buf[0]); hexdump_vec(&chars); },
+                _ => { },
+            }
+            if chars.len() == 16 {
+                println!();
+            }
         }
-        print!("  ");
-        for (i, &c) in chars.iter().enumerate() {
-            if i % 8 == 0 { print!(" "); }
-            print!("{:02x} ", c);
-        }
-        print!("\n");
     }
 }
