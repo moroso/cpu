@@ -114,7 +114,6 @@ fn send_program(port: &mut TTYPort, prog: &[u8]) {
 
 fn hexdump_vec(chars: &[u8]) {
     print!("\r");
-    let l = chars.len();
 
     for i in 0..16 {
         let c = *chars.get(i).unwrap_or(&b' ');
@@ -122,15 +121,12 @@ fn hexdump_vec(chars: &[u8]) {
         print!("{}", if c >= 0x20 && c <= 0x7e { c as char } else { '.' } );
     }
     print!("  ");
-    for i in 0..16 {
+    for (i, c) in chars.iter().enumerate() {
         if i % 8 == 0 { print!(" "); }
-        match chars.get(i) {
-            Some(c) => print!("{:02x} ", c),
-            _ => {},
-        }
+        print!("{:02x} ", c);
     }
 
-    ::std::io::stdout().flush();
+    let _ = ::std::io::stdout().flush();
 }
 
 fn main() -> Result<(), ::std::io::Error> {
@@ -158,7 +154,8 @@ fn main() -> Result<(), ::std::io::Error> {
                 _ => { },
             }
             if chars.len() == 16 {
-                println!();
+                println!("");
+                break;
             }
         }
     }
