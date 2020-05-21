@@ -30,10 +30,10 @@ endmodule
 
 module mcpu(/*AUTOARG*/
    // Outputs
-   LEDG, LEDR, UART_TX, I2C_SCL, pad_mem_ca, pad_mem_ck, pad_mem_ck_n,
-   pad_mem_cke, pad_mem_cs_n, pad_mem_dm, GPIO,
+   LEDG, LEDR, UART_TX, I2C_SCL, SD_CLK, pad_mem_ca, pad_mem_ck,
+   pad_mem_ck_n, pad_mem_cke, pad_mem_cs_n, pad_mem_dm, GPIO,
    // Inouts
-   I2C_SDA, pad_mem_dq, pad_mem_dqs, pad_mem_dqs_n,
+   I2C_SDA, SD_CMD, SD_DAT, pad_mem_dq, pad_mem_dqs, pad_mem_dqs_n,
    // Inputs
    pad_clk125, in_rst_n, SW, KEY, UART_RX, pad_mem_oct_rzqin
    );
@@ -48,6 +48,10 @@ module mcpu(/*AUTOARG*/
 
   inout  I2C_SDA;
   output I2C_SCL;
+
+  output  SD_CLK;
+  inout   SD_CMD;
+  inout [3:0] SD_DAT;
 
   wire 	 i2c_scl;
   assign I2C_SCL = i2c_scl;
@@ -153,9 +157,13 @@ module mcpu(/*AUTOARG*/
 			clkrst_mem_rst_ctr <= clkrst_mem_rst_ctr - 1;
 	end
 */
+
 	/* MCPU_int AUTO_TEMPLATE(
 	 .ext_i2c_sda(I2C_SDA),
 	 .ext_i2c_scl(i2c_scl),
+	 .ext_sd_clk(SD_CLK),
+	 .ext_sd_data(SD_DAT[]),
+	 .ext_sd_cmd(SD_CMD),
 	 .clkrst_mem_rst_n(clkrst_core_rst_n)); */
   MCPU_int u_int(
   		 //.ltc2mc_avl_rdata_0	(),
@@ -175,10 +183,13 @@ module mcpu(/*AUTOARG*/
 		 .ext_led_g		(ext_led_g[7:0]),
 		 .ext_led_r		(ext_led_r[9:0]),
 		 .ext_i2c_scl		(i2c_scl),		 // Templated
+		 .ext_sd_clk		(SD_CLK),		 // Templated
 		 .r0			(r0[31:0]),
 		 .pre2core_done		(pre2core_done),
 		 // Inouts
 		 .ext_i2c_sda		(I2C_SDA),		 // Templated
+		 .ext_sd_cmd		(SD_CMD),		 // Templated
+		 .ext_sd_data		(SD_DAT[3:0]),		 // Templated
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_mem_clk	(clkrst_mem_clk),

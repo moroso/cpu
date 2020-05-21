@@ -29,9 +29,12 @@ RTL_COMMON = \
 	rtl/mc/MCPU_MEM_pt_walk.v \
 	rtl/mc/MCPU_mem.v \
 	rtl/mcpu.v \
+	rtl/soc/crc7.v \
+	rtl/soc/crc16.v \
 	rtl/soc/MCPU_SOC_i2c.v \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
+	rtl/soc/MCPU_SOC_sd.v \
 	rtl/soc/uart.v
 
 RTL_FPGA = \
