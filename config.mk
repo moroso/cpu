@@ -54,7 +54,8 @@ RTL_INC = \
 	rtl/mc/MCPU_MEM_pt.vh \
 	rtl/lib/clog2.vh \
 	rtl/core/oper_type.vh \
-	rtl/core/exn_codes.vh
+	rtl/core/exn_codes.vh \
+	rtl/core/coproc_ops.vh
 
 BOOTROM_ASM = boot/serial_bootloader.ma
 

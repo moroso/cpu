@@ -10,6 +10,8 @@ module MCPU_MEM_il1c(
                      // Control interface
                      // Addresses are packet-aligned (16 byte).
                      input [31:4]   il1c_addr,
+		     // Clears the entire cache. TODO: clear specific addresses.
+		     input 	    il1c_flush,
                      input 	    il1c_re,
                      output [127:0] il1c_packet,
                      output 	    il1c_ready,
@@ -114,6 +116,7 @@ module MCPU_MEM_il1c(
   wire [SET_WIDTH-1:0] 		    data_addr = (stall | ~re_0a) ? set_1a : set_0a;
 
   reg 				    update_cache;
+  reg 				    pending_cache_clear;
 
   always @(*) begin
      nextstate = state;
@@ -169,12 +172,19 @@ module MCPU_MEM_il1c(
         valid <= 0;
         re_1a <= 0;
         state <= STATE_DEFAULT;
+	pending_cache_clear <= 0;
      end else begin
         if (~stall & re_0a) begin
            // Latch new values
            addr_1a <= addr_0a;
            re_1a <= re_0a;
         end
+
+	if ((pending_cache_clear | il1c_flush) & state == STATE_DEFAULT) begin
+	   valid <= 0;
+	   pending_cache_clear <= 0;
+	end else if (il1c_flush)
+	  pending_cache_clear <= 1;
 
         if (update_cache) begin
            valid[set_1a] <= 1;

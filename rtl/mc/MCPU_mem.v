@@ -19,6 +19,7 @@ module MCPU_mem(
 		input		dtlb_re_a,		// To dtlb of MCPU_MEM_dtlb.v
 		input		dtlb_re_b,		// To dtlb of MCPU_MEM_dtlb.v
 		input [31:4]	il1c_addr,		// To il1c of MCPU_MEM_il1c.v
+		input		il1c_flush,		// To il1c of MCPU_MEM_il1c.v
 		input		il1c_re,		// To il1c of MCPU_MEM_il1c.v
 		input [127:0]	ltc2mc_avl_rdata_0,	// To ltc of MCPU_MEM_ltc.v
 		input		ltc2mc_avl_rdata_valid_0,// To ltc of MCPU_MEM_ltc.v
@@ -369,6 +370,7 @@ module MCPU_mem(
 		      .clkrst_mem_clk	(clkrst_mem_clk),
 		      .clkrst_mem_rst_n	(clkrst_mem_rst_n),
 		      .il1c_addr	(il1c_addr[31:4]),
+		      .il1c_flush	(il1c_flush),
 		      .il1c_re		(il1c_re),
 		      .il1c2tlb_flags	(il1c2itlb_flags[3:0]),	 // Templated
 		      .il1c2tlb_phys_addr(il1c2itlb_phys_addr[31:12]), // Templated

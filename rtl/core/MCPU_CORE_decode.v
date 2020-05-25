@@ -36,6 +36,7 @@ module MCPU_CORE_decode(/*AUTOARG*/
   /* AUTOREG */
 
 `include "oper_type.vh"
+`include "coproc_ops.vh"
 
   reg depend_rt, depend_rs;
   wire [3:0] actual_preds, actual_scoreboard;
@@ -60,8 +61,12 @@ module MCPU_CORE_decode(/*AUTOARG*/
 
   //this is going to be enormous...
   //Also needs a pass to make it comprehensible
-  always @(/*AUTOSENSE*/OPER_TYPE_ALU or OPER_TYPE_BRANCH
-	   or OPER_TYPE_LSU or OPER_TYPE_OTHER or actual_preds
+  always @(/*AUTOSENSE*/COPROC_OP_BREAK or COPROC_OP_DIV
+	   or COPROC_OP_ERET or COPROC_OP_FENCE or COPROC_OP_FLUSH
+	   or COPROC_OP_MFC or COPROC_OP_MFHI or COPROC_OP_MTC
+	   or COPROC_OP_MTHI or COPROC_OP_MULT or COPROC_OP_SYSCALL
+	   or OPER_TYPE_ALU or OPER_TYPE_BRANCH or OPER_TYPE_LSU
+	   or OPER_TYPE_OTHER or actual_preds
 	   or d2pc_out_execute_opcode or inst or nextinst
 	   or prev_long_imm or rf2d_rs_data or rf2d_rt_data) begin
 
@@ -139,33 +144,33 @@ module MCPU_CORE_decode(/*AUTOARG*/
         d2pc_out_oper_type = OPER_TYPE_OTHER;
         d2pc_out_sop = rf2d_rt_data;
         case(d2pc_out_execute_opcode[8:5])
-          4'b0001: begin end // BREAK
-          4'b0010: begin end // SYSCALL
-          4'b0011: begin end // FENCE
-          4'b0100: begin end // ERET
-          4'b0101: begin     // FLUSH
+          COPROC_OP_BREAK: begin end
+          COPROC_OP_SYSCALL: begin end
+          COPROC_OP_FENCE: begin end
+          COPROC_OP_ERET: begin end
+          COPROC_OP_FLUSH: begin
             depend_rs = 1;
           end
-          4'b0110: begin     // MFC
+          COPROC_OP_MFC: begin
             d2pc_out_rd_we = 1;
           end
-          4'b0111: begin     // MTC
+          COPROC_OP_MTC: begin
             depend_rs = 1;
           end
-          4'b1000: begin     // MULT
-            depend_rs = 1;
-            depend_rt = 1;
-            d2pc_out_rd_we = 1;
-          end
-          4'b1001: begin     // DIV
+          COPROC_OP_MULT: begin
             depend_rs = 1;
             depend_rt = 1;
             d2pc_out_rd_we = 1;
           end
-          4'b1010: begin     // MFHI
+          COPROC_OP_DIV: begin
+            depend_rs = 1;
+            depend_rt = 1;
             d2pc_out_rd_we = 1;
           end
-          4'b1011: begin     // MTHI
+          COPROC_OP_MFHI: begin
+            d2pc_out_rd_we = 1;
+          end
+          COPROC_OP_MTHI: begin
             depend_rs = 1;
           end
           default: begin

@@ -33,7 +33,7 @@ module MCPU_core(/*AUTOARG*/
    mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
    mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
    dtlb_addr1, dtlb_re0, dtlb_re1, dtlb_is_write0, dtlb_is_write1,
-   paging_on, pagedir_base, user_mode, tlb_clear, r0,
+   paging_on, pagedir_base, user_mode, tlb_clear, il1c_flush, r0,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
    mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
@@ -93,6 +93,8 @@ module MCPU_core(/*AUTOARG*/
   output [19:0]  pagedir_base;
   output 	 user_mode;
   output 	 tlb_clear;
+  output 	 il1c_flush;
+  // TODO: dl1c_flush as well.
 
   output [31:0]  r0;
 
@@ -158,6 +160,7 @@ module MCPU_core(/*AUTOARG*/
   wire			dep_stall1;		// From d1 of MCPU_CORE_decode.v
   wire			dep_stall2;		// From d2 of MCPU_CORE_decode.v
   wire			dep_stall3;		// From d3 of MCPU_CORE_decode.v
+  wire			dl1c_flush;		// From coproc of MCPU_CORE_coproc.v
   wire			dtlb_ready_in0;		// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_ready_in1;		// From stage_dtlb1 of MCPU_CORE_stage_dtlb.v
   wire			dtlb_ready_out0;	// From stage_dtlb0 of MCPU_CORE_stage_dtlb.v
@@ -321,7 +324,7 @@ module MCPU_core(/*AUTOARG*/
 
   //unimplemented control inputs
 
-  assign pipe_flush = (pc_valid_out | exception) & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
+  assign pipe_flush = (pc_valid_out | exception | il1c_flush) & ((d2pc_in_oper_type0 == OPER_TYPE_BRANCH) | coproc_branch);
 
 
 
@@ -815,6 +818,8 @@ module MCPU_core(/*AUTOARG*/
 			  .coproc_branch	(coproc_branch),
 			  .pagedir_base		(pagedir_base[19:0]),
 			  .tlb_clear		(tlb_clear),
+			  .dl1c_flush		(dl1c_flush),
+			  .il1c_flush		(il1c_flush),
 			  // Inputs
 			  .clkrst_core_clk	(clkrst_core_clk),
 			  .clkrst_core_rst_n	(clkrst_core_rst_n),

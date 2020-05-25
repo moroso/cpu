@@ -50,6 +50,7 @@ module TB_MCPU_core(/*AUTOARG*/
   wire			f2ic_valid;		// From core of MCPU_core.v
   wire [127:0]		ic2d_packet;		// From mem of MCPU_mem.v
   wire			ic2f_ready;		// From mem of MCPU_mem.v
+  wire			il1c_flush;		// From core of MCPU_core.v
   wire			il1c_pf;		// From mem of MCPU_mem.v
   wire [24:0]		ltc2mc_avl_addr_0;	// From mem of MCPU_mem.v
   wire [15:0]		ltc2mc_avl_be_0;	// From mem of MCPU_mem.v
@@ -154,6 +155,7 @@ module TB_MCPU_core(/*AUTOARG*/
 	       .dtlb_re_a		(dtlb_re_a),
 	       .dtlb_re_b		(dtlb_re_b),
 	       .il1c_addr		(f2ic_vaddr[27:0]),	 // Templated
+	       .il1c_flush		(il1c_flush),
 	       .il1c_re			(f2ic_valid),		 // Templated
 	       .ltc2mc_avl_rdata_0	(ltc2mc_avl_rdata_0[127:0]),
 	       .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
@@ -207,6 +209,7 @@ module TB_MCPU_core(/*AUTOARG*/
 		 .pagedir_base		(ptw_pagedir_base[19:0]), // Templated
 		 .user_mode		(user_mode),
 		 .tlb_clear		(tlb_clear),
+		 .il1c_flush		(il1c_flush),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),

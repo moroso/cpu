@@ -85,6 +85,7 @@ module MCPU_int(/*AUTOARG*/
   wire [127:0]		ic2d_packet;		// From mem of MCPU_mem.v
   wire			ic2d_pf;		// From mem of MCPU_mem.v
   wire			ic2f_ready;		// From mem of MCPU_mem.v
+  wire			il1c_flush;		// From core of MCPU_core.v
   wire [31:0]		mem2dc_data_in0;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in1;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_out0;	// From core of MCPU_core.v
@@ -180,6 +181,7 @@ module MCPU_int(/*AUTOARG*/
 	       .dtlb_re_a		(dtlb_re_a),
 	       .dtlb_re_b		(dtlb_re_b),
 	       .il1c_addr		(f2ic_vaddr[27:0]),	 // Templated
+	       .il1c_flush		(il1c_flush),
 	       .il1c_re			(f2ic_valid),		 // Templated
 	       .ltc2mc_avl_rdata_0	(ltc2mc_avl_rdata_0[127:0]),
 	       .ltc2mc_avl_rdata_valid_0(ltc2mc_avl_rdata_valid_0),
@@ -242,6 +244,7 @@ module MCPU_int(/*AUTOARG*/
 		 .pagedir_base		(ptw_pagedir_base[19:0]), // Templated
 		 .user_mode		(user_mode),
 		 .tlb_clear		(tlb_clear),
+		 .il1c_flush		(il1c_flush),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
