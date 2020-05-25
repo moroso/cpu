@@ -1,6 +1,8 @@
 // Note: we can eliminate a few packets in this by changing the register
 // allocation. It's not necessarily worth doing so; it would certainly
 // make it less readable.
+
+{ b self_copy; }
 {
   r30 <- long; long 0x80003000; // SD peripheral address.
   r0 <- 4; // SD speed
@@ -9,7 +11,7 @@
 {
   *l(r30 + 0) <- r0; // Set speed
   *l(r30 + 4) <- r1; // 4 data wires
-  r26 <- 0x2000; // Destination
+  r26 <- 0x0; // Destination
   r0 <- 0;
 }
 
@@ -64,19 +66,35 @@ init_loop:
 { *l(r30 + 16) <- r1; *l(r30 + 12) <- r2; r2 <- 10; }
 { bl wait_sd; *l(r28) <- r2; }
 
-// Card initialized. Ready to start transfer.
-{ r0 <- 0; r1 <- long; long 0x12811; }
-{ *l(r30 + 16) <- r0; *l(r30 + 12) <- r1; r2 <- 11; }
-{ bl wait_sd; *l(r28) <- r2; }
+{ r9 <- 0; r10 <- 0; }
+card_copy_loop:
+  // Card initialized. Ready to start transfer.
+  { bl sd_data_read; r0 <- r9; r9 <- r9 + 1; }
+  { bl sd_data_copy; r0 <- r26 + r10; r10 <- r10 + 0x200; }
+  // Change this to change how much data we copy, in 512-byte increments.
+  // It's small for now, but later we'll at least want it large enough
+  // for the kernel--or we'll want a boot record on the card telling us
+  // how many pages to load.
+  { p0 <- r9 < 4; }
+  { p0? b card_copy_loop; }
 
-{ r1 <- 0x80; r2 <- r26; r29 <- long; long 0x80003800; } // Data region
-cpy_loop:
-  { r0 <- *l(r29); r1 <- r1 - 1; }
-  { *l(r2) <- r0; r29 <- r29 + 4; r2 <- r2 + 4; p0 <- r1 == 0;}
-  { !p0? b cpy_loop; }
+{ flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.
 
 { b r26; }
 { b fail; }
+
+sd_data_read:
+  { r1 <- long; long 0x12811; }
+  { *l(r30 + 16) <- r0; *l(r30 + 12) <- r1; r2 <- 11; }
+  { b wait_sd; *l(r28) <- r2; }
+
+sd_data_copy:
+  { r1 <- 0x80; r2 <- r0; r29 <- long; long 0x80003800; } // Data region
+  cpy_loop:
+    { r0 <- *l(r29); r1 <- r1 - 1; }
+    { *l(r2) <- r0; r29 <- r29 + 4; r2 <- r2 + 4; p0 <- r1 == 0;}
+    { !p0? b cpy_loop; }
+  { bl r31 + 1; }
 
 wait_sd:
   { r0 <- *l(r30 + 8); }
@@ -96,3 +114,15 @@ fail:
   { r0 <- r0 | 0x20000; }
   { *l(r28) <- r0; }
   { b fail; }
+
+// Get the bootloader out of the way. Put it right at the end of
+// memory, so that we can copy the target program to 0.
+self_copy:
+  { r0 <- 0x0; r1 <- long; long 0x1ffff000; r2 <- 0x400; }
+  { r7 <- r1; }
+  self_copy_loop:
+    { r3 <- *l(r0); r2 <- r2 - 1; r0 <- r0 + 4; p0 <- r2 == 1; }
+    { !p0? b self_copy_loop; *l(r1) <- r3; r1 <- r1 + 4; }
+  { flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.
+
+  { b r7 + 1; }

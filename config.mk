@@ -57,7 +57,9 @@ RTL_INC = \
 	rtl/core/exn_codes.vh \
 	rtl/core/coproc_ops.vh
 
-BOOTROM_ASM = boot/serial_bootloader.ma
+# Select the bootloader here. By default, boot off the SD card.
+BOOTROM_ASM = boot/sd_bootloader.ma
+#BOOTROM_ASM = boot/serial_bootloader.ma
 
 SIM_TOP_FILE = mcpu.v
 SIM_TOP_NAME = mcpu

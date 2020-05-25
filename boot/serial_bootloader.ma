@@ -1,9 +1,8 @@
 /* Simple serial first-stage bootloader for Moroso.
  * Does no verification or anything of the downloaded program; once
  * it gets as many bytes as it expects, it jumps to the program to
- * start executing it. The program is always loaded into 0x1000, and
- * (right now) is limited to 255 packets (but that won't be a difficult
- * limitation to remove).
+ * start executing it. The program is limited to 255 packets right now,
+ * but that won't be a difficult limitation to remove.
  *
  * The protocol ("B" is bootloader, "H" is host) is:
  *  - B -> H: "MBOOT"
@@ -12,10 +11,9 @@
  *    - B -> H: number of packets expected *after* this one (single byte)
  *    - H -> B: packet contents (16 bytes)
  *  - B -> H: "DONE"
- *
- * Assemble this with "mas --fmt bootrom serial_bootloader.ma -o bootrom.hex"
- * and put bootrom.hex in the root of the repo.
  */
+
+{ b self_copy; }
 
 /* r29 will always point to the serial port's memory area.
  * r28 is the next address to write to.
@@ -24,10 +22,9 @@
 {
   r29 <- long; long 0x80001000; // Serial port base address
   r11 <- 0b00100; // Value to write to serial status register
-  r28 <- 0x1000; // Destination address (at which to store the program).
-                 // Note (if you change this): appears again below.
+  r28 <- 0x0; // Destination address (at which to store the program).
 }
-{ r26 <- 0x80000000; r0 <- 1; }
+{ r26 <- 0x80000000; r0 <- 1; r25 <- r28; }
 { *l(r26) <- r0; }
 {
   bl write_uart;
@@ -43,11 +40,12 @@ outer_loop:
   { bl read_packet; r27 <- r27 - 1; }
   { p0 <- r27 == 0; }
   { !p0? b outer_loop; }
+{ flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.
 { bl write_uart; r0 <- 'D'; }
 { bl write_uart; r0 <- 'O'; }
 { bl write_uart; r0 <- 'N'; }
-{ bl write_uart; r0 <- 'E'; r28 <- 0x1000; }
-{ b r28; }
+{ bl write_uart; r0 <- 'E'; }
+{ b r25; }
 
 // Note: the functions here don't save any registers. Beware of that if
 // you update anything here, or try to use these functions elsewhere.
@@ -85,3 +83,14 @@ write_uart:
 err:
   { r0 <- 0x80000000; r1 <- long; long 0x555; }
   { b err; *l(r0) <- r1; }
+
+// Get the bootloader out of the way. Put it right at the end of
+// memory, so that we can copy the target program to 0.
+self_copy:
+  { r0 <- 0x0; r1 <- long; long 0x1ffff000; r2 <- 0x200; }
+  { r7 <- r1; }
+  self_copy_loop:
+    { r3 <- *l(r0); r2 <- r2 - 1; r0 <- r0 + 4; p0 <- r2 == 1; }
+    { !p0? b self_copy_loop; *l(r1) <- r3; r1 <- r1 + 4; }
+  { flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.
+  { b r7 + 1; }
