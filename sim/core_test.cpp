@@ -98,7 +98,6 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
       break;
     }
     pos += 1;
-    printf("%d\n", pos);
   }
 
   fclose(romf);
@@ -183,7 +182,7 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
   fscanf(regsf, "pc 0x%x r {", &expected_pc);
 
   SIM_ASSERT_MSG((pc + 1) << 4 == expected_pc,
-                 "PC mismatch: 0x%x != 0x%x",
+                 "PC mismatch: actual 0x%x != expected 0x%x",
                  (pc + 1) << 4, expected_pc);
 
   for (int i = 0; i < 32; i++) {
