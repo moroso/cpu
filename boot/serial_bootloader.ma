@@ -1,15 +1,13 @@
 /* Simple serial first-stage bootloader for Moroso.
  * Does no verification or anything of the downloaded program; once
  * it gets as many bytes as it expects, it jumps to the program to
- * start executing it. The program is limited to 255 packets right now,
- * but that won't be a difficult limitation to remove.
+ * start executing it. The program is limited to 64k packets (about 1/2
+ * megabyte).
  *
  * The protocol ("B" is bootloader, "H" is host) is:
  *  - B -> H: "MBOOT"
- *  - H -> B: number of packets to send (single byte)
- *  - For each packet:
- *    - B -> H: number of packets expected *after* this one (single byte)
- *    - H -> B: packet contents (16 bytes)
+ *  - H -> B: number of packets to send (two bytes, MSB first)
+ *  - H -> B: packet data
  *  - B -> H: "DONE"
  */
 
@@ -34,8 +32,10 @@
 { bl write_uart; r0 <- 'O'; }
 { bl write_uart; r0 <- 'O'; }
 { bl write_uart; r0 <- 'T'; }
+// Read the length, MSB first.
 { bl read_uart; }
-{ r27 <- r0; }
+{ bl read_uart; r24 <- r0; }
+{ r27 <- r0 + (r24 << 8); }
 outer_loop:
   { bl read_packet; r27 <- r27 - 1; }
   { p0 <- r27 == 0; }
@@ -51,7 +51,6 @@ outer_loop:
 // you update anything here, or try to use these functions elsewhere.
 read_packet:
   { r3 <- 15; r10 <- r31; } // Note: one less than the number of bytes to read.
-  { bl write_uart; r0 <- r27; }
   read_packet_loop:
     { bl read_uart; }
     { *l(r26) <- r0; }

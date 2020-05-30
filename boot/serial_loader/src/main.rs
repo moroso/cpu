@@ -92,12 +92,12 @@ fn print_packet(packet: &[u8]) {
 
 fn send_program(port: &mut TTYPort, prog: &[u8]) {
     let num_packets = prog.len() / 16;
+    port.write(&[(num_packets >> 8) as u8]).unwrap();
     port.write(&[num_packets as u8]).unwrap();
 
-    let mut remaining_packets = num_packets as u8;
+    let mut remaining_packets = num_packets as u16;
     for i in 0..num_packets {
         remaining_packets -= 1;
-        assert_eq!(readchar(port), remaining_packets);
 
         print!("Writing packet {}: ", i);
         print_packet(&prog[i * 16..(i+1)*16]);
