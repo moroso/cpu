@@ -28,6 +28,7 @@ public:
   VMCPU_int *tb;
   Cmod_MCPU_MEM_mc *mc;
   Cmod_MCPU_MEM_mc_ports *mc_ports;
+  uint32_t counter;
 
   CoreTest() {
     mc_ports = new Cmod_MCPU_MEM_mc_ports();
@@ -38,6 +39,11 @@ public:
   }
 
   void clk_(bool trace) {
+    uint32_t t = Sim::main_time;
+    if ((t % 8) == 0)
+      tb->clkrst_audio_clk = 0;
+    if ((t % 8) == 4)
+      tb->clkrst_audio_clk = 1;
     tb->clkrst_core_clk = 0;
     tb->clkrst_mem_clk = 0;
     tb->eval();
@@ -91,11 +97,15 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
   if (!romf) {
     SIM_FATAL("Cannot find ROM file");
   }
-  int pos = 0;
+
+  uint32_t pos = 0;
   while (!feof(romf)) {
-    // TODO: check overflow and all that.
-    if (fread(t->tb->MCPU_int->mem->preload_inst->rom[pos], 4, 8, romf) == 0) {
+    uint8_t buf[16];
+    if (fread(buf, 16, 1, romf) == 0) {
       break;
+    }
+    for (int i = 0; i < 16; i++) {
+      t->mc->set(pos * 16 + i, buf[i]);
     }
     pos += 1;
   }
@@ -106,6 +116,7 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
 
   t->clk();
 
+  t->tb->MCPU_int->mem->preload_inst->loading = 0; // Disable the preloader.
   t->tb->clkrst_core_rst_n = 1;
   t->tb->clkrst_mem_rst_n = 1;
 

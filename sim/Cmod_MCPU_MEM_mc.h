@@ -60,6 +60,10 @@ class Cmod_MCPU_MEM_mc {
 public:
 	Cmod_MCPU_MEM_mc(Cmod_MCPU_MEM_mc_ports *_ports);
 
+  void set(uint32_t addr, uint8_t b) {
+    memory[addr] = b;
+  }
+
 	void clk();
 };
 
