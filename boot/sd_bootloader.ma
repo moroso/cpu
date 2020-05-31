@@ -75,7 +75,7 @@ card_copy_loop:
   // It's small for now, but later we'll at least want it large enough
   // for the kernel--or we'll want a boot record on the card telling us
   // how many pages to load.
-  { p0 <- r9 < 4; }
+  { p0 <- r9 < 32; }
   { p0? b card_copy_loop; }
 
 { flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.

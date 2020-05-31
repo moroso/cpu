@@ -42,8 +42,9 @@ module i2c_internal(
   wire 	     start_bit_tick = read_bit_tick;
   reg 	     latch_inputs;
   reg 	     clock_force_low;
+  reg 	     clock_force_high;
 
-  wire 	     clkout = ~phase[1] & ~clock_force_low;
+  wire 	     clkout = ~phase[1] & ~clock_force_low | clock_force_high;
 
 `ifdef VERILATOR
   assign scl = clkout;
@@ -89,6 +90,7 @@ module i2c_internal(
      update_out_bit = output_bit_tick;
      read_bit = 0;
      clock_force_low = 0;
+     clock_force_high = 0;
 
      case (state)
        ST_IDLE: begin
@@ -162,6 +164,7 @@ module i2c_internal(
        end
        ST_SEND_ACK: begin
 	  output_bit = 0;
+	  clock_force_high = 1;
 	  if (end_cond_1a) begin
 	     next_state = ST_STOP_BIT;
 	  end else begin
@@ -285,13 +288,13 @@ endmodule // i2c_internal_tb
 `endif
 
 module MCPU_SOC_i2c(/*AUTOARG*/
-   // Outputs
-   data_out, scl,
-   // Inouts
-   sda,
-   // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, addr, data_in, write_en
-   );
+  // Outputs
+  data_out, scl,
+  // Inouts
+  sda,
+  // Inputs
+  clkrst_core_clk, clkrst_core_rst_n, addr, data_in, write_en
+  );
 
   // mmio interface
   input        clkrst_core_clk, clkrst_core_rst_n;

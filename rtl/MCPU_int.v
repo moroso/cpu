@@ -7,18 +7,19 @@
  */
 
 module MCPU_int(/*AUTOARG*/
-   // Outputs
-   ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
-   ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
-   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
-   ext_i2c_scl, ext_sd_clk, r0, pre2core_done,
-   // Inouts
-   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
-   // Inputs
-   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
-   ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
-   clkrst_core_clk, ext_uart_rx, clkrst_core_rst_n
-   );
+  // Outputs
+  ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
+  ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
+  ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
+  ext_i2c_scl, ext_sd_clk, ext_audio_bclk, ext_audio_mclk,
+  ext_audio_data, ext_audio_lrclk, r0, pre2core_done,
+  // Inouts
+  ext_i2c_sda, ext_sd_cmd, ext_sd_data,
+  // Inputs
+  ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
+  ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
+  clkrst_core_clk, ext_uart_rx, clkrst_audio_clk, clkrst_core_rst_n
+  );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
   input			clkrst_core_clk;	// To mmio of MCPU_SOC_mmio.v, ...
@@ -51,6 +52,12 @@ module MCPU_int(/*AUTOARG*/
   inout 	ext_sd_cmd;
   inout [3:0] 	ext_sd_data;
   output 	ext_sd_clk;
+
+  input 	clkrst_audio_clk;
+  output 	ext_audio_bclk;
+  output 	ext_audio_mclk;
+  output 	ext_audio_data;
+  output 	ext_audio_lrclk;
 
   // For debugging and stuff.
   output [31:0] r0;
@@ -203,6 +210,10 @@ module MCPU_int(/*AUTOARG*/
 		     .ext_uart_tx	(ext_uart_tx),
 		     .ext_i2c_scl	(ext_i2c_scl),
 		     .ext_sd_clk	(ext_sd_clk),
+		     .ext_audio_bclk	(ext_audio_bclk),
+		     .ext_audio_mclk	(ext_audio_mclk),
+		     .ext_audio_data	(ext_audio_data),
+		     .ext_audio_lrclk	(ext_audio_lrclk),
 		     // Inouts
 		     .ext_i2c_sda	(ext_i2c_sda),
 		     .ext_sd_cmd	(ext_sd_cmd),
@@ -210,6 +221,7 @@ module MCPU_int(/*AUTOARG*/
 		     // Inputs
 		     .clkrst_core_clk	(clkrst_core_clk),
 		     .clkrst_core_rst_n	(clkrst_core_rst_n),
+		     .clkrst_audio_clk	(clkrst_audio_clk),
 		     .ext_switches	(ext_switches[9:0]),
 		     .ext_buttons	(ext_buttons[3:0]),
 		     .ext_uart_rx	(ext_uart_rx));

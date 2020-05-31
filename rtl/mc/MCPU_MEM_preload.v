@@ -47,7 +47,7 @@ module MCPU_MEM_preload(/*AUTOARG*/
         	$readmemh(ROM_FILE, rom);
 	
 	reg [31 : 0] romad;
-	reg loading;
+	reg loading /* verilator public */;
 	
 	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n) begin
 		if (!clkrst_mem_rst_n) begin

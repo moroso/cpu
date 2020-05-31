@@ -1,15 +1,17 @@
 module MCPU_SOC_mmio(/*AUTOARG*/
-   // Outputs
-   data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
-   ext_sd_clk,
-   // Inouts
-   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
-   // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, data_in, addr, wren,
-   ext_switches, ext_buttons, ext_uart_rx
-   );
+  // Outputs
+  data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
+  ext_sd_clk, ext_audio_bclk, ext_audio_mclk, ext_audio_data,
+  ext_audio_lrclk,
+  // Inouts
+  ext_i2c_sda, ext_sd_cmd, ext_sd_data,
+  // Inputs
+  clkrst_core_clk, clkrst_core_rst_n, clkrst_audio_clk, data_in, addr,
+  wren, ext_switches, ext_buttons, ext_uart_rx
+  );
 
   input clkrst_core_clk, clkrst_core_rst_n;
+  input clkrst_audio_clk;
 
   input [31:0] data_in;
   input [30:2] addr;
@@ -31,15 +33,21 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   inout [3:0] 	    ext_sd_data;
   output 	    ext_sd_clk;
 
+  output ext_audio_bclk;
+  output ext_audio_mclk;
+  output ext_audio_data;
+  output ext_audio_lrclk;
+
   wire [31:0] 	    write_mask;
   assign write_mask = {{8{wren[3]}},{8{wren[2]}},{8{wren[1]}},{8{wren[0]}}};
 
-  reg 		    is_ledsw, is_uart, is_i2c, is_sd;
+  reg 		    is_ledsw, is_uart, is_i2c, is_sd, is_audio;
 
   wire [31:0] 	    uart_read_val, i2c_read_val;
 
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
+  wire [31:0]		audio_read_val;		// From audio_mod of MCPU_SOC_audio.v
   wire [31:0]		ledsw_data_out;		// From ledsw_mod of MCPU_SOC_ledsw.v
   wire [31:0]		sd_read_val;		// From sd_mod of MCPU_SOC_sd.v
   // End of automatics
@@ -49,6 +57,7 @@ module MCPU_SOC_mmio(/*AUTOARG*/
      is_uart = 0;
      is_i2c = 0;
      is_sd = 0;
+     is_audio = 0;
      data_out = 32'bx;
 
      case(addr[30:12])
@@ -64,9 +73,13 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 	  is_i2c = 1;
 	  data_out = i2c_read_val;
        end
-       19'd3: begin
+       19'd3: begin // SD
 	  is_sd = 1;
 	  data_out = sd_read_val;
+       end
+       19'd4: begin // Audio
+	  is_audio = 1;
+	  data_out = audio_read_val;
        end
      endcase // addr[28:12]
   end
@@ -142,6 +155,25 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 		     .addr		(addr[11:2]),		 // Templated
 		     .write_en		(is_sd & |wren[3:0]),	 // Templated
 		     .write_val		(data_in[31:0]));	 // Templated
+
+  /* MCPU_SOC_audio AUTO_TEMPLATE(
+   .write_mask(is_audio ? write_mask[] : 32'h0),
+   .data_out(audio_read_val[]),
+   .addr(addr[11:2]));*/
+  MCPU_SOC_audio audio_mod(/*AUTOINST*/
+			   // Outputs
+			   .ext_audio_mclk	(ext_audio_mclk),
+			   .ext_audio_bclk	(ext_audio_bclk),
+			   .ext_audio_data	(ext_audio_data),
+			   .ext_audio_lrclk	(ext_audio_lrclk),
+			   .data_out		(audio_read_val[31:0]), // Templated
+			   // Inputs
+			   .clkrst_core_clk	(clkrst_core_clk),
+			   .clkrst_core_rst_n	(clkrst_core_rst_n),
+			   .clkrst_audio_clk	(clkrst_audio_clk),
+			   .addr		(addr[11:2]),	 // Templated
+			   .data_in		(data_in[31:0]),
+			   .write_mask		(is_audio ? write_mask[31:0] : 32'h0)); // Templated
 
 endmodule
 

@@ -14,6 +14,7 @@ RTL_COMMON = \
 	rtl/core/MCPU_CORE_stage_mem.v \
 	rtl/core/MCPU_core.v \
 	rtl/lib/FIFO.v \
+	rtl/lib/clkdomain_buf.v \
 	rtl/lib/dp_bram.v \
 	rtl/lib/reg_2.v \
 	rtl/lib/register.v \
@@ -31,6 +32,7 @@ RTL_COMMON = \
 	rtl/mcpu.v \
 	rtl/soc/crc7.v \
 	rtl/soc/crc16.v \
+	rtl/soc/MCPU_SOC_audio.v \
 	rtl/soc/MCPU_SOC_i2c.v \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
