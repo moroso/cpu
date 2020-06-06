@@ -12,7 +12,9 @@ module MCPU_int(/*AUTOARG*/
   ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
   ext_i2c_scl, ext_sd_clk, ext_audio_bclk, ext_audio_mclk,
-  ext_audio_data, ext_audio_lrclk, r0, pre2core_done,
+  ext_audio_data, ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync,
+  ext_hdmi_vsync, ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b, r0,
+  pre2core_done,
   // Inouts
   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
   // Inputs
@@ -58,6 +60,14 @@ module MCPU_int(/*AUTOARG*/
   output 	ext_audio_mclk;
   output 	ext_audio_data;
   output 	ext_audio_lrclk;
+
+  output 	    ext_hdmi_clk;
+  output 	    ext_hdmi_hsync;
+  output 	    ext_hdmi_vsync;
+  output 	    ext_hdmi_de;
+  output [7:0] 	    ext_hdmi_r;
+  output [7:0] 	    ext_hdmi_g;
+  output [7:0] 	    ext_hdmi_b;
 
   // For debugging and stuff.
   output [31:0] r0;
@@ -214,6 +224,13 @@ module MCPU_int(/*AUTOARG*/
 		     .ext_audio_mclk	(ext_audio_mclk),
 		     .ext_audio_data	(ext_audio_data),
 		     .ext_audio_lrclk	(ext_audio_lrclk),
+		     .ext_hdmi_clk	(ext_hdmi_clk),
+		     .ext_hdmi_hsync	(ext_hdmi_hsync),
+		     .ext_hdmi_vsync	(ext_hdmi_vsync),
+		     .ext_hdmi_de	(ext_hdmi_de),
+		     .ext_hdmi_r	(ext_hdmi_r[7:0]),
+		     .ext_hdmi_g	(ext_hdmi_g[7:0]),
+		     .ext_hdmi_b	(ext_hdmi_b[7:0]),
 		     // Inouts
 		     .ext_i2c_sda	(ext_i2c_sda),
 		     .ext_sd_cmd	(ext_sd_cmd),

@@ -23,7 +23,7 @@ module i2c_internal(
   localparam ST_SEND_ACK = 6;
   localparam ST_STOP_BIT = 7;
   localparam STATE_BITS = 3;
-  localparam ctr_max = 32'hf; // TODO
+  localparam ctr_max = 32'hff; // TODO
 
   reg  out;
 

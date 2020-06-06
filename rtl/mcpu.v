@@ -33,15 +33,18 @@ endmodule
 module mcpu(/*AUTOARG*/
   // Outputs
   LEDG, LEDR, UART_TX, SD_CLK, GPIO, AUD_XCK, AUD_DACLRCK, AUD_DACDAT,
-  AUD_BCLK, pad_mem_ca, pad_mem_ck, pad_mem_ck_n, pad_mem_cke,
+  AUD_BCLK, HDMI_TX_HS, HDMI_TX_VS, HDMI_TX_DE, HDMI_TX_CLK,
+  HDMI_TX_D, pad_mem_ca, pad_mem_ck, pad_mem_ck_n, pad_mem_cke,
   pad_mem_cs_n, pad_mem_dm,
   // Inouts
   I2C_SDA, I2C_SCL, SD_CMD, SD_DAT, pad_mem_dq, pad_mem_dqs,
   pad_mem_dqs_n,
   // Inputs
-  pad_clk125, in_rst_n, SW, KEY, UART_RX, pad_mem_oct_rzqin
+  pad_clk125, pad_clk50, in_rst_n, SW, KEY, UART_RX, HDMI_TX_INT,
+  pad_mem_oct_rzqin
   );
   input        pad_clk125;
+  input        pad_clk50;
   input        in_rst_n;
   output [7:0] LEDG;
   output [9:0] LEDR;
@@ -64,6 +67,13 @@ module mcpu(/*AUTOARG*/
   output 	AUD_DACLRCK;
   output 	AUD_DACDAT;
   output 	AUD_BCLK;
+
+  output 	HDMI_TX_HS;
+  output 	HDMI_TX_VS;
+  output 	HDMI_TX_DE;
+  output 	HDMI_TX_CLK;
+  output [23:0] HDMI_TX_D;
+  input 	HDMI_TX_INT;
 
   output [9:0] pad_mem_ca;
   output [0:0] pad_mem_ck;
@@ -89,6 +99,13 @@ module mcpu(/*AUTOARG*/
 	wire		ext_audio_data;		// From u_int of MCPU_int.v
 	wire		ext_audio_lrclk;	// From u_int of MCPU_int.v
 	wire		ext_audio_mclk;		// From u_int of MCPU_int.v
+	wire [7:0]	ext_hdmi_b;		// From u_int of MCPU_int.v
+	wire		ext_hdmi_clk;		// From u_int of MCPU_int.v
+	wire		ext_hdmi_de;		// From u_int of MCPU_int.v
+	wire [7:0]	ext_hdmi_g;		// From u_int of MCPU_int.v
+	wire		ext_hdmi_hsync;		// From u_int of MCPU_int.v
+	wire [7:0]	ext_hdmi_r;		// From u_int of MCPU_int.v
+	wire		ext_hdmi_vsync;		// From u_int of MCPU_int.v
 	wire [7:0]	ext_led_g;		// From u_int of MCPU_int.v
 	wire [9:0]	ext_led_r;		// From u_int of MCPU_int.v
 	wire		ext_uart_tx;		// From u_int of MCPU_int.v
@@ -123,6 +140,15 @@ module mcpu(/*AUTOARG*/
   assign AUD_DACLRCK = ext_audio_lrclk;
   assign AUD_DACDAT = ext_audio_data;
 
+  assign HDMI_TX_HS = ext_hdmi_hsync;
+  assign HDMI_TX_VS = ext_hdmi_vsync;
+  assign HDMI_TX_DE = ext_hdmi_de;
+  assign HDMI_TX_CLK = ext_hdmi_clk;
+  assign HDMI_TX_D = {ext_hdmi_r, ext_hdmi_g, ext_hdmi_b};
+
+  //assign GPIO[0] = clkrst_video_clk;
+  assign GPIO[1:0] = {I2C_SDA, I2C_SCL};
+
 
   wire 			clkrst_core_rst_n;
   wire 			clkrst_mem_rst_n;
@@ -134,18 +160,22 @@ module mcpu(/*AUTOARG*/
   wire 		   clkrst_mem_clk = clk50;
   wire 		   mc_pll_ref;
   wire 		   clkrst_audio_clk;
+  wire 		   clkrst_video_clk = clk50;
 
 `ifndef SIM
   // Note: ideally the audio clock would be 11.28960 MHz, but
   // 11.290322 is what we can get. Apologies to the audiophiles
   // for the 64ppm difference.
-  MCPU_pll  #(.OUT_FREQUENCY0("50.00000 MHz"), .OUT_FREQUENCY1("11.290322 MHz")) u_pll(
-						    .pad_clk125(pad_clk125),
-						    .rst(0),
-						    .outclk_0(clk50),
-						    .outclk_1(clkrst_audio_clk),
-						    .locked()
-						    );
+  MCPU_pll  #(
+	      .OUT_FREQUENCY0("50.00000 MHz"),
+	      .OUT_FREQUENCY1("11.290322 MHz")
+	      ) u_pll(
+		      .pad_clk125(pad_clk125),
+		      .rst(0),
+		      .outclk_0(clk50),
+		      .outclk_1(clkrst_audio_clk),
+		      .locked()
+		      );
 
   assign clkrst_core_rst_n = in_rst_n & mc_ready & KEY[0];
   assign clkrst_mem_rst_n = in_rst_n;
@@ -206,6 +236,13 @@ module mcpu(/*AUTOARG*/
 		 .ext_audio_mclk	(ext_audio_mclk),
 		 .ext_audio_data	(ext_audio_data),
 		 .ext_audio_lrclk	(ext_audio_lrclk),
+		 .ext_hdmi_clk		(ext_hdmi_clk),
+		 .ext_hdmi_hsync	(ext_hdmi_hsync),
+		 .ext_hdmi_vsync	(ext_hdmi_vsync),
+		 .ext_hdmi_de		(ext_hdmi_de),
+		 .ext_hdmi_r		(ext_hdmi_r[7:0]),
+		 .ext_hdmi_g		(ext_hdmi_g[7:0]),
+		 .ext_hdmi_b		(ext_hdmi_b[7:0]),
 		 .r0			(r0[31:0]),
 		 .pre2core_done		(pre2core_done),
 		 // Inouts

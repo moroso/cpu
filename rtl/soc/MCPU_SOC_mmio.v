@@ -2,7 +2,8 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   // Outputs
   data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
   ext_sd_clk, ext_audio_bclk, ext_audio_mclk, ext_audio_data,
-  ext_audio_lrclk,
+  ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync,
+  ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b,
   // Inouts
   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
   // Inputs
@@ -33,10 +34,18 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   inout [3:0] 	    ext_sd_data;
   output 	    ext_sd_clk;
 
-  output ext_audio_bclk;
-  output ext_audio_mclk;
-  output ext_audio_data;
-  output ext_audio_lrclk;
+  output 	    ext_audio_bclk;
+  output 	    ext_audio_mclk;
+  output 	    ext_audio_data;
+  output 	    ext_audio_lrclk;
+
+  output 	    ext_hdmi_clk;
+  output 	    ext_hdmi_hsync;
+  output 	    ext_hdmi_vsync;
+  output 	    ext_hdmi_de;
+  output [7:0] 	    ext_hdmi_r;
+  output [7:0] 	    ext_hdmi_g;
+  output [7:0] 	    ext_hdmi_b;
 
   wire [31:0] 	    write_mask;
   assign write_mask = {{8{wren[3]}},{8{wren[2]}},{8{wren[1]}},{8{wren[0]}}};
@@ -175,6 +184,19 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 			   .data_in		(data_in[31:0]),
 			   .write_mask		(is_audio ? write_mask[31:0] : 32'h0)); // Templated
 
+
+  MCPU_SOC_video video_mod(/*AUTOINST*/
+			   // Outputs
+			   .ext_hdmi_clk	(ext_hdmi_clk),
+			   .ext_hdmi_hsync	(ext_hdmi_hsync),
+			   .ext_hdmi_vsync	(ext_hdmi_vsync),
+			   .ext_hdmi_de		(ext_hdmi_de),
+			   .ext_hdmi_r		(ext_hdmi_r[7:0]),
+			   .ext_hdmi_g		(ext_hdmi_g[7:0]),
+			   .ext_hdmi_b		(ext_hdmi_b[7:0]),
+			   // Inputs
+			   .clkrst_core_clk	(clkrst_core_clk),
+			   .clkrst_core_rst_n	(clkrst_core_rst_n));
 endmodule
 
 // Local Variables:
