@@ -99,11 +99,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
    ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
    ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
    ltc2mc_avl_write_req_0, arb2ltc_rdata, arb2ltc_rvalid,
-   arb2ltc_stall,
+   arb2ltc_stall, video2ltc_rvalid, video2ltc_rdata, video2ltc_stall,
    // Inputs
    clkrst_mem_clk, clkrst_mem_rst_n, ltc2mc_avl_rdata_0,
    ltc2mc_avl_rdata_valid_0, ltc2mc_avl_ready_0, arb2ltc_valid,
-   arb2ltc_opcode, arb2ltc_addr, arb2ltc_wdata, arb2ltc_wbe
+   arb2ltc_opcode, arb2ltc_addr, arb2ltc_wdata, arb2ltc_wbe,
+   video2ltc_re, video2ltc_addr
    );
 
 /* opcode parameters */
@@ -163,6 +164,14 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	output          arb2ltc_rvalid;
 	
 	output          arb2ltc_stall;
+
+	/* Video RAM interface */
+	input 					video2ltc_re;
+	input [28:7] 		video2ltc_addr;
+	output 					video2ltc_rvalid;
+	output [127:0] 	video2ltc_rdata;
+	output reg 			video2ltc_stall;
+
 	
 	/*** Logic ***/
 	
@@ -178,6 +187,8 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg [4:0]	ltc2mc_avl_size_0;
 	reg [127:0]	ltc2mc_avl_wdata_0;
 	reg		ltc2mc_avl_write_req_0;
+	reg [127:0]	video2ltc_rdata;
+	reg		video2ltc_rvalid;
 	// End of automatics
 	
 	/*** Request input pipe ***/
@@ -242,6 +253,10 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	 * using resp_addr and arb2ltc_addr if you don't need them.
 	 */
 	wire [31:5] addr_0a = resp_override_0a ? resp_addr_0a : arb2ltc_addr_0a;
+	wire [28:7] video2ltc_addr_0a = video2ltc_addr;
+
+	wire 		    video2ltc_re_0a = video2ltc_re;
+	wire [255:0] video_cache_rdata;
 	
 	/* We would use arb2ltc_addr to decide on the set, rather than addr,
 	 * because in LTCv1 the set that we're accessing is the same if
@@ -255,8 +270,10 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	 * XXX: LTCv1 still uses arb2ltc_addr to avoid circular logic path
 	 */
 	wire [SET_BITS-1 : 0] set_0a = arb2ltc_addr_0a[SET_UPPER:SET_LOWER];
+	wire [SET_BITS-1 : 0] video_set_0a = video2ltc_addr_0a[SET_UPPER:SET_LOWER];
 	
 	wire [SETS-1:0] set_valid_0a;
+	wire [SETS-1:0] video_set_valid_0a;
 	wire [SETS-1:0] set_dirty_0a;
 	reg  [255:0]    rd_data_1a;
 	reg             rd_valid_0a;
@@ -272,7 +289,16 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	/* XXX: Probably should have rd and wr split out. */
 	wire [WAYS_BITS - 1 : 0] set_way_0a [SETS-1:0];
 	wire [WAYS_BITS - 1 : 0] way_0a = set_way_0a[set_0a];
-	
+	wire [WAYS_BITS - 1 : 0] video_set_way_0a [SETS-1:0];
+	wire [WAYS_BITS - 1 : 0] video_way_0a = video_set_way_0a[video_set_0a];
+
+	reg 			 burst_read;
+	reg 			 burst_read_set;
+	reg 			 burst_read_clr;
+
+	reg [2:0]  video_ofs;
+	reg [2:0]  video_ofs_next;
+
 	genvar set;
 	genvar way;
 	genvar ii;
@@ -280,7 +306,9 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	generate
 		for (set = 0; set < SETS; set = set + 1) begin: set_gen
 			wire [WAYS-1:0] ways_match_0a;
+			wire [WAYS-1:0] video_ways_match_0a;
 			reg [WAYS_BITS-1:0] way_active_0a;
+			reg [WAYS_BITS-1:0] video_way_active_0a;
 			reg [WAYS-1:0] way_valid_0a;
 			reg [WAYS-1:0] way_dirty_0a;
 			reg [WAYS_BITS-1:0] way_evicting_0a;
@@ -301,11 +329,13 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					end
 				
 				assign ways_match_0a[way] = way_tag[way][TAG_UPPER:TAG_LOWER] == arb2ltc_addr_0a[TAG_UPPER:TAG_LOWER]; /* always from arb2ltc path, never from mc2ltc path */
+				assign video_ways_match_0a[way] = way_tag[way][TAG_UPPER:TAG_LOWER] == {3'b0, video2ltc_addr_0a[28:TAG_LOWER]};
 			end
 			assign set_evicting_tag_0a[set] = way_tag[way_evicting_0a];
 			
 			/* Way and RAM select logic */
 			assign set_valid_0a[set] = |(ways_match_0a & way_valid_0a);
+			assign video_set_valid_0a[set] = |(video_ways_match_0a & way_valid_0a);
 			always @(/*AUTOSENSE*/resp_override_0a
 				 or way_evicting_0a or way_valid_0a
 				 or ways_match_0a) begin
@@ -317,7 +347,14 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					way_active_0a = way_evicting_0a;
 			end
 			assign set_way_0a[set] = way_active_0a;
-			
+			always @(*) begin
+				video_way_active_0a = {WAYS_BITS{1'bx}};
+				for (i = 0; i < WAYS; i = i + 1)
+					if (video_ways_match_0a[i] && way_valid_0a[i])
+						video_way_active_0a = i[WAYS_BITS-1:0];
+			end
+			assign video_set_way_0a[set] = video_way_active_0a;
+
 			always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 				if (~clkrst_mem_rst_n) begin
 					way_dirty_0a <= {WAYS{1'b0}};
@@ -348,7 +385,11 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 				end
 		end
 	endgenerate
-	
+
+	wire [WAYS_BITS + SET_BITS + ATOM_BITS - 1:0] video_bram_addr =
+																								{video_set_0a, video_way_0a, video_ofs_next[2:1]};
+	wire video_addr_hit = (burst_read | burst_read_set | video2ltc_re) && video_set_valid_0a[video_set_0a];
+
 	/* Set read logic */
 	MCPU_MEM_LTC_bram #(
 		.DEPTH(WAYS * SETS * ATOMS_PER_LINE),
@@ -357,15 +398,18 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		u_bram(
 		.clkrst_mem_clk(clkrst_mem_clk),
 		
-		.raddr({set_0a, way_0a, addr_0a[ATOM_UPPER:ATOM_LOWER]}),
-		.re((set_valid_0a[set_0a] && arb2ltc_is_read_0a) || /* arb2ltc path */
+		.addr0({set_0a, way_0a, addr_0a[ATOM_UPPER:ATOM_LOWER]}),
+		.re0((set_valid_0a[set_0a] && arb2ltc_is_read_0a) || /* arb2ltc path */
 		    (resp_rd_0a)), /* mc2ltc flush path */
-		.rdata(line_rd_data_1a),
+		.rdata0(line_rd_data_1a),
+
+		.addr1(video_bram_addr),
+		.re1(video_addr_hit),
+		.rdata1(video_cache_rdata[255:0]),
 		
-		.wbe(({BYTES_IN_ATOM{(set_valid_0a[set_0a] && arb2ltc_is_write_0a)}} & arb2ltc_wbe_0a) | /* arb2ltc path */
+		.wbe0(({BYTES_IN_ATOM{(set_valid_0a[set_0a] && arb2ltc_is_write_0a)}} & arb2ltc_wbe_0a) | /* arb2ltc path */
 		     {BYTES_IN_ATOM{resp_wr_0a}}), /* mc2ltc refill path */
-		.waddr({set_0a, way_0a, addr_0a[ATOM_UPPER:ATOM_LOWER]}),
-		.wdata(resp_wr_0a ? resp_data_0a : arb2ltc_wdata_0a)
+		.wdata0(resp_wr_0a ? resp_data_0a : arb2ltc_wdata_0a)
 	);
 		
 	wire   miss_0a  = !set_valid_0a[arb2ltc_addr_0a[SET_UPPER:SET_LOWER]] && (arb2ltc_is_read_0a | arb2ltc_is_write_0a);
@@ -396,6 +440,12 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		arb2ltc_rdata = rd_data_1a;
 		arb2ltc_rvalid = rd_valid_1a;
 	end
+
+	/* Video burst logic */
+	always @(*) begin
+		video2ltc_rdata = video_addr_hit ? video_cache_rdata[{video_ofs[0], 7'h0} +: 128] : ltc2mc_avl_rdata_0;
+		video2ltc_rvalid = (ltc2mc_avl_rdata_valid_0 | video_addr_hit) & (burst_read | burst_read_set);
+	end
 	
 	/*** Memory controller state machine ***/
 	
@@ -403,6 +453,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	parameter MCSM_IDLE    = 2'b00;
 	parameter MCSM_WRITING = 2'b01;
 	parameter MCSM_READING = 2'b10;
+	parameter MCSM_BURST_READ = 2'b11;
 	
 	reg [1:0] mcsm;
 	reg [1:0] mcsm_next;
@@ -416,7 +467,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	reg       read_filling;
 	reg       read_filling_set;
 	reg       read_filling_clr;
-	
+
 	/* HACK HACK, this uses arb2ltc_addr directly, which will not work
 	 * when mcsm is handling queued prefetch and flush (or writethrough)
 	 * opcodes */
@@ -439,13 +490,22 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 		
 		resp_rd_0a = 1'b0;
 
+		burst_read_set = 1'b0;
+		video2ltc_stall = 1'b1;
+
 		case (mcsm)
 		MCSM_IDLE: begin
-			if (miss_0a && ~read_filling) begin /* wait to complete the fill, to avoid rerequesting */
-				mcsm_ofs_next = 3'd0;
-				mcsm_next = dirty_0a ? MCSM_WRITING : MCSM_READING;
-				if (dirty_0a)
-					resp_rd_0a = 1'b1;
+			if (~read_filling && ~burst_read) begin
+				video2ltc_stall = 1'b0;
+				if (video2ltc_re) begin
+					mcsm_ofs_next = 3'd0;
+					mcsm_next = MCSM_BURST_READ;
+				end else if (miss_0a && ~read_filling) begin /* wait to complete the fill, to avoid rerequesting */
+					mcsm_ofs_next = 3'd0;
+					mcsm_next = dirty_0a ? MCSM_WRITING : MCSM_READING;
+					if (dirty_0a)
+						resp_rd_0a = 1'b1;
+				end
 			end
 		end
 		MCSM_WRITING: begin
@@ -470,6 +530,17 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			read_filling_set = 1'b1;
 			mcsm_next = MCSM_IDLE;
 		end
+			MCSM_BURST_READ: begin
+     		burst_read_set = 1'b1;
+
+				if (~video_addr_hit) begin
+					ltc2mc_avl_read_req_0 = 1'b1;
+					ltc2mc_avl_burstbegin_0 = 1'b1;
+					ltc2mc_avl_size_0 = 5'd8; // TODO: we might want to increase the size here.
+					ltc2mc_avl_addr_0 = {video2ltc_addr[28:7], 3'b0};
+				end
+				mcsm_next = MCSM_IDLE;
+			end
 		default: begin
 			mcsm_next = 2'hx;
 		end
@@ -490,7 +561,7 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 	
 	assign resp_addr_0a = resp_rd_0a ? {arb2ltc_addr[31:7], mcsm_ofs_next[2:1]}
 	                                 : {arb2ltc_addr[31:7], resp_ofs[2:1]};
-	
+
 	always @(*) begin
 		resp_wr_0a = 1'b0;
 		resp_data_lo_latch = 0;
@@ -512,8 +583,18 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			assert(!resp_rd_0a) else $error("LTC write request from MC during read cycle");
 `endif
 		end
+	end // always @ (*)
+
+	always @(*) begin
+		burst_read_clr = 0;
+		video_ofs_next = video_ofs;
+
+		if ((burst_read | burst_read_set) & (ltc2mc_avl_rdata_valid_0 | video_addr_hit)) begin
+			video_ofs_next = video_ofs + 1;
+			burst_read_clr = (video_ofs == 3'd7);
+		end
 	end
-	
+
 	/* Clocked state machine logic */
 	always @(posedge clkrst_mem_clk or negedge clkrst_mem_rst_n)
 		if (~clkrst_mem_rst_n) begin
@@ -522,6 +603,8 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			resp_ofs <= 3'd0;
 			resp_data_lo <= {128{1'b0}};
 			read_filling <= 0;
+			video_ofs <= 0;
+			burst_read <= 0;
 		end else begin
 			if (ltc2mc_avl_ready_0) begin
 				mcsm <= mcsm_next;
@@ -529,14 +612,15 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 			end
 
 			resp_ofs <= resp_ofs_next;
+		   video_ofs <= video_ofs_next;
 			read_filling <= (read_filling | read_filling_set) & ~read_filling_clr;
+		   burst_read <= (burst_read | burst_read_set) & ~burst_read_clr;
 			if (resp_data_lo_latch)
 				resp_data_lo <= ltc2mc_avl_rdata_0;
 
 `ifndef BROKEN_ASSERTS
-			assert (!(ltc2mc_avl_rdata_valid_0 && !(read_filling | read_filling_set))) else $error("ltc2mc avl response without filling?");
+			assert (!(ltc2mc_avl_rdata_valid_0 && !(read_filling | read_filling_set | burst_read))) else $error("ltc2mc avl response without filling?");
 `endif
 		end
-
 	/*** ***/
 endmodule

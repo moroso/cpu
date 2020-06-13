@@ -1,15 +1,17 @@
 module MCPU_SOC_mmio(/*AUTOARG*/
-  // Outputs
-  data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
-  ext_sd_clk, ext_audio_bclk, ext_audio_mclk, ext_audio_data,
-  ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync,
-  ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b,
-  // Inouts
-  ext_i2c_sda, ext_sd_cmd, ext_sd_data,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, clkrst_audio_clk, data_in, addr,
-  wren, ext_switches, ext_buttons, ext_uart_rx
-  );
+   // Outputs
+   data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
+   ext_sd_clk, ext_audio_bclk, ext_audio_mclk, ext_audio_data,
+   ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync,
+   ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b, video2ltc_re,
+   video2ltc_addr,
+   // Inouts
+   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, clkrst_audio_clk, data_in,
+   addr, wren, ext_switches, ext_buttons, ext_uart_rx,
+   video2ltc_rvalid, video2ltc_rdata, video2ltc_stall
+   );
 
   input clkrst_core_clk, clkrst_core_rst_n;
   input clkrst_audio_clk;
@@ -46,6 +48,14 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   output [7:0] 	    ext_hdmi_r;
   output [7:0] 	    ext_hdmi_g;
   output [7:0] 	    ext_hdmi_b;
+
+  // Video memory interface
+  output       video2ltc_re;
+  output [28:7] video2ltc_addr;
+  input 	video2ltc_rvalid;
+  input [127:0] video2ltc_rdata;
+  input 	video2ltc_stall;
+
 
   wire [31:0] 	    write_mask;
   assign write_mask = {{8{wren[3]}},{8{wren[2]}},{8{wren[1]}},{8{wren[0]}}};
@@ -194,9 +204,14 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 			   .ext_hdmi_r		(ext_hdmi_r[7:0]),
 			   .ext_hdmi_g		(ext_hdmi_g[7:0]),
 			   .ext_hdmi_b		(ext_hdmi_b[7:0]),
+			   .video2ltc_re	(video2ltc_re),
+			   .video2ltc_addr	(video2ltc_addr[28:7]),
 			   // Inputs
 			   .clkrst_core_clk	(clkrst_core_clk),
-			   .clkrst_core_rst_n	(clkrst_core_rst_n));
+			   .clkrst_core_rst_n	(clkrst_core_rst_n),
+			   .video2ltc_rvalid	(video2ltc_rvalid),
+			   .video2ltc_rdata	(video2ltc_rdata[127:0]),
+			   .video2ltc_stall	(video2ltc_stall));
 endmodule
 
 // Local Variables:

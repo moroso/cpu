@@ -28,15 +28,14 @@ module MCPU_mem(
 		input [19:0]	ptw_pagedir_base,	// To dtlb_walk of MCPU_MEM_pt_walk.v, ...
 		input		tlb_clear,		// To dtlb of MCPU_MEM_dtlb.v, ...
 		input		user_mode,		// To dtlb of MCPU_MEM_dtlb.v, ...
-		// End of automatics
-		// Beginning of automatic outputs (from unused autoinst outputs)
+		input [28:7]	video2ltc_addr,		// To ltc of MCPU_MEM_ltc.v
+		input		video2ltc_re,		// To ltc of MCPU_MEM_ltc.v
+		output		video2ltc_stall,	// From ltc of MCPU_MEM_ltc.v
+		output [255:0]	video2ltc_rdata,	// From ltc of MCPU_MEM_ltc.v
+		output		video2ltc_rvalid,	// From ltc of MCPU_MEM_ltc.v
 		output 	       il1c_pf, // From il1c of MCPU_MEM_il1c.v
-		// End of automatics
-		// Beginning of automatic outputs (from unused autoinst outputs)
 		output 	       dtlb_pf_a, // From dtlb of MCPU_MEM_dtlb.v
 		output 	       dtlb_pf_b, // From dtlb of MCPU_MEM_dtlb.v
-		// End of automatics
-                // Beginning of automatic outputs (from unused autoinst outputs)
                 output 	       pre2core_done, // From preload_inst of MCPU_MEM_preload.v
                 output [31:2]  dl1c2periph_addr, // From dl1c of MCPU_MEM_dl1c.v
                 output [31:0]  dl1c2periph_data_out, // From dl1c of MCPU_MEM_dl1c.v
@@ -189,6 +188,9 @@ module MCPU_mem(
 			  .arb2ltc_rdata	(arb2ltc_rdata[255:0]),
 			  .arb2ltc_rvalid	(arb2ltc_rvalid),
 			  .arb2ltc_stall	(arb2ltc_stall),
+			  .video2ltc_rvalid	(video2ltc_rvalid),
+			  .video2ltc_rdata	(video2ltc_rdata[127:0]),
+			  .video2ltc_stall	(video2ltc_stall),
 			  // Inputs
 			  .clkrst_mem_clk	(clkrst_mem_clk),
 			  .clkrst_mem_rst_n	(clkrst_mem_rst_n),
@@ -199,7 +201,9 @@ module MCPU_mem(
 			  .arb2ltc_opcode	(arb2ltc_opcode[2:0]),
 			  .arb2ltc_addr		(arb2ltc_addr[31:5]),
 			  .arb2ltc_wdata	(arb2ltc_wdata[255:0]),
-			  .arb2ltc_wbe		(arb2ltc_wbe[31:0]));
+			  .arb2ltc_wbe		(arb2ltc_wbe[31:0]),
+			  .video2ltc_re		(video2ltc_re),
+			  .video2ltc_addr	(video2ltc_addr[28:7]));
 
    /* MCPU_MEM_dl1c AUTO_TEMPLATE(
     .dl1c2arb_rdata(cli2arb_rdata[]));

@@ -7,21 +7,21 @@
  */
 
 module MCPU_int(/*AUTOARG*/
-  // Outputs
-  ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
-  ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
-  ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
-  ext_i2c_scl, ext_sd_clk, ext_audio_bclk, ext_audio_mclk,
-  ext_audio_data, ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync,
-  ext_hdmi_vsync, ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b, r0,
-  pre2core_done,
-  // Inouts
-  ext_i2c_sda, ext_sd_cmd, ext_sd_data,
-  // Inputs
-  ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
-  ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
-  clkrst_core_clk, ext_uart_rx, clkrst_audio_clk, clkrst_core_rst_n
-  );
+   // Outputs
+   ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,
+   ltc2mc_avl_read_req_0, ltc2mc_avl_size_0, ltc2mc_avl_wdata_0,
+   ltc2mc_avl_write_req_0, ext_uart_tx, ext_led_g, ext_led_r,
+   ext_i2c_scl, ext_sd_clk, ext_audio_bclk, ext_audio_mclk,
+   ext_audio_data, ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync,
+   ext_hdmi_vsync, ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b,
+   r0, pre2core_done,
+   // Inouts
+   ext_i2c_sda, ext_sd_cmd, ext_sd_data,
+   // Inputs
+   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
+   ext_switches, ext_buttons, clkrst_mem_rst_n, clkrst_mem_clk,
+   clkrst_core_clk, ext_uart_rx, clkrst_audio_clk, clkrst_core_rst_n
+   );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
   input			clkrst_core_clk;	// To mmio of MCPU_SOC_mmio.v, ...
@@ -117,6 +117,11 @@ module MCPU_int(/*AUTOARG*/
   wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
   wire			tlb_clear;		// From core of MCPU_core.v
   wire			user_mode;		// From core of MCPU_core.v
+  wire [28:7]		video2ltc_addr;		// From mmio of MCPU_SOC_mmio.v
+  wire [255:0]		video2ltc_rdata;	// From mem of MCPU_mem.v
+  wire			video2ltc_re;		// From mmio of MCPU_SOC_mmio.v
+  wire			video2ltc_rvalid;	// From mem of MCPU_mem.v
+  wire			video2ltc_stall;	// From mem of MCPU_mem.v
   // End of automatics
   wire 		int_pending = 0;
   wire [3:0] 	int_type = 0;
@@ -154,6 +159,9 @@ module MCPU_int(/*AUTOARG*/
    .dtlb_valid(0));*/
   MCPU_mem mem(/*AUTOINST*/
 	       // Outputs
+	       .video2ltc_stall		(video2ltc_stall),
+	       .video2ltc_rdata		(video2ltc_rdata[255:0]),
+	       .video2ltc_rvalid	(video2ltc_rvalid),
 	       .il1c_pf			(ic2d_pf),		 // Templated
 	       .dtlb_pf_a		(dtlb_pf_a),
 	       .dtlb_pf_b		(dtlb_pf_b),
@@ -206,7 +214,9 @@ module MCPU_int(/*AUTOARG*/
 	       .paging_on		(paging_on),
 	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]),
 	       .tlb_clear		(tlb_clear),
-	       .user_mode		(user_mode));
+	       .user_mode		(user_mode),
+	       .video2ltc_addr		(video2ltc_addr[28:7]),
+	       .video2ltc_re		(video2ltc_re));
 
   MCPU_SOC_mmio mmio(
 		     .data_in(dl1c2periph_data_out),
@@ -231,6 +241,8 @@ module MCPU_int(/*AUTOARG*/
 		     .ext_hdmi_r	(ext_hdmi_r[7:0]),
 		     .ext_hdmi_g	(ext_hdmi_g[7:0]),
 		     .ext_hdmi_b	(ext_hdmi_b[7:0]),
+		     .video2ltc_re	(video2ltc_re),
+		     .video2ltc_addr	(video2ltc_addr[28:7]),
 		     // Inouts
 		     .ext_i2c_sda	(ext_i2c_sda),
 		     .ext_sd_cmd	(ext_sd_cmd),
@@ -241,7 +253,10 @@ module MCPU_int(/*AUTOARG*/
 		     .clkrst_audio_clk	(clkrst_audio_clk),
 		     .ext_switches	(ext_switches[9:0]),
 		     .ext_buttons	(ext_buttons[3:0]),
-		     .ext_uart_rx	(ext_uart_rx));
+		     .ext_uart_rx	(ext_uart_rx),
+		     .video2ltc_rvalid	(video2ltc_rvalid),
+		     .video2ltc_rdata	(video2ltc_rdata[127:0]),
+		     .video2ltc_stall	(video2ltc_stall));
 
   /* MCPU_core AUTO_TEMPLATE(
    .clkrst_core_rst_n(clkrst_core_rst_n & pre2core_done),
