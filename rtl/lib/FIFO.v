@@ -26,8 +26,10 @@ module FIFO(/*AUTOARG*/
 	reg [WIDTH-1:0] mem [DEPTH-1:0];
 	reg [clog2(DEPTH)-1:0] rptr;
 	reg [clog2(DEPTH)-1:0] wptr;
+
+	wire [clog2(DEPTH)-1:0]      depth = DEPTH;
 	
-	assign full = wptr == rptr + DEPTH;
+	assign full = wptr == rptr + depth;
 	assign empty = (rptr == wptr) && ~push;
 	
 	/*** Read port ***/
