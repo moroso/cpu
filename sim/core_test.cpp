@@ -147,15 +147,6 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
       SIM_INFO("Loading packet");
       for (int i = 0; i < 16; i++) {
         t->uart_send(packet[i], false);
-/*
-        uint16_t ext_byte = packet[i] << 1 | 1; // Add start/stop bit.
-        for (int bit_idx = 0; bit_idx < 10; bit_idx++) {
-          uint8_t bit = !!(ext_byte & (1 << bit_idx));
-          for (int j = 0; j < 50000000 / 115200; j++) {
-            t->tb->ext_uart_rx = bit;
-            t->clk_notrace();
-          }
-        }*/
       }
     }
   }
