@@ -1,16 +1,18 @@
 module TB_MCPU_MEM_arb(/*AUTOARG*/
    // Outputs
+   video2ltc_stall, video2ltc_rvalid, video2ltc_rdata,
    ltc2mc_avl_write_req_0, ltc2mc_avl_wdata_0, ltc2mc_avl_size_0,
    ltc2mc_avl_read_req_0, ltc2mc_avl_burstbegin_0, ltc2mc_avl_be_0,
    ltc2mc_avl_addr_0, cli2arb_rdata, cli2_stall, cli2_rvalid,
    cli1_stall, cli1_rvalid, cli0_stall, cli0_rvalid, cli0_rdata,
    cli1_rdata, cli2_rdata,
    // Inputs
-   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
-   clkrst_mem_rst_n, clkrst_mem_clk, cli2_wdata, cli2_wbe, cli2_valid,
-   cli2_opcode, cli2_addr, cli1_wdata, cli1_wbe, cli1_valid,
-   cli1_opcode, cli1_addr, cli0_wdata, cli0_wbe, cli0_valid,
-   cli0_opcode, cli0_addr
+   video2ltc_re, video2ltc_addr, ltc2mc_avl_ready_0,
+   ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0, clkrst_mem_rst_n,
+   clkrst_mem_clk, cli2_wdata, cli2_wbe, cli2_valid, cli2_opcode,
+   cli2_addr, cli1_wdata, cli1_wbe, cli1_valid, cli1_opcode,
+   cli1_addr, cli0_wdata, cli0_wbe, cli0_valid, cli0_opcode,
+   cli0_addr
    );
 	/*AUTOINPUT*/
 	// Beginning of automatic inputs (from unused autoinst inputs)
@@ -34,6 +36,8 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 	input [127:0]	ltc2mc_avl_rdata_0;	// To ltc of MCPU_MEM_ltc.v
 	input		ltc2mc_avl_rdata_valid_0;// To ltc of MCPU_MEM_ltc.v
 	input		ltc2mc_avl_ready_0;	// To ltc of MCPU_MEM_ltc.v
+	input [28:7]	video2ltc_addr;		// To ltc of MCPU_MEM_ltc.v
+	input		video2ltc_re;		// To ltc of MCPU_MEM_ltc.v
 	// End of automatics
 	/*AUTOOUTPUT*/
 	// Beginning of automatic outputs (from unused autoinst outputs)
@@ -51,6 +55,9 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 	output [4:0]	ltc2mc_avl_size_0;	// From ltc of MCPU_MEM_ltc.v
 	output [127:0]	ltc2mc_avl_wdata_0;	// From ltc of MCPU_MEM_ltc.v
 	output		ltc2mc_avl_write_req_0;	// From ltc of MCPU_MEM_ltc.v
+	output [127:0]	video2ltc_rdata;	// From ltc of MCPU_MEM_ltc.v
+	output		video2ltc_rvalid;	// From ltc of MCPU_MEM_ltc.v
+	output		video2ltc_stall;	// From ltc of MCPU_MEM_ltc.v
 	// End of automatics
 	
 	/*AUTOWIRE*/
@@ -118,6 +125,9 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 			 .arb2ltc_rdata		(arb2ltc_rdata[255:0]),
 			 .arb2ltc_rvalid	(arb2ltc_rvalid),
 			 .arb2ltc_stall		(arb2ltc_stall),
+			 .video2ltc_rvalid	(video2ltc_rvalid),
+			 .video2ltc_rdata	(video2ltc_rdata[127:0]),
+			 .video2ltc_stall	(video2ltc_stall),
 			 // Inputs
 			 .clkrst_mem_clk	(clkrst_mem_clk),
 			 .clkrst_mem_rst_n	(clkrst_mem_rst_n),
@@ -128,7 +138,9 @@ module TB_MCPU_MEM_arb(/*AUTOARG*/
 			 .arb2ltc_opcode	(arb2ltc_opcode[2:0]),
 			 .arb2ltc_addr		(arb2ltc_addr[31:5]),
 			 .arb2ltc_wdata		(arb2ltc_wdata[255:0]),
-			 .arb2ltc_wbe		(arb2ltc_wbe[31:0]));
+			 .arb2ltc_wbe		(arb2ltc_wbe[31:0]),
+			 .video2ltc_re		(video2ltc_re),
+			 .video2ltc_addr	(video2ltc_addr[28:7]));
 endmodule
 
 // Local Variables:

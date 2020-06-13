@@ -4,11 +4,11 @@
  */
 
 module clkdomain_buf(/*AUTOARG*/
-  // Outputs
-  out, out_valid, in_ready,
-  // Inputs
-  rst_n, out_clk, in, in_clk, in_valid
-  );
+   // Outputs
+   out, out_valid, in_ready,
+   // Inputs
+   rst_n, out_clk, in, in_clk, in_valid
+   );
   parameter WIDTH = 32;
   parameter DEPTH = 2;
 
@@ -115,15 +115,15 @@ module TB_clkdomain_buf();
 
 
   clkdomain_buf #(.WIDTH(WIDTH), .DEPTH(DEPTH)) c(/*AUTOINST*/
-				// Outputs
-				.out		(out[WIDTH-1:0]),
-				.out_valid	(out_valid),
-				.in_ready	(in_ready),
-				// Inputs
-				.rst_n		(rst_n),
-				.out_clk	(out_clk),
-				.in		(in[WIDTH-1:0]),
-				.in_clk		(in_clk),
-				.in_valid	(in_valid));
+						  // Outputs
+						  .out			(out[WIDTH-1:0]),
+						  .out_valid		(out_valid),
+						  .in_ready		(in_ready),
+						  // Inputs
+						  .rst_n		(rst_n),
+						  .out_clk		(out_clk),
+						  .in			(in[WIDTH-1:0]),
+						  .in_clk		(in_clk),
+						  .in_valid		(in_valid));
 endmodule
 `endif

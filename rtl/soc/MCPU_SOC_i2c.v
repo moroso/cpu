@@ -288,13 +288,13 @@ endmodule // i2c_internal_tb
 `endif
 
 module MCPU_SOC_i2c(/*AUTOARG*/
-  // Outputs
-  data_out, scl,
-  // Inouts
-  sda,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, addr, data_in, write_en
-  );
+   // Outputs
+   data_out, scl,
+   // Inouts
+   sda,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, addr, data_in, write_en
+   );
 
   // mmio interface
   input        clkrst_core_clk, clkrst_core_rst_n;

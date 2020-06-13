@@ -1,11 +1,11 @@
 module MCPU_SOC_audio(/*AUTOARG*/
-  // Outputs
-  ext_audio_mclk, ext_audio_bclk, ext_audio_data, ext_audio_lrclk,
-  data_out,
-  // Inputs
-  clkrst_core_clk, clkrst_core_rst_n, clkrst_audio_clk, addr, data_in,
-  write_mask
-  );
+   // Outputs
+   ext_audio_mclk, ext_audio_bclk, ext_audio_data, ext_audio_lrclk,
+   data_out,
+   // Inputs
+   clkrst_core_clk, clkrst_core_rst_n, clkrst_audio_clk, addr,
+   data_in, write_mask
+   );
 
   parameter BUF_SIZE = 16; // Note: in samples (32 bits), not bytes.
   parameter BUF_ADDR_BITS = 4;

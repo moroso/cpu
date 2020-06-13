@@ -31,18 +31,18 @@ module MCPU_pll
 endmodule
 
 module mcpu(/*AUTOARG*/
-  // Outputs
-  LEDG, LEDR, UART_TX, SD_CLK, GPIO, AUD_XCK, AUD_DACLRCK, AUD_DACDAT,
-  AUD_BCLK, HDMI_TX_HS, HDMI_TX_VS, HDMI_TX_DE, HDMI_TX_CLK,
-  HDMI_TX_D, pad_mem_ca, pad_mem_ck, pad_mem_ck_n, pad_mem_cke,
-  pad_mem_cs_n, pad_mem_dm,
-  // Inouts
-  I2C_SDA, I2C_SCL, SD_CMD, SD_DAT, pad_mem_dq, pad_mem_dqs,
-  pad_mem_dqs_n,
-  // Inputs
-  pad_clk125, pad_clk50, in_rst_n, SW, KEY, UART_RX, HDMI_TX_INT,
-  pad_mem_oct_rzqin
-  );
+   // Outputs
+   LEDG, LEDR, UART_TX, SD_CLK, GPIO, AUD_XCK, AUD_DACLRCK,
+   AUD_DACDAT, AUD_BCLK, HDMI_TX_HS, HDMI_TX_VS, HDMI_TX_DE,
+   HDMI_TX_CLK, HDMI_TX_D, pad_mem_ca, pad_mem_ck, pad_mem_ck_n,
+   pad_mem_cke, pad_mem_cs_n, pad_mem_dm,
+   // Inouts
+   I2C_SDA, I2C_SCL, SD_CMD, SD_DAT, pad_mem_dq, pad_mem_dqs,
+   pad_mem_dqs_n,
+   // Inputs
+   pad_clk125, pad_clk50, in_rst_n, SW, KEY, UART_RX, HDMI_TX_INT,
+   pad_mem_oct_rzqin
+   );
   input        pad_clk125;
   input        pad_clk50;
   input        in_rst_n;

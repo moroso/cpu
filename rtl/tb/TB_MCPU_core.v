@@ -2,10 +2,10 @@ module TB_MCPU_core(/*AUTOARG*/
    // Outputs
    uart_tx, uart_status, memoutput,
    // Inputs
-   ltc2mc_avl_ready_0, ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0,
-   ic2d_pf, f2ic_paddr, dl1c2periph_data_in, clkrst_mem_rst_n,
-   clkrst_mem_clk, clkrst_core_clk, uart_rx, clkrst_core_rst_n,
-   meminput
+   video2ltc_re, video2ltc_addr, ltc2mc_avl_ready_0,
+   ltc2mc_avl_rdata_valid_0, ltc2mc_avl_rdata_0, ic2d_pf, f2ic_paddr,
+   dl1c2periph_data_in, clkrst_mem_rst_n, clkrst_mem_clk,
+   clkrst_core_clk, uart_rx, clkrst_core_rst_n, meminput
    );
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
@@ -18,6 +18,8 @@ module TB_MCPU_core(/*AUTOARG*/
   input [127:0]		ltc2mc_avl_rdata_0;	// To mem of MCPU_mem.v
   input			ltc2mc_avl_rdata_valid_0;// To mem of MCPU_mem.v
   input			ltc2mc_avl_ready_0;	// To mem of MCPU_mem.v
+  input [28:7]		video2ltc_addr;		// To mem of MCPU_mem.v
+  input			video2ltc_re;		// To mem of MCPU_mem.v
   // End of automatics
   input 	uart_rx;
   output 	uart_tx;
@@ -74,6 +76,9 @@ module TB_MCPU_core(/*AUTOARG*/
   wire [19:0]		ptw_pagedir_base;	// From core of MCPU_core.v
   wire			tlb_clear;		// From core of MCPU_core.v
   wire			user_mode;		// From core of MCPU_core.v
+  wire [255:0]		video2ltc_rdata;	// From mem of MCPU_mem.v
+  wire			video2ltc_rvalid;	// From mem of MCPU_mem.v
+  wire			video2ltc_stall;	// From mem of MCPU_mem.v
   // End of automatics
   input [31:0] 	meminput;
   output [31:0] memoutput;
@@ -111,6 +116,9 @@ module TB_MCPU_core(/*AUTOARG*/
    .dtlb_valid(0));*/
   MCPU_mem mem(/*AUTOINST*/
 	       // Outputs
+	       .video2ltc_stall		(video2ltc_stall),
+	       .video2ltc_rdata		(video2ltc_rdata[255:0]),
+	       .video2ltc_rvalid	(video2ltc_rvalid),
 	       .il1c_pf			(il1c_pf),
 	       .dtlb_pf_a		(dtlb_pf_a),
 	       .dtlb_pf_b		(dtlb_pf_b),
@@ -163,7 +171,9 @@ module TB_MCPU_core(/*AUTOARG*/
 	       .paging_on		(paging_on),
 	       .ptw_pagedir_base	(ptw_pagedir_base[19:0]),
 	       .tlb_clear		(tlb_clear),
-	       .user_mode		(user_mode));
+	       .user_mode		(user_mode),
+	       .video2ltc_addr		(video2ltc_addr[28:7]),
+	       .video2ltc_re		(video2ltc_re));
 
   MCPU_SOC_mmio mmio(
 		     .clkrst_core_clk(clkrst_core_clk),
