@@ -41,7 +41,8 @@ void Cmod_MCPU_MEM_mc::clk() {
     if (burst_read) {
       SIM_CHECK_MSG(!burst_write, "Burst write during read");
 
-      if (Sim::random(100) < 50) {
+      // Never set rdata_valid on the same cycle as the burst request
+      if (Sim::random(100) < 50 && !*ports->ltc2mc_avl_burstbegin_0) {
         *ports->ltc2mc_avl_rdata_valid_0 = 1;
 
         uint32_t memad = burst_base + 16 * burst_idx;
