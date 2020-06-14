@@ -60,7 +60,7 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   wire [31:0] 	    write_mask;
   assign write_mask = {{8{wren[3]}},{8{wren[2]}},{8{wren[1]}},{8{wren[0]}}};
 
-  reg 		    is_ledsw, is_uart, is_i2c, is_sd, is_audio;
+  reg 		    is_ledsw, is_uart, is_i2c, is_sd, is_audio, is_video;
 
   wire [31:0] 	    uart_read_val, i2c_read_val;
 
@@ -69,6 +69,7 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   wire [31:0]		audio_read_val;		// From audio_mod of MCPU_SOC_audio.v
   wire [31:0]		ledsw_data_out;		// From ledsw_mod of MCPU_SOC_ledsw.v
   wire [31:0]		sd_read_val;		// From sd_mod of MCPU_SOC_sd.v
+  wire [31:0]		video_read_val;		// From video_mod of MCPU_SOC_video.v
   // End of automatics
 
   always @(*) begin
@@ -77,6 +78,7 @@ module MCPU_SOC_mmio(/*AUTOARG*/
      is_i2c = 0;
      is_sd = 0;
      is_audio = 0;
+     is_video = 0;
      data_out = 32'bx;
 
      case(addr[30:12])
@@ -99,6 +101,10 @@ module MCPU_SOC_mmio(/*AUTOARG*/
        19'd4: begin // Audio
 	  is_audio = 1;
 	  data_out = audio_read_val;
+       end
+       19'd5: begin // Video
+	 is_video = 1;
+	 data_out = video_read_val;
        end
      endcase // addr[28:12]
   end
@@ -195,6 +201,10 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 			   .write_mask		(is_audio ? write_mask[31:0] : 32'h0)); // Templated
 
 
+  /* MCPU_SOC_video AUTO_TEMPLATE(
+   .write_mask(is_video ? write_mask[] : 32'h0),
+   .data_out(video_read_val[]),
+   .addr(addr[11:2]));*/
   MCPU_SOC_video video_mod(/*AUTOINST*/
 			   // Outputs
 			   .ext_hdmi_clk	(ext_hdmi_clk),
@@ -206,12 +216,16 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 			   .ext_hdmi_b		(ext_hdmi_b[7:0]),
 			   .video2ltc_re	(video2ltc_re),
 			   .video2ltc_addr	(video2ltc_addr[28:7]),
+			   .data_out		(video_read_val[31:0]), // Templated
 			   // Inputs
 			   .clkrst_core_clk	(clkrst_core_clk),
 			   .clkrst_core_rst_n	(clkrst_core_rst_n),
 			   .video2ltc_rvalid	(video2ltc_rvalid),
 			   .video2ltc_rdata	(video2ltc_rdata[127:0]),
-			   .video2ltc_stall	(video2ltc_stall));
+			   .video2ltc_stall	(video2ltc_stall),
+			   .addr		(addr[11:2]),	 // Templated
+			   .data_in		(data_in[31:0]),
+			   .write_mask		(is_video ? write_mask[31:0] : 32'h0)); // Templated
 endmodule
 
 // Local Variables:

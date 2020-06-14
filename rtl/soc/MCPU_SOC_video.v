@@ -2,9 +2,10 @@ module MCPU_SOC_video(/*AUTOARG*/
    // Outputs
    ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync, ext_hdmi_de,
    ext_hdmi_r, ext_hdmi_g, ext_hdmi_b, video2ltc_re, video2ltc_addr,
+   data_out,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, video2ltc_rvalid,
-   video2ltc_rdata, video2ltc_stall
+   video2ltc_rdata, video2ltc_stall, addr, data_in, write_mask
    );
 
   input clkrst_core_clk;
@@ -32,6 +33,12 @@ module MCPU_SOC_video(/*AUTOARG*/
   input 	video2ltc_rvalid;
   input [127:0] video2ltc_rdata;
   input 	video2ltc_stall;
+
+  // MMIO interface.
+  input [9:0] 	addr;
+  input [31:0] 	data_in;
+  input [31:0]  write_mask;
+  output reg [31:0] data_out;
 
   reg [1023:0] 	ltc_buffer;
   reg [2047:0] 	pixel_buffer;
@@ -150,6 +157,22 @@ module MCPU_SOC_video(/*AUTOARG*/
   reg req_sent;
   reg [21:0] ltc_addr_offs;
 
+  reg [21:0] 	    vmem_base; // The actual video memory base, latched from vmem_reg at vsync
+
+  reg [21:0] 	    vmem_reg; // User-visible vmem base register.
+  reg 		    vsync_reg;
+
+  localparam VMEM_BASE = 0;
+  localparam STATUS = 1;
+
+  always @(*) begin
+    case (addr)
+      VMEM_BASE: data_out = {3'h0, vmem_base, 7'h0};
+      STATUS: data_out = {31'h0, vsync_reg};
+      default: data_out = 0;
+    endcase
+  end
+
   always @(posedge clkrst_core_clk or negedge clkrst_core_rst_n) begin
      if (~clkrst_core_rst_n) begin
 	ltc_read_pos <= 0;
@@ -157,7 +180,16 @@ module MCPU_SOC_video(/*AUTOARG*/
 	ltc_buffer <= 1024'h0;
 	ltc_addr_offs <= 0;
 	req_sent <= 0;
+       vmem_base <= 22'h200; // 0x10000
+       vsync_reg <= 0;
      end else begin
+       /* mmio interface */
+       if (write_mask != 0) begin
+	 if (addr == VMEM_BASE) vmem_reg <= (vmem_reg & ~write_mask[21:0]) | (data_in[28:7] & write_mask[28:7]);
+	 if (addr == STATUS) vsync_reg <= vsync_reg & ~(write_mask[0] & data_in[0]);
+       end
+
+       /* video logic */
 	if (~video2ltc_stall) begin
 	   video2ltc_re <= ltc_re;
 	   video2ltc_addr <= ltc_addr;
@@ -173,9 +205,11 @@ module MCPU_SOC_video(/*AUTOARG*/
 	end
 
 	if (fifo_push) begin
-	   if (ltc_addr_offs >= /*648 * 480 * 3 * 8*/ 7200 - 1)
+	   if (ltc_addr_offs >= /*648 * 480 * 3 * 8 / (128 * 8) */ 7200 - 1) begin
 	     ltc_addr_offs <= 0;
-	   else
+	     vmem_base <= vmem_reg;
+	     vsync_reg <= 1;
+	   end else
 	     ltc_addr_offs <= ltc_addr_offs + 1;
 	end
      end
@@ -185,7 +219,7 @@ module MCPU_SOC_video(/*AUTOARG*/
 
   always @(*) begin
      ltc_re = ltc_read_pos == 0 && ~fifo_full & ~video2ltc_re;
-     ltc_addr = 22'h200 + ltc_addr_offs; // 0x10000
+     ltc_addr = vmem_base + ltc_addr_offs;
   end
 
   /* FIFO AUTO_TEMPLATE(
