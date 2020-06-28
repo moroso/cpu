@@ -78,15 +78,15 @@ module MCPU_CORE_decode(/*AUTOARG*/
     d2pc_out_oper_type = OPER_TYPE_ALU;
     d2pc_out_shift_amount = 6'd0;
     d2pc_out_shift_type = 2'b00;
-    long_imm = 0;
     d2pc_out_sop = 32'd0;
     depend_rs = 0;
     depend_rt = 0;
     d2pc_out_invalid = 0;
     d2pc_out_rd_we = 0;
     d2pc_out_pred_we = 0;
-	 d2pc_out_branchreg = 0;
+    d2pc_out_branchreg = 0;
 
+    long_imm = inst[28:14] == 15'b100000000000000;
 
     if((actual_preds[inst[31:30]] ^ inst[29]) & ~prev_long_imm) begin
 
@@ -203,7 +203,6 @@ module MCPU_CORE_decode(/*AUTOARG*/
       else begin //ALU long immediate
         d2pc_out_oper_type = OPER_TYPE_ALU;
         d2pc_out_sop = nextinst;
-        long_imm = 1;
         depend_rs = ~d2pc_out_execute_opcode[3];
         d2pc_out_pred_we = d2pc_out_execute_opcode[3:0] == 4'b0111; // COMPARE
         d2pc_out_rd_we = ~d2pc_out_pred_we;
