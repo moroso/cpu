@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_MEM_dl1c(
                      input 		clkrst_mem_clk,
                      input 		clkrst_mem_rst_n,

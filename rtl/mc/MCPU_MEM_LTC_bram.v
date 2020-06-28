@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_MEM_LTC_bram(/*AUTOARG*/
    // Outputs
    rdata0, rdata1,

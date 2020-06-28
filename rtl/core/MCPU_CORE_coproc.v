@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_coproc(/*AUTOARG*/
    // Outputs
    coproc_reg_result, coproc_rd_we, user_mode, paging_on,

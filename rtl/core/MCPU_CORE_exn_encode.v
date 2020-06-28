@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_exn_encode(/*AUTOARG*/
    // Outputs
    combined_ec0, combined_ec1, combined_ec2, combined_ec3, exception,

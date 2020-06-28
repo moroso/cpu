@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_alu(/*AUTOARG*/
    // Outputs
    pc2wb_out_result, pc_alu_invalid,

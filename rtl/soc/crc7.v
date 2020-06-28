@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module crc7(output[6:0] out,
             input clk,
             input dat,

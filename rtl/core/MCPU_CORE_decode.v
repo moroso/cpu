@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_decode(/*AUTOARG*/
    // Outputs
    d2pc_out_execute_opcode, d2pc_out_shift_type,

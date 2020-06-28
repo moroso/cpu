@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module i2c_internal(
 		    input 	     reset_n,
 		    input 	     clk,

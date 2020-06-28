@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module reg_2(/*AUTOARG*/
    // Outputs
    Q,

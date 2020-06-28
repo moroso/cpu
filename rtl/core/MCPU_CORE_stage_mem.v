@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_stage_mem(/*AUTOARG*/
    // Outputs
    mem_ready_in, mem_ready_out, mem_valid_out, mem2wb_out_data,

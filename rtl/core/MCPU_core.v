@@ -27,6 +27,8 @@
  enable signal will depend in the next stage's ready_in.
  */
 
+`timescale 1 ps / 1 ps
+
 module MCPU_core(/*AUTOARG*/
    // Outputs
    int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,

@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_SOC_audio(/*AUTOARG*/
    // Outputs
    ext_audio_mclk, ext_audio_bclk, ext_audio_data, ext_audio_lrclk,

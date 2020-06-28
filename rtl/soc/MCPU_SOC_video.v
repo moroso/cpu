@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_SOC_video(/*AUTOARG*/
    // Outputs
    ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync, ext_hdmi_de,

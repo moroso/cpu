@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module FIFO(/*AUTOARG*/
    // Outputs
    full, rdata, empty,

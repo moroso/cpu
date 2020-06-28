@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_SOC_mmio(/*AUTOARG*/
    // Outputs
    data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,

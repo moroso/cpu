@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module TB_MCPU_MEM_arb(/*AUTOARG*/
    // Outputs
    video2ltc_stall, video2ltc_rvalid, video2ltc_rdata, pre2core_done,

@@ -1,3 +1,4 @@
+`timescale 1 ps / 1 ps
 
 module MCPU_CORE_stage_fetch(/*AUTOARG*/
    // Outputs

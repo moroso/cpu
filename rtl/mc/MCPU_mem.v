@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_mem(
                 ///*AUTOOUTPUT*//*AUTOINPUT*/
 		// Beginning of automatic inputs (from unused autoinst inputs)

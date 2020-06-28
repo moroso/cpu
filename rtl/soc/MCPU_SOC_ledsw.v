@@ -3,6 +3,8 @@
  1: [SW:10][0:4][BUTTON:4] (ro)
  */
 
+`timescale 1 ps / 1 ps
+
 module MCPU_SOC_ledsw(/*AUTOARG*/
    // Outputs
    ext_led_r, ext_led_g, data_out,

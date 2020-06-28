@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module uart_rx(
                input 	    clk,
                input 	    rx_en,

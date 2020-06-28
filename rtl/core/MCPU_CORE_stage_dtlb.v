@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 module MCPU_CORE_stage_dtlb(/*AUTOARG*/
    // Outputs
    dtlb2pc_paddr, dtlb_addr, dtlb_re, dtlb_is_write, dtlb_ready_in,

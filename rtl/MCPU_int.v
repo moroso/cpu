@@ -6,6 +6,8 @@
  * synthesis or for a testbench.
  */
 
+`timescale 1 ps / 1 ps
+
 module MCPU_int(/*AUTOARG*/
    // Outputs
    ltc2mc_avl_addr_0, ltc2mc_avl_be_0, ltc2mc_avl_burstbegin_0,

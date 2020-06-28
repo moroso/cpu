@@ -3,6 +3,8 @@
  * Eventually we'll probably want a proper FIFO.
  */
 
+`timescale 1 ps / 1 ps
+
 module clkdomain_buf(/*AUTOARG*/
    // Outputs
    out, out_valid, in_ready,
