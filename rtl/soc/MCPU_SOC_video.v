@@ -169,7 +169,7 @@ module MCPU_SOC_video(/*AUTOARG*/
 
   always @(*) begin
     case (addr)
-      VMEM_BASE: data_out = {3'h0, vmem_base, 7'h0};
+      VMEM_BASE: data_out = {3'h0, vmem_reg, 7'h0};
       STATUS: data_out = {31'h0, vsync_reg};
       default: data_out = 0;
     endcase
