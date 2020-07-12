@@ -347,7 +347,8 @@ module MCPU_MEM_ltc(/*AUTOARG*/
 					way_active_0a = way_evicting_0a;
 			end
 			assign set_way_0a[set] = way_active_0a;
-			always @(*) begin
+			always @(/*AUTOSENSE*/video_ways_match_0a
+				 or way_valid_0a) begin
 				video_way_active_0a = {WAYS_BITS{1'bx}};
 				for (i = 0; i < WAYS; i = i + 1)
 					if (video_ways_match_0a[i] && way_valid_0a[i])

@@ -105,6 +105,7 @@ module MCPU_int(/*AUTOARG*/
   wire			ic2d_pf;		// From mem of MCPU_mem.v
   wire			ic2f_ready;		// From mem of MCPU_mem.v
   wire			il1c_flush;		// From core of MCPU_core.v
+  wire			int_pending;		// From mmio of MCPU_SOC_mmio.v
   wire [31:0]		mem2dc_data_in0;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_in1;	// From mem of MCPU_mem.v
   wire [31:0]		mem2dc_data_out0;	// From core of MCPU_core.v
@@ -125,9 +126,6 @@ module MCPU_int(/*AUTOARG*/
   wire			video2ltc_rvalid;	// From mem of MCPU_mem.v
   wire			video2ltc_stall;	// From mem of MCPU_mem.v
   // End of automatics
-  wire 		int_pending = 0;
-  wire [3:0] 	int_type = 0;
-  wire 		int_clear;
   
   //wire [31:0] 	r0;
 
@@ -227,6 +225,7 @@ module MCPU_int(/*AUTOARG*/
 		     .data_out(dl1c2periph_data_in[31:0]),
 		     /*AUTOINST*/
 		     // Outputs
+		     .int_pending	(int_pending),
 		     .ext_led_g		(ext_led_g[7:0]),
 		     .ext_led_r		(ext_led_r[9:0]),
 		     .ext_uart_tx	(ext_uart_tx),
@@ -268,7 +267,6 @@ module MCPU_int(/*AUTOARG*/
    .mem2dc_done. (dl1c_ready));*/
   MCPU_core core(/*AUTOINST*/
 		 // Outputs
-		 .int_clear		(int_clear),
 		 .mem2dc_paddr0		(mem2dc_paddr0[29:0]),
 		 .mem2dc_write0		(mem2dc_write0[3:0]),
 		 .mem2dc_valid0		(mem2dc_valid0),
@@ -277,7 +275,6 @@ module MCPU_int(/*AUTOARG*/
 		 .mem2dc_write1		(mem2dc_write1[3:0]),
 		 .mem2dc_valid1		(mem2dc_valid1),
 		 .mem2dc_data_out1	(mem2dc_data_out1[31:0]),
-		 .dispatch		(dispatch),
 		 .f2ic_vaddr		(f2ic_vaddr[27:0]),
 		 .f2ic_valid		(f2ic_valid),
 		 .dtlb_addr0		(dtlb_addr_a[31:12]),	 // Templated
@@ -291,12 +288,12 @@ module MCPU_int(/*AUTOARG*/
 		 .user_mode		(user_mode),
 		 .tlb_clear		(tlb_clear),
 		 .il1c_flush		(il1c_flush),
+		 .dispatch		(dispatch),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_core_rst_n	(clkrst_core_rst_n & pre2core_done), // Templated
 		 .int_pending		(int_pending),
-		 .int_type		(int_type[3:0]),
 		 .mem2dc_done0		(dl1c_ready),		 // Templated
 		 .mem2dc_data_in0	(mem2dc_data_in0[31:0]),
 		 .mem2dc_done1		(dl1c_ready),		 // Templated

@@ -197,7 +197,6 @@ module TB_MCPU_core(/*AUTOARG*/
    .mem2dc_done. (dl1c_ready));*/
   MCPU_core core(/*AUTOINST*/
 		 // Outputs
-		 .int_clear		(int_clear),
 		 .mem2dc_paddr0		(mem2dc_paddr0[29:0]),
 		 .mem2dc_write0		(mem2dc_write0[3:0]),
 		 .mem2dc_valid0		(mem2dc_valid0),
@@ -206,7 +205,6 @@ module TB_MCPU_core(/*AUTOARG*/
 		 .mem2dc_write1		(mem2dc_write1[3:0]),
 		 .mem2dc_valid1		(mem2dc_valid1),
 		 .mem2dc_data_out1	(mem2dc_data_out1[31:0]),
-		 .dispatch		(dispatch),
 		 .f2ic_vaddr		(f2ic_vaddr[27:0]),
 		 .f2ic_valid		(f2ic_valid),
 		 .dtlb_addr0		(dtlb_addr_a[31:12]),	 // Templated
@@ -220,12 +218,12 @@ module TB_MCPU_core(/*AUTOARG*/
 		 .user_mode		(user_mode),
 		 .tlb_clear		(tlb_clear),
 		 .il1c_flush		(il1c_flush),
+		 .dispatch		(dispatch),
 		 .r0			(r0[31:0]),
 		 // Inputs
 		 .clkrst_core_clk	(clkrst_core_clk),
 		 .clkrst_core_rst_n	(clkrst_core_rst_n & pre2core_done), // Templated
 		 .int_pending		(int_pending),
-		 .int_type		(int_type[3:0]),
 		 .mem2dc_done0		(dl1c_ready),		 // Templated
 		 .mem2dc_data_in0	(mem2dc_data_in0[31:0]),
 		 .mem2dc_done1		(dl1c_ready),		 // Templated

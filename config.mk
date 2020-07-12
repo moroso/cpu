@@ -34,6 +34,7 @@ RTL_COMMON = \
 	rtl/soc/crc16.v \
 	rtl/soc/MCPU_SOC_audio.v \
 	rtl/soc/MCPU_SOC_i2c.v \
+	rtl/soc/MCPU_SOC_ictl.v \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
 	rtl/soc/MCPU_SOC_sd.v \

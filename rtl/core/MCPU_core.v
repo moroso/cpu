@@ -31,17 +31,16 @@
 
 module MCPU_core(/*AUTOARG*/
    // Outputs
-   int_clear, mem2dc_paddr0, mem2dc_write0, mem2dc_valid0,
-   mem2dc_data_out0, mem2dc_paddr1, mem2dc_write1, mem2dc_valid1,
-   mem2dc_data_out1, dispatch, f2ic_vaddr, f2ic_valid, dtlb_addr0,
-   dtlb_addr1, dtlb_re0, dtlb_re1, dtlb_is_write0, dtlb_is_write1,
-   paging_on, pagedir_base, user_mode, tlb_clear, il1c_flush, r0,
+   mem2dc_paddr0, mem2dc_write0, mem2dc_valid0, mem2dc_data_out0,
+   mem2dc_paddr1, mem2dc_write1, mem2dc_valid1, mem2dc_data_out1,
+   f2ic_vaddr, f2ic_valid, dtlb_addr0, dtlb_addr1, dtlb_re0, dtlb_re1,
+   dtlb_is_write0, dtlb_is_write1, paging_on, pagedir_base, user_mode,
+   tlb_clear, il1c_flush, dispatch, r0,
    // Inputs
-   clkrst_core_clk, clkrst_core_rst_n, int_pending, int_type,
-   mem2dc_done0, mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1,
-   f2ic_paddr, ic2d_packet, ic2d_pf, ic2f_ready, dtlb_flags0,
-   dtlb_flags1, dtlb_phys_addr0, dtlb_phys_addr1, dtlb_pf0, dtlb_pf1,
-   dtlb_ready
+   clkrst_core_clk, clkrst_core_rst_n, int_pending, mem2dc_done0,
+   mem2dc_data_in0, mem2dc_done1, mem2dc_data_in1, f2ic_paddr,
+   ic2d_packet, ic2d_pf, ic2f_ready, dtlb_flags0, dtlb_flags1,
+   dtlb_phys_addr0, dtlb_phys_addr1, dtlb_pf0, dtlb_pf1, dtlb_ready
    );
 
   /* Clocks */
@@ -49,11 +48,8 @@ module MCPU_core(/*AUTOARG*/
 
   /* Interrupt Controller */
   input int_pending;
-  input [3:0] int_type;
-  output      int_clear;
-  assign int_clear = int_pending | |int_type; // Get rid of warnings. REPLACE THIS
 
-
+  // D$ interface */
   output [29:0] mem2dc_paddr0;
   output [3:0] 	mem2dc_write0;
   output 	mem2dc_valid0;
@@ -66,7 +62,6 @@ module MCPU_core(/*AUTOARG*/
   input 	mem2dc_done1;
   input [31:0] 	mem2dc_data_in1;
   output [31:0] mem2dc_data_out1;
-  output 	dispatch;
 
   /* I$ interface */
   output [27:0] f2ic_vaddr;
@@ -96,6 +91,7 @@ module MCPU_core(/*AUTOARG*/
   output 	 user_mode;
   output 	 tlb_clear;
   output 	 il1c_flush;
+  output 	 dispatch;
   // TODO: dl1c_flush as well.
 
   output [31:0]  r0;
@@ -834,7 +830,6 @@ module MCPU_core(/*AUTOARG*/
 			  .combined_ec1		(combined_ec1[4:0]),
 			  .combined_ec2		(combined_ec2[4:0]),
 			  .combined_ec3		(combined_ec3[4:0]),
-			  .int_type		(int_type[3:0]),
 			  .exception		(exception),
 			  .d2pc_in_virtpc	(d2pc_in_virtpc[27:0]));
 

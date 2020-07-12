@@ -9,8 +9,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
    clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
    d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
    coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
-   combined_ec3, int_type, exception, d2pc_in_virtpc, mem_vaddr0,
-   mem_vaddr1
+   combined_ec3, exception, d2pc_in_virtpc, mem_vaddr0, mem_vaddr1
    );
 `include "coproc_ops.vh"
 
@@ -24,7 +23,6 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     input coproc_instruction;
 
     input [4:0] combined_ec0, combined_ec1, combined_ec2, combined_ec3;
-    input [3:0] int_type;
 
     output [31:0] coproc_reg_result;
     output coproc_rd_we;
@@ -89,10 +87,11 @@ module MCPU_CORE_coproc(/*AUTOARG*/
         end
         else if(exception) begin //TODO clear link bit when that exists
             user_mode <= 0;
+            coproc_regs[0][0] <= 0; // disable interrupts
             coproc_regs[3][31:4] <= d2pc_in_virtpc[27:0]; //EPC
             coproc_regs[3][1] <= interrupts_enabled;
             coproc_regs[3][0] <= ~user_mode;
-            coproc_regs[4] <= {23'd0, int_type, combined_ec0};
+            coproc_regs[4] <= {27'd0, combined_ec0};
             coproc_regs[5] <= {27'd0, combined_ec1};
             coproc_regs[6] <= {27'd0, combined_ec2};
             coproc_regs[7] <= {27'd0, combined_ec3};

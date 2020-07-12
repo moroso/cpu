@@ -43,7 +43,7 @@ module MCPU_CORE_exn_encode(/*AUTOARG*/
         combined_ec0 = EXN_CODE_NOERR;
         if(int_pending & interrupts_enabled)
             combined_ec0 = EXN_CODE_INTERRUPT;
-        if(d2pc_in_inst_pf)
+        else if(d2pc_in_inst_pf)
             combined_ec0 = EXN_CODE_INST_PF;
         else if(d2pc_in_invalid0)
             combined_ec0 = EXN_CODE_ILL;

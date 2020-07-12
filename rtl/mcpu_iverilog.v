@@ -37,7 +37,7 @@ module mcpu_iverilog();
      $dumpfile("iverilog_out.vcd");
      $dumpvars(0, mcpu_int_inst);
 
-     #40000 $finish();
+     #400000 $finish();
   end
 
   always #5 CLOCK_125_p = ~CLOCK_125_p;

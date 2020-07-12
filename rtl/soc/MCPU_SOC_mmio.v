@@ -2,11 +2,11 @@
 
 module MCPU_SOC_mmio(/*AUTOARG*/
    // Outputs
-   data_out, ext_led_g, ext_led_r, ext_uart_tx, ext_i2c_scl,
-   ext_sd_clk, ext_audio_bclk, ext_audio_mclk, ext_audio_data,
-   ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync, ext_hdmi_vsync,
-   ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b, video2ltc_re,
-   video2ltc_addr,
+   data_out, int_pending, ext_led_g, ext_led_r, ext_uart_tx,
+   ext_i2c_scl, ext_sd_clk, ext_audio_bclk, ext_audio_mclk,
+   ext_audio_data, ext_audio_lrclk, ext_hdmi_clk, ext_hdmi_hsync,
+   ext_hdmi_vsync, ext_hdmi_de, ext_hdmi_r, ext_hdmi_g, ext_hdmi_b,
+   video2ltc_re, video2ltc_addr,
    // Inouts
    ext_i2c_sda, ext_sd_cmd, ext_sd_data,
    // Inputs
@@ -22,6 +22,8 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   input [30:2] addr;
   input [3:0]  wren;
   output reg [31:0] data_out;
+
+  output 	    int_pending;
 
   output [7:0] 	    ext_led_g;
   output [9:0] 	    ext_led_r;
@@ -62,13 +64,14 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   wire [31:0] 	    write_mask;
   assign write_mask = {{8{wren[3]}},{8{wren[2]}},{8{wren[1]}},{8{wren[0]}}};
 
-  reg 		    is_ledsw, is_uart, is_i2c, is_sd, is_audio, is_video;
+  reg 		    is_ledsw, is_uart, is_i2c, is_sd, is_audio, is_video, is_ictl;
 
   wire [31:0] 	    uart_read_val, i2c_read_val;
 
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
   wire [31:0]		audio_read_val;		// From audio_mod of MCPU_SOC_audio.v
+  wire [31:0]		ictl_read_val;		// From ictl_mod of MCPU_SOC_ictl.v
   wire [31:0]		ledsw_data_out;		// From ledsw_mod of MCPU_SOC_ledsw.v
   wire [31:0]		sd_read_val;		// From sd_mod of MCPU_SOC_sd.v
   wire [31:0]		video_read_val;		// From video_mod of MCPU_SOC_video.v
@@ -81,6 +84,7 @@ module MCPU_SOC_mmio(/*AUTOARG*/
      is_sd = 0;
      is_audio = 0;
      is_video = 0;
+     is_ictl = 0;
      data_out = 32'bx;
 
      case(addr[30:12])
@@ -105,11 +109,17 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 	  data_out = audio_read_val;
        end
        19'd5: begin // Video
-	 is_video = 1;
-	 data_out = video_read_val;
+	  is_video = 1;
+	  data_out = video_read_val;
+       end
+       19'd6: begin // interrupt control
+	  is_ictl = 1;
+	  data_out = ictl_read_val;
        end
      endcase // addr[28:12]
-  end
+  end // always @ (*)
+
+  wire [31:0] interrupts[7];
 
   uart uart_mod(
 		.clk(clkrst_core_clk),
@@ -124,19 +134,22 @@ module MCPU_SOC_mmio(/*AUTOARG*/
   /* MCPU_SOC_ledsw AUTO_TEMPLATE(
    .data_out(ledsw_data_out[]),
    .write_mask(is_ledsw ? write_mask[] : 32'h0),
-   .addr(addr[2]));*/
+   .addr(addr[11:2]),
+   .ext_buttons(ext_buttons),
+   .interrupts(interrupts[0][]));*/
   MCPU_SOC_ledsw ledsw_mod(
 			   /*AUTOINST*/
 			   // Outputs
 			   .ext_led_r		(ext_led_r[9:0]),
 			   .ext_led_g		(ext_led_g[7:0]),
 			   .data_out		(ledsw_data_out[31:0]), // Templated
+			   .interrupts		(interrupts[0][31:0]), // Templated
 			   // Inputs
 			   .ext_switches	(ext_switches[9:0]),
-			   .ext_buttons		(ext_buttons[3:0]),
+			   .ext_buttons		(ext_buttons),	 // Templated
 			   .clkrst_core_clk	(clkrst_core_clk),
 			   .clkrst_core_rst_n	(clkrst_core_rst_n),
-			   .addr		(addr[2]),	 // Templated
+			   .addr		(addr[11:2]),	 // Templated
 			   .data_in		(data_in[31:0]),
 			   .write_mask		(is_ledsw ? write_mask[31:0] : 32'h0)); // Templated
 
@@ -228,6 +241,23 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 			   .addr		(addr[11:2]),	 // Templated
 			   .data_in		(data_in[31:0]),
 			   .write_mask		(is_video ? write_mask[31:0] : 32'h0)); // Templated
+
+  /* MCPU_SOC_ictl AUTO_TEMPLATE(
+   .data_out(ictl_read_val[]),
+   .write_mask(is_ictl ? write_mask[] : 32'h0),
+   .addr(addr[11:2]),
+   .interrupt_trigger(interrupts[0][31:0])); */
+  MCPU_SOC_ictl ictl_mod(/*AUTOINST*/
+			 // Outputs
+			 .data_out		(ictl_read_val[31:0]), // Templated
+			 .int_pending		(int_pending),
+			 // Inputs
+			 .clkrst_core_clk	(clkrst_core_clk),
+			 .clkrst_core_rst_n	(clkrst_core_rst_n),
+			 .addr			(addr[11:2]),	 // Templated
+			 .data_in		(data_in[31:0]),
+			 .write_mask		(is_ictl ? write_mask[31:0] : 32'h0), // Templated
+			 .interrupt_trigger	(interrupts[0][31:0])); // Templated
 endmodule
 
 // Local Variables:
