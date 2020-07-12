@@ -25,37 +25,16 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 # we forgot to add something here; check that it's up to date with the
 # file list in config.mk (both RTL_COMMON and RTL_FPGA).
 set_global_assignment -name VERILOG_FILE ../rtl/MCPU_int.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_alu.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_coproc.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_decode.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_exn_encode.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_regfile.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_scoreboard.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_dtlb.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_fetch.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_CORE_stage_mem.v
-set_global_assignment -name VERILOG_FILE ../rtl/core/MCPU_core.v
 set_global_assignment -name VERILOG_FILE ../rtl/lib/FIFO.v
 set_global_assignment -name VERILOG_FILE ../rtl/lib/dp_bram.v
 set_global_assignment -name VERILOG_FILE ../rtl/lib/reg_2.v
 set_global_assignment -name VERILOG_FILE ../rtl/lib/register.v
 set_global_assignment -name VERILOG_FILE ../rtl/lib/sp_bram.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_LTC_bram.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_arb.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_dl1c.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_dtlb.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_il1c.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_ltc.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_preload.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_MEM_pt_walk.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_mem.v
+set_global_assignment -name VERILOG_FILE ../rtl/lib/clkdomain_buf.v
 set_global_assignment -name VERILOG_FILE ../rtl/mcpu.v
-set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_i2c.v
-set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_ledsw.v
-set_global_assignment -name VERILOG_FILE ../rtl/soc/MCPU_SOC_mmio.v
-set_global_assignment -name VERILOG_FILE ../rtl/soc/uart.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/lpddr2_phy.v
-set_global_assignment -name VERILOG_FILE ../rtl/mc/MCPU_mc.v
+set_global_assignment -name SEARCH_PATH ../rtl/soc
+set_global_assignment -name SEARCH_PATH ../rtl/mc
+set_global_assignment -name SEARCH_PATH ../rtl/core
 set_global_assignment -name SEARCH_PATH ../rtl/mc/lpddr2_phy
 
 ############################################################################
