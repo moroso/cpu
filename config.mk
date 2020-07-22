@@ -38,8 +38,8 @@ RTL_COMMON = \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
 	rtl/soc/MCPU_SOC_sd.v \
-	rtl/soc/MCPU_SOC_video.v \
-	rtl/soc/uart.v
+	rtl/soc/MCPU_SOC_uart.v \
+	rtl/soc/MCPU_SOC_video.v
 
 RTL_FPGA = \
 	$(wildcard rtl/mc/lpddr2_phy/*.v rtl/mc/lpddr2_phy/*.sv) \

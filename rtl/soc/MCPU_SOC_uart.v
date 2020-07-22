@@ -147,15 +147,15 @@ module uart_tx(
    end
 endmodule // uart_tx
 
-module uart(
-            input 	      clk,
-            output 	      tx_pin,
-            input 	      rx_pin,
-            input 	      write_en,
-            input [31:0]      write_val,
-            input 	      addr,
-            output reg [31:0] read_val
-            );
+module MCPU_SOC_uart(
+		     input 	       clk,
+		     output 	       tx_pin,
+		     input 	       rx_pin,
+		     input 	       write_en,
+		     input [31:0]      write_val,
+		     input 	       addr,
+		     output reg [31:0] read_val
+		     );
 
    parameter CLOCK_HZ = 50000000;
    localparam BAUD_CLOCK = CLOCK_HZ / 115200;

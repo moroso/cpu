@@ -121,15 +121,15 @@ module MCPU_SOC_mmio(/*AUTOARG*/
 
   wire [31:0] interrupts[7];
 
-  uart uart_mod(
-		.clk(clkrst_core_clk),
-		.tx_pin(ext_uart_tx),
-		.rx_pin(ext_uart_rx),
-		.addr(addr[2]),
-		.write_en(is_uart & wren[0]),
-		.write_val(data_in),
-		.read_val(uart_read_val)
-		);
+  MCPU_SOC_uart uart_mod(
+			 .clk(clkrst_core_clk),
+			 .tx_pin(ext_uart_tx),
+			 .rx_pin(ext_uart_rx),
+			 .addr(addr[2]),
+			 .write_en(is_uart & wren[0]),
+			 .write_val(data_in),
+			 .read_val(uart_read_val)
+			 );
 
   /* MCPU_SOC_ledsw AUTO_TEMPLATE(
    .data_out(ledsw_data_out[]),
