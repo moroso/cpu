@@ -31,7 +31,7 @@ module MCPU_SOC_ictl(/*AUTOARG*/
 
   genvar 	    ii;
 
-  generate for (ii = 0; ii < 31; ii = ii + 1) begin: trigger_gen
+  generate for (ii = 0; ii < 32; ii = ii + 1) begin: trigger_gen
      if (ii < NUM_PERIPHS)
        assign periph_int_triggered[ii] = |(interrupt_pending[ii] & interrupt_enable[ii]);
      else

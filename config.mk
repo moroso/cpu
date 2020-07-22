@@ -38,6 +38,7 @@ RTL_COMMON = \
 	rtl/soc/MCPU_SOC_ledsw.v \
 	rtl/soc/MCPU_SOC_mmio.v \
 	rtl/soc/MCPU_SOC_sd.v \
+	rtl/soc/MCPU_SOC_timer.v \
 	rtl/soc/MCPU_SOC_uart.v \
 	rtl/soc/MCPU_SOC_video.v
 
