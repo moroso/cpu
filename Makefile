@@ -62,7 +62,7 @@ l1_tbs: $(addprefix tb_,$(L1_TBS))
 define TB_template
 $(TEST_BIN_DIR)/TB_$(1)/V$$(TB_$(1)_top): $(RTL_COMMON) $(addprefix sim/,$(TB_$(1)_cpps))
 	verilator -CFLAGS $(VER_CFLAGS) -Irtl --Mdir $(TEST_BIN_DIR)/TB_$(1) --cc $$(TB_$(1)_top) $(addprefix sim/,$(TB_$(1)_cpps)) --exe --assert $(if $(TRACE),--trace) $(addprefix +incdir+,$(sort $(dir $(RTL_COMMON)))) +incdir+rtl/tb
-	VPATH=../../ make -C $(TEST_BIN_DIR)/TB_$(1)/ -f V$$(TB_$(1)_top).mk
+	VPATH=../../ TRACE=1 make -C $(TEST_BIN_DIR)/TB_$(1)/ -f V$$(TB_$(1)_top).mk
 endef
 $(foreach tb,$(ALL_TBS),$(eval $(call TB_template,$(tb))))
 
@@ -102,7 +102,7 @@ tests/gen/%.vcd: tests/gen/%.txt tests/gen/%.bin test_bin/bin/coretest
 
 .phony: CORETEST_%
 CORETEST_%: tests/gen/%.txt tests/gen/%.bin test_bin/bin/coretest
-	test_bin/bin/coretest $(patsubst CORETEST_%,tests/gen/%.bin,$@) $(patsubst CORETEST_%,tests/gen/%.txt,$@)
+	test_bin/bin/coretest $(patsubst CORETEST_%,tests/gen/%.bin,$@) --regs $(patsubst CORETEST_%,tests/gen/%.txt,$@)
 
 #### Other
 sim/cpu_sim/cpu_sim: sim/cpu_sim/*.h sim/cpu_sim/*.cc

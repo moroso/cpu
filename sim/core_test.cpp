@@ -9,19 +9,13 @@
 #include "Sim.h"
 #include "verilated.h"
 
-#if VM_TRACE
-#include <verilated_vcd_c.h>  
+#include <verilated_vcd_c.h>
 VerilatedVcdC* tfp;
 void _close_trace() {
 	if (tfp) tfp->close();
 }
-#endif
 
-#if VM_TRACE
 #define TRACE tfp->dump(Sim::main_time)
-#else
-#define TRACE
-#endif
 
 class CoreTest {
 public:
@@ -84,7 +78,7 @@ public:
   }
 };
 
-void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
+void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile, int skip_cycles) {
   t->tb->clkrst_core_rst_n = 1;
   t->tb->clkrst_mem_rst_n = 1;
 
@@ -153,8 +147,15 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
   SIM_INFO("Loaded!");
 
   uint32_t pc = 0xffffffe;
-  for (int i = 0; i < 1000000; i++) {
-    t->clk();
+  for (int i = 0; i < 1000000 + skip_cycles; i++) {
+    if ((i % 1000000) == 0) {
+      SIM_INFO("%d cycles elapsed\n", i);
+    }
+    if (i < skip_cycles) {
+      t->clk_notrace();
+    } else {
+      t->clk();
+    }
 
     int break_signal = t->tb->MCPU_int->core->pc_break;
     int valid = t->tb->MCPU_int->core->pc_valid_in;
@@ -211,20 +212,39 @@ void run_test(CoreTest *t, char *romfile, char *regsfile, char *bootfile) {
 
 int main(int argc, char **argv, char **env) {
 	Sim::init(argc, argv);
+  // Rather than trying to remember the seed or anything, we'll just set it to zero.
+  srandom(0);
+
+  int skip_cycles = 0;
+  char *regs_file = NULL;
+  char *boot_file = NULL;
+  for (int i = 2; i < argc; i += 1) {
+    if (strcmp(argv[i], "--skip_cycles") == 0) {
+      skip_cycles = atoi(argv[i+1]);
+      i += 1;
+    } else if (strcmp(argv[i], "--regs") == 0) {
+      regs_file = argv[i+1];
+      i += 1;
+    } else if (strcmp(argv[i], "--boot") == 0) {
+      boot_file = argv[i+1];
+      i += 1;
+    } else {
+      SIM_FATAL("Unknown option %s", argv[i]);
+    }
+  }
+  SIM_INFO("Skipping logging on first %d cycles\n", skip_cycles);
 
   CoreTest *t = new CoreTest();
 
-#if VM_TRACE
   Verilated::traceEverOn(true);
   tfp = new VerilatedVcdC;
   t->tb->trace(tfp, 99);
   tfp->open("trace.vcd");
   atexit(_close_trace);
-#endif
 
   SIM_INFO("Testing");
 
-  run_test(t, argv[1], argc > 2 ? argv[2] : NULL, argc > 3 ? argv[3] : NULL);
+  run_test(t, argv[1], regs_file, boot_file, skip_cycles);
 
   SIM_INFO("Done");
 }
