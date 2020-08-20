@@ -95,10 +95,7 @@ fn send_program(port: &mut TTYPort, prog: &[u8]) {
     port.write(&[(num_packets >> 8) as u8]).unwrap();
     port.write(&[num_packets as u8]).unwrap();
 
-    let mut remaining_packets = num_packets as u16;
     for i in 0..num_packets {
-        remaining_packets -= 1;
-
         print!("Writing packet {}: ", i);
         print_packet(&prog[i * 16..(i+1)*16]);
         println!("");
@@ -130,8 +127,15 @@ fn hexdump_vec(chars: &[u8]) {
 }
 
 fn main() -> Result<(), ::std::io::Error> {
-    let prog_filename = ::std::env::args().skip(1).next().expect("Specify a program file");
-    let prog = load_program(&prog_filename);
+    let args: Vec<_> = ::std::env::args().collect();
+    if args.len() < 2 {
+        panic!("Specify a program file");
+    }
+    let prog_filename = &args[1];
+    // TODO: proper argument parser.
+    // For now, just pretend any additional arguments are --nonhex or something.
+    let nonhex = args.len() > 2;
+    let prog = load_program(prog_filename);
 
     let mut port = get_port();
 
@@ -150,7 +154,14 @@ fn main() -> Result<(), ::std::io::Error> {
                 Err(e) => {
                     panic!("{:?}", e);
                 }
-                Ok(l) if l > 0 => { chars.push(buf[0]); hexdump_vec(&chars); },
+                Ok(l) if l > 0 => {
+                    if nonhex {
+                        print!("{}", buf[0] as char);
+                    } else {
+                        chars.push(buf[0]);
+                        hexdump_vec(&chars);
+                    }
+                },
                 _ => { },
             }
             if chars.len() == 16 {
