@@ -49,18 +49,22 @@ module MCPU_CORE_coproc(/*AUTOARG*/
   wire 		dtlb_flush;
   wire 		itlb_flush;
 
+  wire 	 eret_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_ERET;
+  wire 	 mfc_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MFC;
+  wire 	 mtc_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTC;
+  wire 	 mfhi_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MFHI;
+  wire 	 mthi_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTHI;
+  wire 	 flush_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_FLUSH;
+
     reg [31:0] scratchpad[3:0];
     reg [31:0] coproc_regs[9:0];
+    reg [31:0] ovf;
 
     assign paging_on = coproc_regs[0][1];
     assign interrupts_enabled = coproc_regs[0][0];
-    assign coproc_reg_result = d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
-                                                  : coproc_regs[d2pc_in_rs_num0[3:0]];
-    wire coproc_rd_we = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MFC;
-
-  wire 	 eret_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_ERET;
-  wire 	 mtc_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTC;
-  wire 	 flush_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_FLUSH;
+    assign coproc_reg_result = mfhi_inst ? ovf : (d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
+                                                  : coproc_regs[d2pc_in_rs_num0[3:0]]);
+  wire 	       coproc_rd_we = mfc_inst || mfhi_inst;
 
     assign coproc_branch = exception | eret_inst;
     assign coproc_branchaddr = exception ? coproc_regs[2][31:4] : coproc_regs[3][31:4]; // EHA or EPC
@@ -84,6 +88,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
                 coproc_regs[i] <= 32'b0;
             end
             user_mode <= 0;
+            ovf <= 0;
         end
         else if(exception) begin //TODO clear link bit when that exists
             user_mode <= 0;
@@ -107,6 +112,9 @@ module MCPU_CORE_coproc(/*AUTOARG*/
                 scratchpad[d2pc_in_rd_num0[1:0]] <= d2pc_in_rs_data0;
             else
                 coproc_regs[d2pc_in_rd_num0[3:0]] <= d2pc_in_rs_data0;
+        end
+        else if(mthi_inst) begin
+            ovf <= d2pc_in_rs_data0;
         end
     end
 
