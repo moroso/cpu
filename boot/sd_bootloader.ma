@@ -72,10 +72,11 @@ card_copy_loop:
   { bl sd_data_read; r0 <- r9; r9 <- r9 + 1; }
   { bl sd_data_copy; r0 <- r26 + r10; r10 <- r10 + 0x200; }
   // Change this to change how much data we copy, in 512-byte increments.
-  // It's small for now, but later we'll at least want it large enough
-  // for the kernel--or we'll want a boot record on the card telling us
-  // how many pages to load.
-  { p0 <- r9 < 32; }
+  // Later we might want a boot record on the card telling us how many
+  // pages to load. For now, 1MB is plenty for the kernel and anything
+  // else we're likely to want to boot, and takes ~1 second to do the
+  // copy, which isn't terrible.
+  { p0 <- r9 < 2048; } // 2048 gives us 1MB
   { p0? b card_copy_loop; }
 
 { flush.inst r0; } // TODO: the r0 is unused right now; this'll need to be updated later.
