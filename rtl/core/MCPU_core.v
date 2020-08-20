@@ -66,7 +66,11 @@ module MCPU_core(/*AUTOARG*/
   /* I$ interface */
   output [27:0] f2ic_vaddr;
   input [27:0] 	f2ic_paddr;
+  // UNOPTFLAT was needed here when dtlb_valid_in started to depend
+  // on dcd_depstall; it seems not to cause problems, though...
+  /* verilator lint_off UNOPTFLAT */
   output 	f2ic_valid;
+  /* verilator lint_on UNOPTFLAT */
   input [127:0] ic2d_packet;
   input 	ic2d_pf;
   input 	ic2f_ready;
@@ -429,7 +433,10 @@ module MCPU_core(/*AUTOARG*/
 			  .f2ic_paddr		(f2ic_paddr[27:0]),
 			  .ic2f_ready		(ic2f_ready));
 
-  assign dtlb_valid_in = d_valid_in;
+  // Note/TODO: we could probably speed things up here; we could make the dtlb
+  // requests while the instruction is still stalled instead of waiting.
+  // Also this is the source of the UNOPT lint directives...
+  assign dtlb_valid_in = d_valid_in & ~dcd_depstall;
   assign f2d_in_packet = ic2d_packet;
   assign f2d_in_inst_pf = ic2d_pf & f_valid_out;
   assign d_valid_in = f_valid_out;
