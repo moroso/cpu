@@ -258,7 +258,9 @@ module MCPU_core(/*AUTOARG*/
   wire 		 pc_valid_out_mem0, pc_valid_out_mem1;
   wire 		 wb_ready_in, pc_out_ok;
   wire 		 mem_ready_in, mem_out_ok0, mem_out_ok1;
+  /* verilator lint_off UNOPTFLAT */
   wire 		 dtlb_valid_in, d2pc_valid_in;
+  /* verilator lint_on UNOPTFLAT */
   wire 		 mem_valid_in0, mem_valid_in1;
   wire 		 d_valid_out;
   wire 		 pc_has_mem_op;
@@ -274,15 +276,21 @@ module MCPU_core(/*AUTOARG*/
   assign f_out_ok = d_ready_in & dtlb_ready_in0 & dtlb_ready_in1;
 
   // During the decode stage, we have the decoder as well as the TLB lookup.
-  assign d_ready_in = ~d_valid_in | (pc_ready_in & ~dcd_depstall & d_ready_out);
+  // Unlike in most stages, we can't have a "~d_valid_in | ..." here, since
+  // ~d_valid_in (= ~f_valid_out) means a fetch is in progress (rather than
+  // a previous stage having a bubble).
+  assign d_ready_in = pc_ready_in & ~dcd_depstall & d_ready_out;
   assign d_ready_out = dtlb_ready_out0 & dtlb_ready_out1; // The decoder itself is always ready.
   assign d_out_ok = pc_ready_in;
   assign dtlb_out_ok = pc_ready_in;
-  assign d_valid_out = d_valid_in;
+  assign d_valid_out = d_valid_in & ~dcd_depstall;
   assign dtlb_valid_out = dtlb_valid_out0 & dtlb_valid_out1;
 
   // d2pc_valid_in is the valid signal from the previous stage.
   // pc_valid_in includes the signals from the cache.
+  // So: we're ready for new data if the next stage is ready for our result,
+  // and *either* the decode stage isn't giving us valid data (~d2pc_valid_in),
+  // or it's valid and we have all we need to progress (pc_valid_in).
   assign pc_ready_in = pc_out_ok & (~d2pc_valid_in | pc_valid_in);
   // Post-commit stage is between cycles. However, until everything after is is ready,
   // we want to pass along valid=0.
