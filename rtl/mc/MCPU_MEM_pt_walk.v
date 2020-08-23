@@ -54,6 +54,12 @@ module MCPU_MEM_pt_walk(
    wire [19:0]            arb_rdata_pd_addr = arb_rdata_pd_entry[31:12];
    wire [3:0]             arb_rdata_pd_flags = arb_rdata_pd_entry[3:0];
    wire                   arb_rdata_pd_present = arb_rdata_pd_flags[0];
+   // Large pages are handled here. The TLB doesn't know about them,
+   // but (if we're willing to take a bit of an efficiency hit) doesn't
+   // have to.
+   wire			  arb_rdata_pd_large_page = arb_rdata_pd_entry[7];
+   wire			  latched_arb_rdata_pd_large_page = latched_arb_rdata_pd_entry[7];
+   reg [31:12] 		  latched_tlb2ptw_addr;
 
    reg [31:0]             latched_arb_rdata_pd_entry = 0;
    assign tlb2ptw_pagedir_flags = latched_arb_rdata_pd_entry[3:0];
@@ -68,8 +74,8 @@ module MCPU_MEM_pt_walk(
    wire                   arb_rdata_pt_present = arb_rdata_pt_flags[0];
 
    reg [31:0]             latched_arb_rdata_pt_entry = 0;
-   assign tlb2ptw_pagetab_flags = latched_arb_rdata_pt_entry[3:0];
-   assign tlb2ptw_phys_addr = latched_arb_rdata_pt_entry[31:12];
+   assign tlb2ptw_pagetab_flags = latched_arb_rdata_pd_large_page ? tlb2ptw_pagedir_flags : latched_arb_rdata_pt_entry[3:0];
+   assign tlb2ptw_phys_addr = latched_arb_rdata_pd_large_page ? {latched_arb_rdata_pd_entry[31:22], latched_tlb2ptw_addr[21:12]} : latched_arb_rdata_pt_entry[31:12];
 
    // TODO: we could set this a cycle sooner, and have a transition
    // from ST_READ_TAB to ST_READ_DIR when another request comes in
@@ -84,6 +90,7 @@ module MCPU_MEM_pt_walk(
    reg                    next_ptw2arb_valid;
    reg                    latch_pd;
    reg                    latch_pt;
+   reg                    latch_addr;
 
    always @(*) begin
       next_ptw2arb_addr = 27'hxxxxxxx;
@@ -91,6 +98,7 @@ module MCPU_MEM_pt_walk(
       next_state = state;
       latch_pd = 0;
       latch_pt = 0;
+      latch_addr = 0;
 
       case (state)
         ST_IDLE:
@@ -109,14 +117,19 @@ module MCPU_MEM_pt_walk(
         end
         ST_READ_DIR:
           if (ptw2arb_rvalid) begin
+             // Capture the values we need from the page directory entry we just read.
+             latch_pd = 1;
              if (arb_rdata_pd_present) begin
-                next_state = ST_BEGIN_READ_TAB;
-                // We haven't yet stored the page *table* address in pagetab_base,
-                // so for this cylce we get it from the atom we just read from the ltc.
-                next_ptw2arb_addr = {{arb_rdata_pd_addr}, {pt_offs[9:3]}};
-                next_ptw2arb_valid = 1;
-                // Capture the values we need from the page directory entry we just read.
-                latch_pd = 1;
+		if (arb_rdata_pd_large_page) begin
+                   next_state = ST_IDLE;
+		   latch_addr = 1;
+		end else begin
+                   next_state = ST_BEGIN_READ_TAB;
+                   // We haven't yet stored the page *table* address in pagetab_base,
+                   // so for this cylce we get it from the atom we just read from the ltc.
+                   next_ptw2arb_addr = {{arb_rdata_pd_addr}, {pt_offs[9:3]}};
+                   next_ptw2arb_valid = 1;
+		end
              end else
                next_state = ST_IDLE;
           end else begin
@@ -160,9 +173,13 @@ module MCPU_MEM_pt_walk(
             // present and we do a read of the page table entry, this will be overwritten
             // below.
             latched_arb_rdata_pt_entry <= 32'h0;
-         end else if (latch_pt) begin
+         end
+	 if (latch_pt) begin
             latched_arb_rdata_pt_entry <= arb_rdata_pt_entry;
          end
+	 if (latch_addr) begin
+	    latched_tlb2ptw_addr <= tlb2ptw_addr;
+	 end
       end
    end
 
