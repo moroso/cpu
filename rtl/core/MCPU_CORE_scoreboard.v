@@ -102,8 +102,6 @@ module MCPU_CORE_scoreboard(/*AUTOARG*/
   reg [2:0] 	pred_scoreboard;
   assign sb2d_pred_scoreboard = pred_scoreboard & old_pred_field;
 
-  // TODO: do we need a coproc register scoreboard?
-
   always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
      if(~clkrst_core_rst_n) begin
         wb_reg1c0 <= 0;
