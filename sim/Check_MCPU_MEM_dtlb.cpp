@@ -4,8 +4,7 @@
 #include "mem_common.h"
 
 uint8_t combine_flags(uint8_t pd_flags, uint8_t pt_flags) {
-  return ((pd_flags & pt_flags) |
-          ((pd_flags | pt_flags) & 0xc));
+  return pd_flags & pt_flags;
 }
 
 Check_MCPU_MEM_dtlb::Check_MCPU_MEM_dtlb(MCPU_MEM_dtlb_ports *ports):

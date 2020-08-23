@@ -158,20 +158,7 @@ module MCPU_MEM_dtlb(
                        (~dtlb_re_a_1a | hit_a_1a) &&
                        (~dtlb_re_b_1a | hit_b_1a));
 
-  // Flags are a bit annoying: we get the PD and PT flags for the
-  // entry separately, and some flags (e.g. "present") must be set on
-  // both to be set for the page, but others are set on the page if
-  // set on either (e.g. "kernel").
-  wire [3:0] 				phys_addr_flags = {
-							   {tlb2ptw_pagedir_flags[PAGETAB_GLOBAL] |
-							    tlb2ptw_pagetab_flags[PAGETAB_GLOBAL]},
-							   {tlb2ptw_pagedir_flags[PAGETAB_KERNEL] |
-							    tlb2ptw_pagetab_flags[PAGETAB_KERNEL]},
-							   {tlb2ptw_pagedir_flags[PAGETAB_WRITEABLE] &
-							    tlb2ptw_pagetab_flags[PAGETAB_WRITEABLE]},
-							   {tlb2ptw_pagedir_flags[PAGETAB_PRESENT] &
-							    tlb2ptw_pagetab_flags[PAGETAB_PRESENT]}
-							   };
+  wire [3:0] 				phys_addr_flags = tlb2ptw_pagedir_flags & tlb2ptw_pagetab_flags;
 
   // We set the new evict bit for a set differently depending on
   // whether the access was a hit or a miss.
@@ -430,17 +417,17 @@ module MCPU_MEM_dtlb(
   wire page_writeable_b;
   wire page_present_a;
   wire page_present_b;
-  wire page_kernel_a;
-  wire page_kernel_b;
+  wire page_user_a;
+  wire page_user_b;
 
-  assign {page_kernel_a, page_writeable_a, page_present_a} = dtlb_flags_a[2:0];
-  assign {page_kernel_b, page_writeable_b, page_present_b} = dtlb_flags_b[2:0];
+  assign {page_user_a, page_writeable_a, page_present_a} = dtlb_flags_a[2:0];
+  assign {page_user_b, page_writeable_b, page_present_b} = dtlb_flags_b[2:0];
 
   always @(*) begin
      if (~dtlb_re_a_1a)
        dtlb_pf_a = 0;
      else if (page_present_a) begin
-	if (page_kernel_a & user_mode_1a)
+	if (~page_user_a & user_mode_1a)
 	  dtlb_pf_a = 1;
 	else if (dtlb_is_write_a_1a & ~page_writeable_b)
 	  dtlb_pf_a = 1;
@@ -454,7 +441,7 @@ module MCPU_MEM_dtlb(
      if (~dtlb_re_b_1a)
        dtlb_pf_b = 0;
      else if (page_present_b) begin
-	if (page_kernel_b & user_mode_1a)
+	if (~page_user_b & user_mode_1a)
 	  dtlb_pf_b = 1;
 	else if (dtlb_is_write_b_1a & ~page_writeable_b)
 	  dtlb_pf_b = 1;
