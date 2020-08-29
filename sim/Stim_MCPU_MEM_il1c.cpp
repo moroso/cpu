@@ -4,25 +4,25 @@
 
 void Stim_MCPU_MEM_il1c::read(uint32_t addr) {
   q.push({
-        addr >> 4,
-        true,
-        false,
+        .addr = addr >> 4,
+        .wait_ready = true,
+        .is_pause = false,
     });
 }
 
 void Stim_MCPU_MEM_il1c::read_nowait(uint32_t addr) {
   q.push({
-        addr >> 4,
-        false,
-        false,
+        .addr = addr >> 4,
+        .wait_ready = false,
+        .is_pause = false,
     });
 }
 
 void Stim_MCPU_MEM_il1c::pause() {
   q.push({
-      0,
-      false,
-      true,
+      .addr = 0,
+      .wait_ready = false,
+      .is_pause = true,
     });
 }
 
