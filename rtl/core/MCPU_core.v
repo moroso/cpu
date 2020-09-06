@@ -115,6 +115,10 @@ module MCPU_core(/*AUTOARG*/
   wire			d2pc_out_branchreg1;	// From d1 of MCPU_CORE_decode.v
   wire			d2pc_out_branchreg2;	// From d2 of MCPU_CORE_decode.v
   wire			d2pc_out_branchreg3;	// From d3 of MCPU_CORE_decode.v
+  wire			d2pc_out_clear_link0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_clear_link1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_clear_link2;	// From d2 of MCPU_CORE_decode.v
+  wire			d2pc_out_clear_link3;	// From d3 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode0;// From d0 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode1;// From d1 of MCPU_CORE_decode.v
   wire [8:0]		d2pc_out_execute_opcode2;// From d2 of MCPU_CORE_decode.v
@@ -138,6 +142,10 @@ module MCPU_core(/*AUTOARG*/
   wire			d2pc_out_rd_we1;	// From d1 of MCPU_CORE_decode.v
   wire			d2pc_out_rd_we2;	// From d2 of MCPU_CORE_decode.v
   wire			d2pc_out_rd_we3;	// From d3 of MCPU_CORE_decode.v
+  wire			d2pc_out_set_link0;	// From d0 of MCPU_CORE_decode.v
+  wire			d2pc_out_set_link1;	// From d1 of MCPU_CORE_decode.v
+  wire			d2pc_out_set_link2;	// From d2 of MCPU_CORE_decode.v
+  wire			d2pc_out_set_link3;	// From d3 of MCPU_CORE_decode.v
   wire [5:0]		d2pc_out_shift_amount0;	// From d0 of MCPU_CORE_decode.v
   wire [5:0]		d2pc_out_shift_amount1;	// From d1 of MCPU_CORE_decode.v
   wire [5:0]		d2pc_out_shift_amount2;	// From d2 of MCPU_CORE_decode.v
@@ -173,10 +181,13 @@ module MCPU_core(/*AUTOARG*/
   wire			f_ready_out;		// From f of MCPU_CORE_stage_fetch.v
   wire			f_valid_out;		// From f of MCPU_CORE_stage_fetch.v
   wire			interrupts_enabled;	// From coproc of MCPU_CORE_coproc.v
+  wire			link;			// From coproc of MCPU_CORE_coproc.v
   wire [11:0]		lsu_offset2;		// From d2 of MCPU_CORE_decode.v
   wire [11:0]		lsu_offset3;		// From d3 of MCPU_CORE_decode.v
   wire [31:0]		mem2wb_out_data0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
   wire [31:0]		mem2wb_out_data1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
+  wire			mem2wb_out_pred_we0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
+  wire			mem2wb_out_pred_we1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire [4:0]		mem2wb_out_rd_num0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
   wire [4:0]		mem2wb_out_rd_num1;	// From stage_mem1 of MCPU_CORE_stage_mem.v
   wire			mem2wb_out_rd_we0;	// From stage_mem0 of MCPU_CORE_stage_mem.v
@@ -220,15 +231,20 @@ module MCPU_core(/*AUTOARG*/
   wire [1:0] 	 d2pc_in_shift_type3, d2pc_in_shift_type2, d2pc_in_shift_type1, d2pc_in_shift_type0;
   wire [5:0] 	 d2pc_in_shift_amount3, d2pc_in_shift_amount2, d2pc_in_shift_amount1, d2pc_in_shift_amount0;
   wire [8:0] 	 d2pc_in_execute_opcode3, d2pc_in_execute_opcode2, d2pc_in_execute_opcode1, d2pc_in_execute_opcode0;
+  wire 		 d2pc_in_set_link;
+  wire [31:0] 	 d2pc_in_mem_vaddr0, d2pc_in_mem_vaddr1;
+  wire 		 d2pc_in_clear_link;
   wire [11:0] 	 lsu_offset0, lsu_offset1;
   wire 		 d2pc_in_invalid3, d2pc_in_invalid2, d2pc_in_invalid1, d2pc_in_invalid0;
   wire [27:0] 	 d2pc_in_virtpc /* verilator public */;
   wire [27:0] 	 pc2mem_in_virtpc0 /* verilator public */, pc2mem_in_virtpc1 /* verilator public */;
+  wire  	 pc2mem_in_link0, pc2mem_in_link1;
   wire [27:0] 	 wb_in_virtpc0, wb_in_virtpc1, wb_in_virtpc23;
   wire 		 d2pc_in_inst_pf;
   wire [4:0] 	 d2pc_in_rs_num0;
   wire 		 d2pc_out_invalid3;
   wire 		 pc2mem_in_rd_we0, pc2mem_in_rd_we1;
+  wire 		 pc2mem_in_pred_we0, pc2mem_in_pred_we1;
   wire [4:0] 	 pc2mem_in_rd_num0, pc2mem_in_rd_num1;
 
   wire [31:0] 	 wb2rf_rd_data3, wb2rf_rd_data2, wb2rf_rd_data1, wb2rf_rd_data0 /* verilator public */;
@@ -468,6 +484,8 @@ module MCPU_core(/*AUTOARG*/
    .long_imm(long_imm@[]),
    .d2pc_out_invalid(d2pc_out_invalid@[]),
    .d2pc_out_branchreg(d2pc_out_branchreg@[]),
+   .d2pc_out_set_link(d2pc_out_set_link@),
+   .d2pc_out_clear_link(d2pc_out_clear_link@),
    );*/
 
 
@@ -493,6 +511,8 @@ module MCPU_core(/*AUTOARG*/
 		      .long_imm		(long_imm0),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid0),	 // Templated
 		      .d2pc_out_branchreg(d2pc_out_branchreg0),	 // Templated
+		      .d2pc_out_set_link(d2pc_out_set_link0),	 // Templated
+		      .d2pc_out_clear_link(d2pc_out_clear_link0), // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -521,6 +541,8 @@ module MCPU_core(/*AUTOARG*/
 		      .long_imm		(long_imm1),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid1),	 // Templated
 		      .d2pc_out_branchreg(d2pc_out_branchreg1),	 // Templated
+		      .d2pc_out_set_link(d2pc_out_set_link1),	 // Templated
+		      .d2pc_out_clear_link(d2pc_out_clear_link1), // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -549,6 +571,8 @@ module MCPU_core(/*AUTOARG*/
 		      .long_imm		(long_imm2),		 // Templated
 		      .d2pc_out_invalid	(d2pc_out_invalid2),	 // Templated
 		      .d2pc_out_branchreg(d2pc_out_branchreg2),	 // Templated
+		      .d2pc_out_set_link(d2pc_out_set_link2),	 // Templated
+		      .d2pc_out_clear_link(d2pc_out_clear_link2), // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -578,6 +602,8 @@ module MCPU_core(/*AUTOARG*/
 		      .dep_stall	(dep_stall3),		 // Templated
 		      .long_imm		(long_imm3),		 // Templated
 		      .d2pc_out_branchreg(d2pc_out_branchreg3),	 // Templated
+		      .d2pc_out_set_link(d2pc_out_set_link3),	 // Templated
+		      .d2pc_out_clear_link(d2pc_out_clear_link3), // Templated
 		      // Inputs
 		      .preds		(preds[2:0]),
 		      .sb2d_reg_scoreboard(sb2d_reg_scoreboard[31:0]),
@@ -655,7 +681,7 @@ module MCPU_core(/*AUTOARG*/
 				   .d2dtlb_memop_type	(d2dtlb_memop_type1[2:0])); // Templated
 
   // this is going to get even bigger when we add bits for non-ALU instruction types.
-  register #(.WIDTH(400), .RESET_VAL(400'd0)) // wheeeeeeeee
+  register #(.WIDTH(466), .RESET_VAL(466'd0)) // wheeeeeeeee
   d2pc_reg(
 	   .D({d2pc_out_sop3, d2pc_out_sop2, d2pc_out_sop1, d2pc_out_sop0,
                rf2d_rs_data3, rf2d_rs_data2, rf2d_rs_data1, rf2d_rs_data0,
@@ -671,7 +697,13 @@ module MCPU_core(/*AUTOARG*/
                d2pc_out_branchreg0,
                f2d_in_virtpc,
                f2d_in_inst_pf,
-               d2rf_rs_num0
+               d2rf_rs_num0,
+	       d2pc_out_set_link0 | d2pc_out_set_link1,
+	       // It's important that this only be set at the very last cycle,
+	       // so we don't clear the link bit before we're supposed to
+	       // (while stalled).
+	       (d2pc_out_clear_link0 | d2pc_out_clear_link1) & d_valid_out,
+	       d2dtlb_vaddr0, d2dtlb_vaddr1
                }),
 	   .Q({
                d2pc_in_sop3, d2pc_in_sop2, d2pc_in_sop1, d2pc_in_sop0,
@@ -688,7 +720,9 @@ module MCPU_core(/*AUTOARG*/
                d2pc_in_branchreg,
                d2pc_in_virtpc,
                d2pc_in_inst_pf,
-               d2pc_in_rs_num0
+               d2pc_in_rs_num0,
+	       d2pc_in_set_link, d2pc_in_clear_link,
+	       d2pc_in_mem_vaddr0, d2pc_in_mem_vaddr1
                }),
            .en(pc_ready_in | pipe_flush),
            /*AUTOINST*/
@@ -818,8 +852,8 @@ module MCPU_core(/*AUTOARG*/
 
   MCPU_CORE_coproc coproc(
 			  .coproc_instruction	(pc_valid_in & (d2pc_in_oper_type0 == OPER_TYPE_OTHER)),
-			  .mem_vaddr0		(0),
-			  .mem_vaddr1		(0), //TODO connect these
+			  .mem_vaddr0		(d2pc_in_mem_vaddr0),
+			  .mem_vaddr1		(d2pc_in_mem_vaddr1),
 			  /*AUTOINST*/
 			  // Outputs
 			  .coproc_reg_result	(coproc_reg_result[31:0]),
@@ -829,6 +863,7 @@ module MCPU_core(/*AUTOARG*/
 			  .interrupts_enabled	(interrupts_enabled),
 			  .coproc_branchaddr	(coproc_branchaddr[27:0]),
 			  .coproc_branch	(coproc_branch),
+			  .link			(link),
 			  .pagedir_base		(pagedir_base[19:0]),
 			  .tlb_clear		(tlb_clear),
 			  .dl1c_flush		(dl1c_flush),
@@ -846,7 +881,10 @@ module MCPU_core(/*AUTOARG*/
 			  .combined_ec2		(combined_ec2[4:0]),
 			  .combined_ec3		(combined_ec3[4:0]),
 			  .exception		(exception),
-			  .d2pc_in_virtpc	(d2pc_in_virtpc[27:0]));
+			  .d2pc_in_virtpc	(d2pc_in_virtpc[27:0]),
+			  .d2pc_in_set_link	(d2pc_in_set_link),
+			  .d2pc_in_clear_link	(d2pc_in_clear_link),
+			  .pc_ready_in		(pc_ready_in));
 
 
   // MEMORY
@@ -864,19 +902,20 @@ module MCPU_core(/*AUTOARG*/
   wire [31:0] 	 pc2mem_out_paddr0, pc2mem_out_paddr1, pc2mem_in_paddr0, pc2mem_in_paddr1;
   assign {pc2mem_out_paddr0, pc2mem_out_paddr1} = {dtlb2pc_paddr0, dtlb2pc_paddr1};
 
-  register #(.WIDTH(102), .RESET_VAL(102'b0)) pc2mem_reg0(
+  register #(.WIDTH(104), .RESET_VAL(104'b0)) pc2mem_reg0(
 							  .D({
 							      pc2mem_out_paddr0, pc2mem_out_data0, pc2mem_out_type0,
-							      d2pc_in_rd_num0, d2pc_in_rd_we0,
+							      d2pc_in_rd_num0, d2pc_in_rd_we0, d2pc_in_pred_we0,
 							      pc_valid_out_mem0,
-							      d2pc_in_virtpc
+							      d2pc_in_virtpc,
+							      link
 							      }),
 							  .Q({
 							      pc2mem_in_paddr0, pc2mem_in_data0, pc2mem_in_type0,
-
-							      pc2mem_in_rd_num0, pc2mem_in_rd_we0,
+							      pc2mem_in_rd_num0, pc2mem_in_rd_we0, pc2mem_in_pred_we0,
 							      mem_valid_in0,
-							      pc2mem_in_virtpc0
+							      pc2mem_in_virtpc0,
+							      pc2mem_in_link0
 							      }),
 							  .en(mem_ready_in0),
 							  /*AUTOINST*/
@@ -884,18 +923,20 @@ module MCPU_core(/*AUTOARG*/
 							  .clkrst_core_clk	(clkrst_core_clk),
 							  .clkrst_core_rst_n	(clkrst_core_rst_n));
 
-  register #(.WIDTH(102), .RESET_VAL(102'b0)) pc2mem_reg1(
+  register #(.WIDTH(104), .RESET_VAL(104'b0)) pc2mem_reg1(
 							  .D({
 							      pc2mem_out_paddr1, pc2mem_out_data1, pc2mem_out_type1,
-							      d2pc_in_rd_num1, d2pc_in_rd_we1,
+							      d2pc_in_rd_num1, d2pc_in_rd_we1, d2pc_in_pred_we1,
 							      pc_valid_out_mem1,
-							      d2pc_in_virtpc
+							      d2pc_in_virtpc,
+							      link
 							      }),
 							  .Q({
 							      pc2mem_in_paddr1, pc2mem_in_data1, pc2mem_in_type1,
-							      pc2mem_in_rd_num1, pc2mem_in_rd_we1,
+							      pc2mem_in_rd_num1, pc2mem_in_rd_we1, pc2mem_in_pred_we1,
 							      mem_valid_in1,
-							      pc2mem_in_virtpc1
+							      pc2mem_in_virtpc1,
+							      pc2mem_in_link1
 							      }),
 							  .en(mem_ready_in1),
 							  /*AUTOINST*/
@@ -914,9 +955,12 @@ module MCPU_core(/*AUTOARG*/
    .pc2mem_in_type(pc2mem_in_type@[]),
    .pc2mem_in_rd_num(pc2mem_in_rd_num@[]),
    .pc2mem_in_rd_we(pc2mem_in_rd_we@),
+   .pc2mem_in_pred_we(pc2mem_in_pred_we@),
+   .pc2mem_in_link(pc2mem_in_link@),
    .mem2wb_out_data(mem2wb_out_data@[]),
    .mem2wb_out_rd_num(mem2wb_out_rd_num@[]),
    .mem2wb_out_rd_we(mem2wb_out_rd_we@),
+   .mem2wb_out_pred_we(mem2wb_out_pred_we@),
    .mem2dc_paddr(mem2dc_paddr@[]),
    .mem2dc_write(mem2dc_write@[]),
    .mem2dc_valid(mem2dc_valid@),
@@ -935,6 +979,7 @@ module MCPU_core(/*AUTOARG*/
 				 .mem2wb_out_data	(mem2wb_out_data0[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num0[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we0), // Templated
+				 .mem2wb_out_pred_we	(mem2wb_out_pred_we0), // Templated
 				 .mem2dc_paddr		(mem2dc_paddr0[29:0]), // Templated
 				 .mem2dc_write		(mem2dc_write0[3:0]), // Templated
 				 .mem2dc_valid		(mem2dc_valid0), // Templated
@@ -949,6 +994,8 @@ module MCPU_core(/*AUTOARG*/
 				 .pc2mem_in_type	(pc2mem_in_type0[2:0]), // Templated
 				 .pc2mem_in_rd_num	(pc2mem_in_rd_num0[4:0]), // Templated
 				 .pc2mem_in_rd_we	(pc2mem_in_rd_we0), // Templated
+				 .pc2mem_in_pred_we	(pc2mem_in_pred_we0), // Templated
+				 .pc2mem_in_link	(pc2mem_in_link0), // Templated
 				 .mem2dc_done		(mem2dc_done0),	 // Templated
 				 .mem2dc_data_in	(mem2dc_data_in0[31:0])); // Templated
 
@@ -960,6 +1007,7 @@ module MCPU_core(/*AUTOARG*/
 				 .mem2wb_out_data	(mem2wb_out_data1[31:0]), // Templated
 				 .mem2wb_out_rd_num	(mem2wb_out_rd_num1[4:0]), // Templated
 				 .mem2wb_out_rd_we	(mem2wb_out_rd_we1), // Templated
+				 .mem2wb_out_pred_we	(mem2wb_out_pred_we1), // Templated
 				 .mem2dc_paddr		(mem2dc_paddr1[29:0]), // Templated
 				 .mem2dc_write		(mem2dc_write1[3:0]), // Templated
 				 .mem2dc_valid		(mem2dc_valid1), // Templated
@@ -974,6 +1022,8 @@ module MCPU_core(/*AUTOARG*/
 				 .pc2mem_in_type	(pc2mem_in_type1[2:0]), // Templated
 				 .pc2mem_in_rd_num	(pc2mem_in_rd_num1[4:0]), // Templated
 				 .pc2mem_in_rd_we	(pc2mem_in_rd_we1), // Templated
+				 .pc2mem_in_pred_we	(pc2mem_in_pred_we1), // Templated
+				 .pc2mem_in_link	(pc2mem_in_link1), // Templated
 				 .mem2dc_done		(mem2dc_done1),	 // Templated
 				 .mem2dc_data_in	(mem2dc_data_in1[31:0])); // Templated
 
@@ -1026,7 +1076,7 @@ module MCPU_core(/*AUTOARG*/
   reg_2 #(.WIDTH(68), .RESET_VAL(68'b0))
   pc2wb_reg0(
 	     .D0({
-		  mem2wb_out_data0, mem2wb_out_rd_num0, mem2wb_out_rd_we0, 1'b0,
+		  mem2wb_out_data0, mem2wb_out_rd_num0, mem2wb_out_rd_we0, mem2wb_out_pred_we0,
 		  mem_valid_out0,
 		  pc2mem_in_virtpc0
 		  }),
@@ -1049,7 +1099,7 @@ module MCPU_core(/*AUTOARG*/
   reg_2 #(.WIDTH(68), .RESET_VAL(68'b0))
   pc2wb_reg1(
 	     .D0({
-		  mem2wb_out_data1, mem2wb_out_rd_num1, mem2wb_out_rd_we1, 1'b0,
+		  mem2wb_out_data1, mem2wb_out_rd_num1, mem2wb_out_rd_we1, mem2wb_out_pred_we1,
 		  mem_valid_out1,
 		  pc2mem_in_virtpc1
 		  }),

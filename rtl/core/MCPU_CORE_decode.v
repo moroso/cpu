@@ -6,7 +6,8 @@ module MCPU_CORE_decode(/*AUTOARG*/
    d2pc_out_shift_amount, d2pc_out_oper_type, d2pc_out_rd_num,
    d2pc_out_rd_we, d2pc_out_pred_we, d2rf_rs_num, d2rf_rt_num,
    d2pc_out_sop, d2pc_out_lsu_offset, dep_stall, long_imm,
-   d2pc_out_invalid, d2pc_out_branchreg,
+   d2pc_out_invalid, d2pc_out_branchreg, d2pc_out_set_link,
+   d2pc_out_clear_link,
    // Inputs
    inst, preds, sb2d_reg_scoreboard, sb2d_pred_scoreboard,
    rf2d_rs_data, rf2d_rt_data, nextinst, prev_long_imm
@@ -34,6 +35,8 @@ module MCPU_CORE_decode(/*AUTOARG*/
   output reg long_imm;
   output reg d2pc_out_invalid;
   output reg d2pc_out_branchreg;
+  output reg d2pc_out_set_link;
+  output reg d2pc_out_clear_link;
 
   /* AUTOREG */
 
@@ -85,6 +88,8 @@ module MCPU_CORE_decode(/*AUTOARG*/
     d2pc_out_rd_we = 0;
     d2pc_out_pred_we = 0;
     d2pc_out_branchreg = 0;
+    d2pc_out_set_link = 0;
+    d2pc_out_clear_link = 0;
 
     long_imm = inst[28:14] == 15'b100000000000000;
 
@@ -123,9 +128,14 @@ module MCPU_CORE_decode(/*AUTOARG*/
         depend_rs = 1;
         depend_rt = d2pc_out_execute_opcode[2];
         if(d2pc_out_execute_opcode[2:0] == 3'b111) begin
+	  // Store conditional
           d2pc_out_pred_we = 1;
           d2pc_out_rd_num = 5'b0;
-        end
+	  d2pc_out_clear_link = 1;
+        end else if (d2pc_out_execute_opcode[2:0] == 3'b011) begin
+	  // Load linked
+	  d2pc_out_set_link = 1;
+	end
       end
 
       else if(inst[27]) begin // branch

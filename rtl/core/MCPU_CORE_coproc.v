@@ -3,13 +3,14 @@
 module MCPU_CORE_coproc(/*AUTOARG*/
    // Outputs
    coproc_reg_result, coproc_rd_we, user_mode, paging_on,
-   interrupts_enabled, coproc_branchaddr, coproc_branch, pagedir_base,
-   tlb_clear, dl1c_flush, il1c_flush,
+   interrupts_enabled, coproc_branchaddr, coproc_branch, link,
+   pagedir_base, tlb_clear, dl1c_flush, il1c_flush,
    // Inputs
    clkrst_core_clk, clkrst_core_rst_n, d2pc_in_rs_data0, d2pc_in_sop0,
    d2pc_in_rs_num0, d2pc_in_rd_num0, d2pc_in_execute_opcode0,
    coproc_instruction, combined_ec0, combined_ec1, combined_ec2,
-   combined_ec3, exception, d2pc_in_virtpc, mem_vaddr0, mem_vaddr1
+   combined_ec3, exception, d2pc_in_virtpc, mem_vaddr0, mem_vaddr1,
+   d2pc_in_set_link, d2pc_in_clear_link, pc_ready_in
    );
 `include "coproc_ops.vh"
 
@@ -36,6 +37,9 @@ module MCPU_CORE_coproc(/*AUTOARG*/
     input [31:0] mem_vaddr0, mem_vaddr1;
     output [27:0] coproc_branchaddr;
     output coproc_branch;
+  output link;
+  input      d2pc_in_set_link;
+  input      d2pc_in_clear_link;
 
   output [19:0] pagedir_base;
   output 	tlb_clear;
@@ -56,9 +60,9 @@ module MCPU_CORE_coproc(/*AUTOARG*/
   wire 	 mthi_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTHI;
   wire 	 flush_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_FLUSH;
 
-    reg [31:0] scratchpad[3:0];
-    reg [31:0] coproc_regs[9:0];
-    reg [31:0] ovf;
+  reg [31:0] scratchpad[3:0];
+  reg [31:0] coproc_regs[9:0];
+  reg [31:0] ovf;
 
     assign paging_on = coproc_regs[0][1];
     assign interrupts_enabled = coproc_regs[0][0];
@@ -75,8 +79,13 @@ module MCPU_CORE_coproc(/*AUTOARG*/
   assign dtlb_flush = flush_inst & d2pc_in_execute_opcode0[1:0] == 2'b10;
   assign itlb_flush = flush_inst & d2pc_in_execute_opcode0[1:0] == 2'b11;
 
+  input        pc_ready_in;
+
   // Clear TLB on write to PTB.
   assign tlb_clear = (mtc_inst & (~d2pc_in_rd_num0[4]) & d2pc_in_rd_num0[3:0] == 1) | dtlb_flush | itlb_flush;
+
+  reg 	       link_bit;
+  assign link = link_bit;
 
     integer i;
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
@@ -89,33 +98,50 @@ module MCPU_CORE_coproc(/*AUTOARG*/
             end
             user_mode <= 0;
             ovf <= 0;
+	    link_bit <= 0;
         end
-        else if(exception) begin //TODO clear link bit when that exists
-            user_mode <= 0;
-            coproc_regs[0][0] <= 0; // disable interrupts
-            coproc_regs[3][31:4] <= d2pc_in_virtpc[27:0]; //EPC
-            coproc_regs[3][1] <= interrupts_enabled;
-            coproc_regs[3][0] <= ~user_mode;
-            coproc_regs[4] <= {27'd0, combined_ec0};
-            coproc_regs[5] <= {27'd0, combined_ec1};
-            coproc_regs[6] <= {27'd0, combined_ec2};
-            coproc_regs[7] <= {27'd0, combined_ec3};
-            coproc_regs[8] <= mem_vaddr0;
-            coproc_regs[9] <= mem_vaddr1;
-        end
-        else if(eret_inst) begin
-            user_mode <= ~coproc_regs[3][0];
-            coproc_regs[0][0] <= coproc_regs[3][1];
-        end
-        else if(mtc_inst) begin
-            if(d2pc_in_rd_num0[4])
+        else begin
+	   if (pc_ready_in) begin
+	      // Unlike most operations, clearing the link bit due to
+	      // a sc instruction has to wait until we're just about to
+	      // shift in new data--otherwise, the memory controller will
+	      // get the cleared value of the link bit, instead of the
+	      // previous value.
+	      if (d2pc_in_clear_link)
+		link_bit <= 0;
+	      else if (d2pc_in_set_link)
+		link_bit <= 1;
+	   end
+
+	   if(exception) begin //TODO clear link bit when that exists
+              user_mode <= 0;
+	      link_bit <= 0;
+              coproc_regs[0][0] <= 0; // disable interrupts
+              coproc_regs[3][31:4] <= d2pc_in_virtpc[27:0]; //EPC
+              coproc_regs[3][1] <= interrupts_enabled;
+              coproc_regs[3][0] <= ~user_mode;
+              coproc_regs[4] <= {27'd0, combined_ec0};
+              coproc_regs[5] <= {27'd0, combined_ec1};
+              coproc_regs[6] <= {27'd0, combined_ec2};
+              coproc_regs[7] <= {27'd0, combined_ec3};
+              coproc_regs[8] <= mem_vaddr0;
+              coproc_regs[9] <= mem_vaddr1;
+           end
+           else if(eret_inst) begin
+              user_mode <= ~coproc_regs[3][0];
+              coproc_regs[0][0] <= coproc_regs[3][1];
+	      link_bit <= 0;
+           end
+           else if(mtc_inst) begin
+              if(d2pc_in_rd_num0[4])
                 scratchpad[d2pc_in_rd_num0[1:0]] <= d2pc_in_rs_data0;
-            else
+              else
                 coproc_regs[d2pc_in_rd_num0[3:0]] <= d2pc_in_rs_data0;
-        end
-        else if(mthi_inst) begin
-            ovf <= d2pc_in_rs_data0;
-        end
+           end
+           else if(mthi_inst) begin
+              ovf <= d2pc_in_rs_data0;
+           end
+	end
     end
 
 
