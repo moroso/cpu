@@ -447,22 +447,12 @@ void cpu_t::clear_exceptions() {
 }
 
 bool cpu_t::process_peripherals() {
-    bool interrupt_fired = false;
-    for (int i = 0; i < peripherals.size(); i++) {
-        if (peripherals[i]->process(*this)) {
-            interrupt_fired = true;
-        }
-    }
-
-    return interrupt_fired;
+    return peripherals.process(*this);
 }
 
 bool cpu_t::validate_write(uint32_t addr, uint32_t val, uint8_t width) {
-    for (int i = 0; i < peripherals.size(); i++)
-    {
-        if (peripherals[i]->check_write(*this, addr, val, width)) {
-            return true;
-        }
+    if (peripherals.check_write(*this, addr, val, width)) {
+        return true;
     }
 
     // Only have to check the first because everything is aligned to its width
@@ -523,20 +513,12 @@ bool decoded_packet::execute(cpu_t &cpu) {
         for (int i = 0; i < 2; ++i) {
             if (writes[i]) {
                 mem_write_t mem_write = *writes[i];
-                bool handled = false;
-                for (int i = 0; i < cpu.peripherals.size(); i++) {
-                    handled = cpu.peripherals[i]->write(cpu,
-                                                        mem_write.addr,
-                                                        mem_write.val,
-                                                        mem_write.width);
-                    if (handled) {
-                        if (verbose) {
-                            printf("Write handled by %s\n", cpu.peripherals[i]->name().c_str());
-                        }
-                        break;
+                bool handled = cpu.peripherals.write(cpu, mem_write.addr, mem_write.val, mem_write.width);
+                if (handled) {
+                    if (verbose) {
+                        printf("Write handled by peripherals\n");
                     }
-                }
-                if (!handled) {
+                } else {
                     // Note: error checking was already done.
                     for (int j = 0; j < mem_write.width; ++j) {
                         cpu.ram[mem_write.addr + j] = mem_write.val & 0xFF;
@@ -588,7 +570,6 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
 
     uint32_t pd_index = BITS(addr, 22, 10);
     uint32_t pt_index = BITS(addr, 12, 10);
-    uint32_t page_offset = BITS(addr, 0, 12);
 
     pd_entry_t *ptb = (pd_entry_t *)(cpu.ram + ptbr);
     pd_entry_t pd_entry = ptb[pd_index];
@@ -601,17 +582,32 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
     bool pd_write = BIT(pd_entry, 1);
     bool pd_umode = BIT(pd_entry, 2);
 
-    pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
-    pt_entry_t pt_entry = pt[pt_index];
+    uint32_t result_addr;
+    bool pt_write;
+    bool pt_umode;
 
-    bool pt_present = BIT(pt_entry, 0);
-    if (!pt_present) {
-        return boost::none;
+    if (BIT(pd_entry, 7)) {
+        // Large page.
+        uint32_t base = pd_entry & BITS(pd_entry, 22, 10) << 22;
+        uint32_t offset = BITS(addr, 0, 22);
+        pt_write = true;
+        pt_umode = true;
+        result_addr = base + offset;
+    } else {
+        uint32_t page_offset = BITS(addr, 0, 12);
+
+        pt_entry_t *pt = (pt_entry_t *)(cpu.ram + pt_addr);
+        pt_entry_t pt_entry = pt[pt_index];
+
+        bool pt_present = BIT(pt_entry, 0);
+        if (!pt_present) {
+            return boost::none;
+        }
+        uint32_t page_addr = pt_entry & BITS(pt_entry, 12, 20) << 12;
+        pt_write = BIT(pt_entry, 1);
+        pt_umode = BIT(pt_entry, 2);
+        result_addr = page_addr + page_offset;
     }
-    uint32_t page_addr = pt_entry & BITS(pt_entry, 12, 20) << 12;
-    bool pt_write = BIT(pt_entry, 1);
-    bool pt_umode = BIT(pt_entry, 2);
-
     if (!cpu.read_sys_kmode(cpu) && (!pt_umode || !pd_umode)) {
         // Attempting to access kernel mode memory while in user mode.
         return boost::none;
@@ -622,7 +618,7 @@ boost::optional<uint32_t> virt_to_phys(uint32_t addr, cpu_t &cpu, const bool sto
         return boost::none;
     }
 
-    return page_addr + page_offset;
+    return result_addr;
 }
 
 

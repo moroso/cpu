@@ -323,7 +323,7 @@ struct cpu_t {
     uint8_t *ram;
     bool halted;
     bool flush_packet_cache_flag;
-    std::vector<peripheral*> peripherals;
+    peripheral_manager peripherals;
 
     // Used for generating the trace file.
     uint64_t reg_write_mask;

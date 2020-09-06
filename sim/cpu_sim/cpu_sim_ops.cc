@@ -526,14 +526,12 @@ exec_result loadstore_instruction::execute_unconditional(cpu_t &cpu, cpu_t &old_
     } else {
         boost::optional<uint32_t> val = boost::none;
 
-        for (int i = 0; i < cpu.peripherals.size(); i++) {
-            boost::optional<uint32_t> periph_val = cpu.peripherals[i]->read(cpu, mem_addr, width);
-            if (periph_val) {
-                if (verbose)
-                    printf("Read handled by %s\n", cpu.peripherals[i]->name().c_str());
-                cpu.write_reg(rd.get(), *periph_val);
-                return exec_result(EXC_NO_ERROR);
-            }
+        boost::optional<uint32_t> periph_val = cpu.peripherals.read(cpu, mem_addr, width);
+        if (periph_val) {
+            if (verbose)
+                printf("Read handled by peripheral\n");
+            cpu.write_reg(rd.get(), *periph_val);
+            return exec_result(EXC_NO_ERROR);
         }
 
         if (mem_addr >= SIM_RAM_BYTES) {

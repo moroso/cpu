@@ -7,40 +7,73 @@
 #include "cpu_sim.h"
 
 struct cpu_t;
+class interrupt_controller;
+class video;
 
 class peripheral {
 public:
-    virtual bool process(cpu_t &cpu) { return false; }
+    virtual uint32_t process(cpu_t &cpu) { return false; }
     // Returns whether the given write will be handled by this peripheral.
-    virtual bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width){return false; }
-    // Returns true if the write was handled; false if this peripheral is punting on it.
-    virtual bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) { return false; }
-    // Perform a read from the specified memory address. none is returned if the address
-    // is not special to this peripheral.
-    virtual boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width) {
-		return boost::none;
-	}
+    virtual void write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) {}
+    // Perform a read from the specified memory address. The address is guaranteed to
+    // be 4-byte aligned.
+    virtual uint32_t read(cpu_t &cpu, uint32_t addr) {
+        return 0;
+    }
     virtual std::string name() { return std::string("<NONE>"); }
-protected:
-    bool fire_interrupt(cpu_t &cpu, uint8_t interrupt);
+
 };
 
-#define TIMER_BASE 0x80000000
+class peripheral_manager {
+public:
+    bool process(cpu_t &cpu);
+    bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width);
+
+    peripheral_manager();
+private:
+    std::vector<peripheral*> peripherals;
+    std::vector<uint32_t> last_int_flags;
+
+    interrupt_controller *ictl;
+    video *vid;
+};
+
+#define PERIPHERAL_BASE 0x80000000
+
+
+class interrupt_controller : public peripheral {
+public:
+    interrupt_controller(uint32_t num_peripherals);
+    uint32_t process(cpu_t &cpu);
+    void write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    uint32_t read(cpu_t &cpu, uint32_t addr);
+    std::string name() { return std::string("Interrupt controller"); }
+
+    void set_hw_flag(uint32_t periph, uint32_t flags);
+    bool interrupt_fired(void) { return int_fired; };
+private:
+    void recompute(void);
+
+    std::vector<uint32_t> mask;
+    std::vector<uint32_t> pending;
+    uint32_t firing_interrupts;
+    bool int_fired;
+};
+
 #define TIMER_COUNT 0
 #define TIMER_TOP 4
 #define TIMER_CONTROL 8
-#define TIMER_CONTROL_INT 0
-#define TIMER_CONTROL_INT_EN 1
-#define TIMER_CONTROL_EN 2
+#define TIMER_CONTROL_EN 0
 
 // A timer implementation that just counts CPU cycles.
 class cycle_timer : public peripheral {
 public:
     cycle_timer() : top(0), count(0), int_enable(0), int_flag(0), enable(0) {}
-    bool process(cpu_t &cpu);
-    bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width);
+    uint32_t process(cpu_t &cpu);
+    void write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    uint32_t read(cpu_t &cpu, uint32_t addr);
     std::string name() { return std::string("Cycle timer"); }
 private:
     uint32_t top;
@@ -50,27 +83,23 @@ private:
     bool enable;
 };
 
-#define SERIAL_BASE 0x80001000
-#define SERIAL_BAUD 0
-#define SERIAL_DATA 4
-#define SERIAL_CONTROL 8
-#define SERIAL_STATUS 12
+#define SERIAL_DATA 0
+#define SERIAL_CSR 4
+// TODO: baud, interrupts, etc.
 
-#define SERIAL_CONTROL_TXCI 0
-#define SERIAL_CONTROL_TXEI 1
-#define SERIAL_CONTROL_RXCI 2
-#define SERIAL_STATUS_TXC 0
-#define SERIAL_STATUS_TXE 1
-#define SERIAL_STATUS_RXC 2
+#define SERIAL_CSR_TXC 0
+#define SERIAL_CSR_TXE 1
+#define SERIAL_CSR_RX_EN 2
+#define SERIAL_CSR_RXC 3
+#define SERIAL_CSR_RX_ERR 4
 
 // Serial port implementation. Just supports tx for now.
 class serial_port : public peripheral {
 public:
-	serial_port() : counter(0), tx_buf(0), tx_shift(0), state(SERIAL_IDLE), baud(0), control(0), status(1 << SERIAL_STATUS_TXE) {}
-    bool process(cpu_t &cpu);
-    bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width);
+	serial_port() : counter(0), tx_buf(0), tx_shift(0), state(SERIAL_IDLE), baud(0), csr(1 << SERIAL_CSR_TXE) {}
+    uint32_t process(cpu_t &cpu);
+    void write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    uint32_t read(cpu_t &cpu, uint32_t addr);
     std::string name() { return std::string("Serial port"); }
 private:
     uint32_t counter;
@@ -82,24 +111,22 @@ private:
     } state;
 
     uint32_t baud;
-    uint32_t control;
-    uint32_t status;
+    uint32_t csr;
 };
 
 
-#define VIDEO_BASE 0x80002000
-#define VIDEO_RAM_PTR 0
+#define VIDEO_BASE 0
 
 #ifdef USE_SDL
 
 class video : public peripheral {
 public:
     video();
-    bool process(cpu_t &cpu);
-    bool check_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    bool write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
-    boost::optional<uint32_t> read(cpu_t &cpu, uint32_t addr, uint8_t width);
+    uint32_t process(cpu_t &cpu);
+    void write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
+    uint32_t read(cpu_t &cpu, uint32_t addr);
     std::string name() { return std::string("Video controller"); }
+    void video_mem_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width);
 private:
     SDL_Surface *screen;
     uint32_t video_offset;
@@ -113,5 +140,8 @@ private:
 };
 
 #else
-class video : public peripheral {};
+class video : public peripheral {
+public:
+    void video_mem_write(cpu_t &cpu, uint32_t addr, uint32_t val, uint8_t width) {};
+};
 #endif
