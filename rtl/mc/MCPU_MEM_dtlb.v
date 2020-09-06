@@ -429,7 +429,7 @@ module MCPU_MEM_dtlb(
      else if (page_present_a) begin
 	if (~page_user_a & user_mode_1a)
 	  dtlb_pf_a = 1;
-	else if (dtlb_is_write_a_1a & ~page_writeable_b)
+	else if (dtlb_is_write_a_1a & ~page_writeable_a)
 	  dtlb_pf_a = 1;
 	else
 	  dtlb_pf_a = 0;
