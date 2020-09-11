@@ -58,21 +58,33 @@ module MCPU_CORE_coproc(/*AUTOARG*/
   wire 	 mtc_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTC;
   wire 	 mfhi_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MFHI;
   wire 	 mthi_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MTHI;
+  wire 	 mult_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_MULT;
   wire 	 flush_inst = coproc_instruction & d2pc_in_execute_opcode0[8:5] == COPROC_OP_FLUSH;
 
   reg [31:0] scratchpad[3:0];
   reg [31:0] coproc_regs[9:0];
   reg [31:0] ovf;
 
-    assign paging_on = coproc_regs[0][1];
-    assign interrupts_enabled = coproc_regs[0][0];
-    assign coproc_reg_result = mfhi_inst ? ovf : (d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
-                                                  : coproc_regs[d2pc_in_rs_num0[3:0]]);
-  wire 	       coproc_rd_we = mfc_inst || mfhi_inst;
+  wire [63:0] umul_result = d2pc_in_sop0 * d2pc_in_rs_data0;
+  //Verilog multiplication is signed iff both operands are signed, regardless of the destination
+  wire signed [31:0] smul_sop = d2pc_in_sop0;
+  wire signed [31:0] smul_rs = d2pc_in_rs_data0;
+  wire [63:0] smul_result = smul_sop * smul_rs;
+  wire mul_is_signed = d2pc_in_execute_opcode0[4];
+
+  assign paging_on = coproc_regs[0][1];
+  assign interrupts_enabled = coproc_regs[0][0];
+  assign coproc_reg_result = mult_inst ? (mul_is_signed ? smul_result[31:0] : umul_result[31:0])
+                           : mfhi_inst ? ovf 
+                           : (d2pc_in_rs_num0[4] ? scratchpad[d2pc_in_rs_num0[1:0]]
+                                                 : coproc_regs[d2pc_in_rs_num0[3:0]]);
+  wire 	       coproc_rd_we = mfc_inst || mfhi_inst || mult_inst;
 
     assign coproc_branch = exception | eret_inst;
     assign coproc_branchaddr = exception ? coproc_regs[2][31:4] : coproc_regs[3][31:4]; // EHA or EPC
   assign pagedir_base = coproc_regs[1][31:12];
+
+  
 
   assign dl1c_flush = flush_inst & d2pc_in_execute_opcode0[1:0] == 2'b00;
   assign il1c_flush = flush_inst & d2pc_in_execute_opcode0[1:0] == 2'b01;
@@ -86,6 +98,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
 
   reg 	       link_bit;
   assign link = link_bit;
+
 
     integer i;
     always @(posedge clkrst_core_clk, negedge clkrst_core_rst_n) begin
@@ -115,7 +128,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
 
 	   if(exception) begin //TODO clear link bit when that exists
               user_mode <= 0;
-	      link_bit <= 0;
+              link_bit <= 0;
               coproc_regs[0][0] <= 0; // disable interrupts
               coproc_regs[3][31:4] <= d2pc_in_virtpc[27:0]; //EPC
               coproc_regs[3][1] <= interrupts_enabled;
@@ -130,7 +143,7 @@ module MCPU_CORE_coproc(/*AUTOARG*/
            else if(eret_inst) begin
               user_mode <= ~coproc_regs[3][0];
               coproc_regs[0][0] <= coproc_regs[3][1];
-	      link_bit <= 0;
+              link_bit <= 0;
            end
            else if(mtc_inst) begin
               if(d2pc_in_rd_num0[4])
@@ -140,6 +153,12 @@ module MCPU_CORE_coproc(/*AUTOARG*/
            end
            else if(mthi_inst) begin
               ovf <= d2pc_in_rs_data0;
+           end
+           else if(mult_inst) begin
+              if(mul_is_signed)
+                 ovf <= smul_result[63:32];
+              else
+                 ovf <= umul_result[63:32];
            end
 	end
     end
